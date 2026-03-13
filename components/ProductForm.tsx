@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { Loader2, Trash2 } from 'lucide-react'
-import { ImageUpload } from './ImageUpload'
+import { ImageUpload, type PendingImage } from './ImageUpload'
 import { Product, Category } from '@/lib/types'
 
 const productSchema = z.object({
@@ -41,14 +41,61 @@ interface ProductFormProps {
   mode: 'create' | 'edit'
 }
 
+async function uploadImagesToCloudinary(files: File[]) {
+  // Get signed upload params
+  const signRes = await fetch('/api/cloudinary/sign-upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ folder: 'plenair/products' }),
+  })
+
+  if (!signRes.ok) throw new Error('Error al obtener firma de subida')
+  const signData = await signRes.json()
+
+  const results = []
+  for (const file of files) {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('api_key', signData.api_key)
+    formData.append('timestamp', String(signData.timestamp))
+    formData.append('signature', signData.signature)
+    formData.append('folder', signData.folder)
+    formData.append('eager', signData.eager)
+    formData.append('eager_async', String(signData.eager_async))
+    if (signData.upload_preset) {
+      formData.append('upload_preset', signData.upload_preset)
+    }
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${signData.cloud_name}/image/upload`,
+      { method: 'POST', body: formData },
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('Cloudinary error:', errorData)
+      throw new Error(`Error al subir ${file.name}`)
+    }
+
+    const data = await response.json()
+    results.push({
+      publicId: data.public_id,
+      url: data.secure_url,
+      width: data.width,
+      height: data.height,
+    })
+  }
+
+  return results
+}
+
 export function ProductForm({ product, categories, mode }: ProductFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [uploadedImages, setUploadedImages] = useState<
-    Array<{ publicId: string; url: string; width: number; height: number }>
-  >([])
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
 
   const {
     register,
@@ -94,6 +141,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
   const onSubmit = async (data: ProductFormData) => {
     try {
       setLoading(true)
+      setLoadingMessage('Guardando producto...')
 
       // Auto-generate slug from name if creating
       let finalSlug = data.slug
@@ -129,27 +177,30 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
 
       const savedProduct = await response.json()
 
-      // Upload images if any
-      if (uploadedImages.length > 0) {
-        for (let i = 0; i < uploadedImages.length; i++) {
-          const img = uploadedImages[i]
-          try {
-            await fetch('/api/admin/products/upload-image', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                product_id: savedProduct.id,
-                cloudinary_public_id: img.publicId,
-                url: img.url,
-                width: img.width,
-                height: img.height,
-                is_primary: i === 0,
-                display_order: i,
-              }),
-            })
-          } catch (imgErr) {
-            console.error('Error uploading image:', imgErr)
-          }
+      // Upload pending images to Cloudinary then save to DB
+      if (pendingImages.length > 0) {
+        setLoadingMessage(`Subiendo ${pendingImages.length} imagen(es)...`)
+
+        const files = pendingImages.map((p) => p.file)
+        const uploaded = await uploadImagesToCloudinary(files)
+
+        setLoadingMessage('Guardando imágenes...')
+
+        for (let i = 0; i < uploaded.length; i++) {
+          const img = uploaded[i]
+          await fetch('/api/admin/products/upload-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product_id: savedProduct.id,
+              cloudinary_public_id: img.publicId,
+              url: img.url,
+              width: img.width,
+              height: img.height,
+              is_primary: i === 0,
+              display_order: i,
+            }),
+          })
         }
       }
 
@@ -170,6 +221,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
       toast.error(error instanceof Error ? error.message : 'Error al guardar')
     } finally {
       setLoading(false)
+      setLoadingMessage('')
     }
   }
 
@@ -348,7 +400,8 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
       <div className="border-t pt-6">
         <h3 className="font-semibold mb-4">Imágenes del Producto</h3>
         <ImageUpload
-          onImageUpload={setUploadedImages}
+          pendingImages={pendingImages}
+          onPendingImagesChange={setPendingImages}
           multiple={true}
           maxFiles={5}
         />
@@ -399,7 +452,11 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
           </Button>
           <Button type="submit" disabled={loading}>
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {mode === 'create' ? 'Crear Producto' : 'Guardar Cambios'}
+            {loading && loadingMessage
+              ? loadingMessage
+              : mode === 'create'
+                ? 'Crear Producto'
+                : 'Guardar Cambios'}
           </Button>
         </div>
       </div>
