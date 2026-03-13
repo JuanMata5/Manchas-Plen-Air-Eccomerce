@@ -1,0 +1,48 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { generateTicketPDF } from '@/lib/pdf/ticket-generator'
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ code: string }> },
+) {
+  try {
+    const { code } = await params
+
+    if (!code) {
+      return NextResponse.json({ error: 'Codigo requerido' }, { status: 400 })
+    }
+
+    const adminDb = createAdminClient()
+
+    const { data: ticket } = await adminDb
+      .from('tickets')
+      .select('*, products(name), orders(id, buyer_name)')
+      .eq('qr_code', code)
+      .single()
+
+    if (!ticket) {
+      return new NextResponse(
+        '<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h1>Ticket no encontrado</h1><p>El codigo QR no es valido.</p></div></body></html>',
+        { status: 404, headers: { 'Content-Type': 'text/html' } },
+      )
+    }
+
+    const pdfBuffer = await generateTicketPDF({
+      orderReference: ticket.orders?.id?.slice(0, 8).toUpperCase() ?? '',
+      ticketCode: ticket.qr_code,
+      holderName: ticket.holder_name,
+      productName: ticket.products?.name || 'Entrada',
+    })
+
+    return new NextResponse(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="ticket-${ticket.qr_code}.pdf"`,
+      },
+    })
+  } catch (err) {
+    console.error('[QR DOWNLOAD]', err)
+    return NextResponse.json({ error: 'Error al generar ticket' }, { status: 500 })
+  }
+}
