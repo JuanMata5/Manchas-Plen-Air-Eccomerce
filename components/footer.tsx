@@ -25,7 +25,7 @@ export function Footer() {
           {/* Social icons */}
           <div className="flex items-center gap-3">
             <a
-              href="https://instagram.com/manchasplenair"
+              href="https://www.instagram.com/manchas_plein_air/"
               target="_blank"
               rel="noopener noreferrer"
               className="h-9 w-9 rounded-lg bg-background/10 flex items-center justify-center hover:bg-background/20 transition-colors"
@@ -34,7 +34,7 @@ export function Footer() {
               <Instagram className="h-4 w-4" />
             </a>
             <a
-              href="https://facebook.com/manchasplenair"
+              href="https://www.facebook.com/MPABSAS2/#"
               target="_blank"
               rel="noopener noreferrer"
               className="h-9 w-9 rounded-lg bg-background/10 flex items-center justify-center hover:bg-background/20 transition-colors"
@@ -43,11 +43,11 @@ export function Footer() {
               <Facebook className="h-4 w-4" />
             </a>
             <a
-              href="https://tiktok.com/@manchasplenair"
+              href="https://www.threads.com/@manchas_plein_air"
               target="_blank"
               rel="noopener noreferrer"
               className="h-9 w-9 rounded-lg bg-background/10 flex items-center justify-center hover:bg-background/20 transition-colors"
-              aria-label="TikTok"
+              aria-label="Threads"
             >
               <TikTokIcon className="h-4 w-4" />
             </a>
