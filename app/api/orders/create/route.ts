@@ -207,6 +207,7 @@ export async function POST(request: NextRequest) {
         },
         external_reference: order.id,
         statement_descriptor: 'PLEN AIR',
+        notification_url: `${baseUrl}/api/webhooks/mercadopago`,
       }
 
       // MP requires HTTPS for back_urls + auto_return

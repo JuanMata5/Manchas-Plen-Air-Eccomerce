@@ -87,13 +87,12 @@ export async function POST(request: NextRequest) {
           if (orderItems && order) {
             const tickets = orderItems.flatMap((item: any) =>
               Array.from({ length: item.quantity }, () => {
-                const { code, signature } = generateSecureTicketCode()
+                const { code } = generateSecureTicketCode()
                 return {
                   order_id: orderId,
                   product_id: item.product_id,
                   order_item_id: item.id,
                   qr_code: code,
-                  qr_signature: signature,
                   holder_name: order.buyer_name,
                   holder_email: order.buyer_email,
                   holder_dni: order.buyer_dni,
