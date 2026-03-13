@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/sendgrid'
 import { paymentConfirmedTemplate } from '@/lib/email/templates'
 import { generateMultipleTicketsPDF } from '@/lib/pdf/ticket-generator'
+import { generateSecureTicketCode } from '@/lib/ticket-security'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const supabase = await createClient()
+    const adminDb = createAdminClient()
 
     // Log raw webhook
-    await supabase.from('webhook_logs').insert({
+    await adminDb.from('webhook_logs').insert({
       source: 'mercadopago',
       provider: 'mercadopago',
       event_type: body.type ?? 'unknown',
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!mpRes.ok) {
-      console.error('[v0] MP payment fetch error:', await mpRes.text())
+      console.error('[WEBHOOK] MP payment fetch error:', await mpRes.text())
       return NextResponse.json({ error: 'Cannot fetch payment' }, { status: 500 })
     }
 
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (newStatus) {
-      await supabase
+      await adminDb
         .from('orders')
         .update({
           status: newStatus,
@@ -65,90 +66,93 @@ export async function POST(request: NextRequest) {
 
       // Generate tickets on successful payment
       if (newStatus === 'paid') {
-        const { data: orderItems } = await supabase
-          .from('order_items')
-          .select('*')
+        const { data: existingTickets } = await adminDb
+          .from('tickets')
+          .select('id')
           .eq('order_id', orderId)
 
-        const { data: order } = await supabase
-          .from('orders')
-          .select('buyer_name, buyer_dni, buyer_email, total_ars')
-          .eq('id', orderId)
-          .single()
+        // Only generate if no tickets exist yet (idempotency)
+        if (!existingTickets || existingTickets.length === 0) {
+          const { data: orderItems } = await adminDb
+            .from('order_items')
+            .select('*')
+            .eq('order_id', orderId)
 
-        if (orderItems && order) {
-          // Generate tickets
-          const tickets = orderItems.flatMap((item) =>
-            Array.from({ length: item.quantity }, () => ({
-              order_id: orderId,
-              product_id: item.product_id,
-              order_item_id: item.id,
-              qr_code: generateTicketCode(),
-              holder_name: order.buyer_name,
-              holder_email: order.buyer_email,
-              holder_dni: order.buyer_dni,
-            })),
-          )
+          const { data: order } = await adminDb
+            .from('orders')
+            .select('buyer_name, buyer_dni, buyer_email, total_ars')
+            .eq('id', orderId)
+            .single()
 
-          if (tickets.length > 0) {
-            const { error: ticketError } = await supabase.from('tickets').insert(tickets)
-            if (ticketError) {
-              console.error('[WEBHOOK] Error inserting tickets:', ticketError)
-            }
-          }
-
-          // Send email with ticket PDF
-          try {
-            // Get product info for ticket generation
-            const { data: productsData } = await supabase
-              .from('products')
-              .select('id, name, event_date, event_location')
-              .in(
-                'id',
-                orderItems.map((oi) => oi.product_id),
-              )
-
-            // Prepare ticket data for PDF
-            const ticketData = tickets.map((t, idx) => {
-              const product = productsData?.find((p) => p.id === t.product_id)
-              return {
-                orderReference: orderId,
-                ticketCode: t.qr_code,
-                holderName: t.holder_name,
-                productName: product?.name || 'Entrada',
-                eventDate: product?.event_date,
-                eventLocation: product?.event_location,
-              }
-            })
-
-            // Generate PDF
-            const pdfBuffer = await generateMultipleTicketsPDF(ticketData)
-
-            // Send email with PDF
-            await sendEmail({
-              to: order.buyer_email,
-              subject: `¡Tus entradas para Plen Air! - Orden ${orderId.slice(0, 8).toUpperCase()}`,
-              html: paymentConfirmedTemplate({
-                orderReference: orderId,
-                buyerName: order.buyer_name,
-                total: order.total_ars,
-                paymentDate: new Date().toISOString(),
-                ticketCount: tickets.length,
-                eventName: 'Plen Air',
+          if (orderItems && order) {
+            const tickets = orderItems.flatMap((item: any) =>
+              Array.from({ length: item.quantity }, () => {
+                const { code, signature } = generateSecureTicketCode()
+                return {
+                  order_id: orderId,
+                  product_id: item.product_id,
+                  order_item_id: item.id,
+                  qr_code: code,
+                  qr_signature: signature,
+                  holder_name: order.buyer_name,
+                  holder_email: order.buyer_email,
+                  holder_dni: order.buyer_dni,
+                }
               }),
-              attachments: [
-                {
-                  content: pdfBuffer.toString('base64'),
-                  filename: `entradas-${orderId.slice(0, 8)}.pdf`,
-                  type: 'application/pdf',
-                },
-              ],
-            })
+            )
 
-            console.log('[WEBHOOK] Email sent with tickets to:', order.buyer_email)
-          } catch (emailErr) {
-            console.error('[WEBHOOK] Error sending email with tickets:', emailErr)
-            // Don't fail webhook if email fails
+            if (tickets.length > 0) {
+              const { error: ticketError } = await adminDb.from('tickets').insert(tickets)
+              if (ticketError) {
+                console.error('[WEBHOOK] Error inserting tickets:', ticketError)
+              }
+            }
+
+            // Send email with ticket PDF
+            try {
+              const { data: productsData } = await adminDb
+                .from('products')
+                .select('id, name, event_date, event_location')
+                .in('id', orderItems.map((oi: any) => oi.product_id))
+
+              const ticketData = tickets.map((t) => {
+                const product = productsData?.find((p: any) => p.id === t.product_id)
+                return {
+                  orderReference: orderId,
+                  ticketCode: t.qr_code,
+                  holderName: t.holder_name,
+                  productName: product?.name || 'Entrada',
+                  eventDate: product?.event_date,
+                  eventLocation: product?.event_location,
+                }
+              })
+
+              const pdfBuffer = await generateMultipleTicketsPDF(ticketData)
+
+              await sendEmail({
+                to: order.buyer_email,
+                subject: `¡Tus entradas para Plen Air! - Orden ${orderId.slice(0, 8).toUpperCase()}`,
+                html: paymentConfirmedTemplate({
+                  orderReference: orderId,
+                  buyerName: order.buyer_name,
+                  total: order.total_ars,
+                  paymentDate: new Date().toISOString(),
+                  ticketCount: tickets.length,
+                  eventName: 'Plen Air',
+                }),
+                attachments: [
+                  {
+                    content: pdfBuffer.toString('base64'),
+                    filename: `entradas-${orderId.slice(0, 8)}.pdf`,
+                    type: 'application/pdf',
+                  },
+                ],
+              })
+
+              console.log('[WEBHOOK] Email sent with tickets to:', order.buyer_email)
+            } catch (emailErr) {
+              console.error('[WEBHOOK] Error sending email with tickets:', emailErr)
+            }
           }
         }
       }
@@ -156,12 +160,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true })
   } catch (err) {
-    console.error('[v0] Webhook error:', err)
+    console.error('[WEBHOOK] Webhook error:', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
-}
-
-function generateTicketCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return 'PA-' + Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
 }
