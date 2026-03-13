@@ -145,7 +145,7 @@ export function TicketValidationView({ ticket, isAdmin }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg max-w-md w-full overflow-hidden">
+    <div className="bg-card rounded-2xl shadow-lg max-w-md w-full overflow-hidden">
       {/* Status header */}
       <div className={`p-6 text-center text-white ${isUsed ? 'bg-red-500' : 'bg-green-500'}`}>
         {isUsed ? (
@@ -170,25 +170,25 @@ export function TicketValidationView({ ticket, isAdmin }: Props) {
       {/* Ticket info */}
       <div className="p-6 space-y-4">
         <div className="text-center border-b pb-4">
-          <p className="text-xs text-gray-400 uppercase tracking-wide">Manchas Plen Air</p>
-          <h2 className="text-xl font-bold text-gray-900 mt-1">{ticket.product_name}</h2>
-          <p className="text-sm text-gray-500 font-mono mt-1">{ticket.qr_code}</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">Manchas Plen Air</p>
+          <h2 className="text-xl font-bold text-foreground mt-1">{ticket.product_name}</h2>
+          <p className="text-sm text-muted-foreground font-mono mt-1">{ticket.qr_code}</p>
         </div>
 
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <User className="w-5 h-5 text-gray-400 shrink-0" />
+            <User className="w-5 h-5 text-muted-foreground shrink-0" />
             <div>
-              <p className="text-xs text-gray-400">Titular</p>
+              <p className="text-xs text-muted-foreground">Titular</p>
               <p className="text-sm font-medium">{ticket.holder_name || ticket.buyer_name}</p>
             </div>
           </div>
 
           {ticket.event_date && (
             <div className="flex items-center gap-3">
-              <Calendar className="w-5 h-5 text-gray-400 shrink-0" />
+              <Calendar className="w-5 h-5 text-muted-foreground shrink-0" />
               <div>
-                <p className="text-xs text-gray-400">Fecha</p>
+                <p className="text-xs text-muted-foreground">Fecha</p>
                 <p className="text-sm font-medium">
                   {new Date(ticket.event_date).toLocaleDateString('es-AR', {
                     weekday: 'long',
@@ -203,9 +203,9 @@ export function TicketValidationView({ ticket, isAdmin }: Props) {
 
           {ticket.event_location && (
             <div className="flex items-center gap-3">
-              <MapPin className="w-5 h-5 text-gray-400 shrink-0" />
+              <MapPin className="w-5 h-5 text-muted-foreground shrink-0" />
               <div>
-                <p className="text-xs text-gray-400">Ubicación</p>
+                <p className="text-xs text-muted-foreground">Ubicación</p>
                 <p className="text-sm font-medium">{ticket.event_location}</p>
               </div>
             </div>
@@ -215,7 +215,7 @@ export function TicketValidationView({ ticket, isAdmin }: Props) {
         {/* Admin section */}
         {isAdmin && !isUsed && (
           <div className="border-t pt-4 mt-4">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
               <Shield className="w-4 h-4" />
               <span>Acción de administrador</span>
             </div>
@@ -231,7 +231,7 @@ export function TicketValidationView({ ticket, isAdmin }: Props) {
 
         {isAdmin && isUsed && (
           <div className="border-t pt-4 mt-4">
-            <div className="bg-red-50 text-red-700 rounded-lg p-3 text-center text-sm font-medium">
+            <div className="bg-red-500/10 text-red-700 rounded-lg p-3 text-center text-sm font-medium">
               Esta entrada ya fue utilizada
             </div>
           </div>
@@ -252,7 +252,7 @@ export function TicketValidationView({ ticket, isAdmin }: Props) {
             ) : (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-700">Escaneando...</p>
+                  <p className="text-sm font-medium text-foreground">Escaneando...</p>
                   <Button
                     onClick={stopScanner}
                     variant="ghost"

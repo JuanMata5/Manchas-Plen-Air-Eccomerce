@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { ShoppingCart, Menu, X, Leaf, User, Settings, LogOut, LogIn, UserPlus, Ticket } from 'lucide-react'
+import { ShoppingCart, Menu, X, Leaf, User, Settings, LogOut, LogIn, UserPlus, Ticket, Sun, Moon } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import { useCartStore } from '@/lib/cart-store'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,7 @@ export function Navbar() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
 
   useEffect(() => {
     setMounted(true)
@@ -106,6 +108,19 @@ export function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Theme toggle */}
+          {mounted && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-primary-foreground hover:bg-primary/80"
+              aria-label="Cambiar tema"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </Button>
+          )}
+
           {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

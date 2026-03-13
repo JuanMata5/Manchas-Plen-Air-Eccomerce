@@ -340,7 +340,7 @@ export function CheckoutForm() {
 
           {/* First purchase discount */}
           {firstPurchaseDiscount > 0 && (
-            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+            <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-200 rounded-lg text-green-800 text-sm">
               <Gift className="h-4 w-4 shrink-0" />
               <span>Primera compra: <strong>{firstPurchaseDiscount}% de descuento</strong> aplicado automaticamente</span>
             </div>

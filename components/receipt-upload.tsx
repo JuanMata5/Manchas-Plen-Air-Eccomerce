@@ -52,7 +52,7 @@ export function ReceiptUpload({ orderId, existingUrl }: { orderId: string; exist
 
   if (uploaded) {
     return (
-      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+      <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-200 rounded-lg text-green-800 text-sm">
         <Check className="h-4 w-4 shrink-0" />
         <span>Comprobante enviado. Lo revisaremos y te notificaremos por email.</span>
       </div>

@@ -371,7 +371,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
 
       {/* Event date/location (conditionally for tickets) */}
       {(productType === 'ticket' || productType === 'workshop') && (
-        <div className="bg-blue-50 p-4 rounded-lg space-y-4">
+        <div className="bg-blue-500/10 p-4 rounded-lg space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="event_date">Fecha del evento</Label>
@@ -412,7 +412,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
         <div className="flex items-center justify-between">
           <div>
             <Label htmlFor="is_active">Producto Activo</Label>
-            <p className="text-sm text-gray-500">Mostrar en tienda</p>
+            <p className="text-sm text-muted-foreground">Mostrar en tienda</p>
           </div>
           <Switch {...register('is_active')} disabled={loading} />
         </div>
@@ -420,7 +420,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
         <div className="flex items-center justify-between">
           <div>
             <Label htmlFor="is_featured">Producto Destacado</Label>
-            <p className="text-sm text-gray-500">Mostrar en inicio</p>
+            <p className="text-sm text-muted-foreground">Mostrar en inicio</p>
           </div>
           <Switch {...register('is_featured')} disabled={loading} />
         </div>
@@ -470,7 +470,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
               Esta acción no se puede deshacer. Se eliminarán el producto y todas sus imágenes.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="bg-red-50 p-3 rounded text-sm text-red-800">
+          <div className="bg-red-500/10 p-3 rounded text-sm text-red-800">
             <strong>{product?.name}</strong> será eliminado permanentemente.
           </div>
           <div className="flex gap-3 justify-end">

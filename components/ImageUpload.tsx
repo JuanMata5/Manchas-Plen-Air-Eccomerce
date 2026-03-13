@@ -65,7 +65,7 @@ export function ImageUpload({
           handleFileSelect(e.dataTransfer.files)
         }}
         onDragOver={(e) => e.preventDefault()}
-        className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition"
+        className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-muted-foreground transition"
       >
         <input
           ref={fileInputRef}
@@ -79,9 +79,9 @@ export function ImageUpload({
           className="hidden"
         />
 
-        <Upload className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+        <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
         <p className="text-sm font-medium">Arrastrá imágenes o hacé clic para seleccionar</p>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           {multiple ? `Máximo ${maxFiles} imágenes, PNG/JPG` : 'PNG/JPG'}
         </p>
       </div>

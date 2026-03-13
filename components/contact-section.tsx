@@ -87,7 +87,7 @@ export function ContactSection() {
         <div className="bg-card rounded-xl border border-border p-6 md:p-8">
           {sent ? (
             <div className="flex flex-col items-center justify-center gap-4 py-10 text-center">
-              <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
+              <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center">
                 <Send className="h-7 w-7 text-green-600" />
               </div>
               <h3 className="font-serif font-semibold text-xl text-foreground">Mensaje enviado</h3>
