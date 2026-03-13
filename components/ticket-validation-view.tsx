@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, XCircle, Shield, User, Calendar, MapPin, Download } from 'lucide-react'
+import { CheckCircle, XCircle, Shield, User, Calendar, MapPin, Download, Camera, X } from 'lucide-react'
 
 interface TicketInfo {
   id: string
@@ -24,10 +25,81 @@ interface Props {
 }
 
 export function TicketValidationView({ ticket, isAdmin }: Props) {
+  const router = useRouter()
   const [isUsed, setIsUsed] = useState(ticket.is_used)
   const [usedAt, setUsedAt] = useState(ticket.used_at)
   const [validating, setValidating] = useState(false)
   const [downloading, setDownloading] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const scannerRef = useRef<HTMLDivElement>(null)
+  const html5QrCodeRef = useRef<any>(null)
+
+  const stopScanner = useCallback(async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        await html5QrCodeRef.current.stop()
+        html5QrCodeRef.current.clear()
+      } catch {
+        // ignore
+      }
+      html5QrCodeRef.current = null
+    }
+    setScanning(false)
+  }, [])
+
+  const startScanner = useCallback(async () => {
+    setScanning(true)
+
+    // Dynamic import to avoid SSR issues
+    const { Html5Qrcode } = await import('html5-qrcode')
+
+    // Wait for the DOM element to be ready
+    await new Promise((r) => setTimeout(r, 100))
+
+    if (!scannerRef.current) return
+
+    const scannerId = 'qr-scanner'
+    scannerRef.current.id = scannerId
+
+    const html5QrCode = new Html5Qrcode(scannerId)
+    html5QrCodeRef.current = html5QrCode
+
+    try {
+      await html5QrCode.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText: string) => {
+          // Extract the ticket code from the URL
+          const match = decodedText.match(/\/tickets\/validar\/([A-Za-z0-9_-]+)/)
+          if (match) {
+            stopScanner()
+            router.push(`/tickets/validar/${match[1]}`)
+            router.refresh()
+          } else if (decodedText.startsWith('http')) {
+            // If it's a full URL, just navigate
+            stopScanner()
+            window.location.href = decodedText
+          }
+        },
+        () => {
+          // QR code not detected, keep scanning
+        },
+      )
+    } catch (err) {
+      console.error('Error starting scanner:', err)
+      setScanning(false)
+      alert('No se pudo acceder a la cámara. Verificá los permisos.')
+    }
+  }, [router, stopScanner])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (html5QrCodeRef.current) {
+        html5QrCodeRef.current.stop().catch(() => {})
+      }
+    }
+  }, [])
 
   const handleValidate = async () => {
     setValidating(true)
@@ -162,6 +234,39 @@ export function TicketValidationView({ ticket, isAdmin }: Props) {
             <div className="bg-red-50 text-red-700 rounded-lg p-3 text-center text-sm font-medium">
               Esta entrada ya fue utilizada
             </div>
+          </div>
+        )}
+
+        {/* QR Scanner for admin */}
+        {isAdmin && (
+          <div className="border-t pt-4 mt-4">
+            {!scanning ? (
+              <Button
+                onClick={startScanner}
+                variant="outline"
+                className="w-full"
+              >
+                <Camera className="w-4 h-4 mr-2" />
+                Escanear otro QR
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-gray-700">Escaneando...</p>
+                  <Button
+                    onClick={stopScanner}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div
+                  ref={scannerRef}
+                  className="w-full rounded-lg overflow-hidden"
+                />
+              </div>
+            )}
           </div>
         )}
 
