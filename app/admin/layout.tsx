@@ -2,9 +2,10 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { LayoutDashboard, Package, ShoppingBag, Ticket, Leaf, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { AdminMobileNav } from '@/components/admin/admin-mobile-nav'
 
 const navItems = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/ordenes', label: 'Ordenes', icon: ShoppingBag },
   { href: '/admin/productos', label: 'Productos', icon: Package },
   { href: '/admin/tickets', label: 'Tickets', icon: Ticket },
@@ -27,13 +28,22 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!profile?.is_admin) redirect('/')
 
   return (
-    <div className="min-h-screen flex bg-background">
-      {/* Sidebar */}
-      <aside className="w-56 bg-sidebar text-sidebar-foreground flex flex-col shrink-0 hidden md:flex">
+    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+      {/* Mobile top bar */}
+      <div className="md:hidden sticky top-0 z-50 bg-sidebar text-sidebar-foreground flex items-center justify-between px-4 h-14 border-b border-sidebar-border">
+        <Link href="/" className="flex items-center gap-2 font-serif font-bold text-lg">
+          <Leaf className="h-5 w-5" />
+          Manchas Plen Air
+        </Link>
+        <AdminMobileNav navItems={navItems.map((item) => ({ href: item.href, label: item.label }))} />
+      </div>
+
+      {/* Desktop sidebar */}
+      <aside className="w-56 bg-sidebar text-sidebar-foreground flex-col shrink-0 hidden md:flex">
         <div className="px-5 py-6 border-b border-sidebar-border">
           <Link href="/" className="flex items-center gap-2 font-serif font-bold text-lg hover:opacity-80 transition-opacity">
             <Leaf className="h-5 w-5" />
-            Plen Air
+            Manchas Plen Air
           </Link>
           <p className="text-xs text-sidebar-foreground/50 mt-1 uppercase tracking-wider">Admin</p>
         </div>
