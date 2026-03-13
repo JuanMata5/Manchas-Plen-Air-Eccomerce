@@ -237,9 +237,9 @@ export async function POST(request: NextRequest) {
       }
 
       const mpData = await mpRes.json()
-      console.log('[MP] Preference created:', mpData.id, 'sandbox:', mpData.sandbox_init_point)
+      console.log('[MP] Preference created:', mpData.id)
 
-      const initPoint = mpData.sandbox_init_point || mpData.init_point
+      const initPoint = mpData.init_point || mpData.sandbox_init_point
 
       await adminDb
         .from('orders')

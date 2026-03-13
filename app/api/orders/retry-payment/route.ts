@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     const mpData = await mpRes.json()
-    const initPoint = mpData.sandbox_init_point || mpData.init_point
+    const initPoint = mpData.init_point || mpData.sandbox_init_point
 
     // Update order with new payment ref
     await adminDb
