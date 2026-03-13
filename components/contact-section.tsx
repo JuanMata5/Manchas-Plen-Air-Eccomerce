@@ -19,21 +19,21 @@ function TikTokIcon({ className }: { className?: string }) {
 const socials = [
   {
     name: 'Instagram',
-    href: 'https://instagram.com/manchasplenair',
+    href: 'https://www.instagram.com/manchas_plein_air/',
     icon: Instagram,
-    handle: '@manchasplenair',
+    handle: '@manchas_plein_air',
   },
   {
     name: 'Facebook',
-    href: 'https://facebook.com/manchasplenair',
+    href: 'https://www.facebook.com/MPABSAS2/#',
     icon: Facebook,
-    handle: '/manchasplenair',
+    handle: 'Manchas -plein air -',
   },
   {
-    name: 'TikTok',
-    href: 'https://tiktok.com/@manchasplenair',
+    name: 'Threads',
+    href: 'https://www.threads.com/@manchas_plein_air?xmt=AQF0Mrq2OUkRpH63TXUND-RGarRLFgM99h__lSYr6jeqw5g',
     icon: TikTokIcon,
-    handle: '@manchasplenair',
+    handle: '@manchas_plein_air',
   },
 ]
 
