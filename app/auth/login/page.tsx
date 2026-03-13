@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Leaf } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -10,8 +10,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,7 +28,7 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    router.push('/')
+    router.push(redirectTo || '/')
     router.refresh()
   }
 
@@ -36,9 +38,9 @@ export default function LoginPage() {
         <div className="flex flex-col items-center gap-3 mb-8">
           <Link href="/" className="flex items-center gap-2 font-serif font-bold text-2xl text-primary">
             <Leaf className="h-6 w-6" />
-            Plen Air
+            Manchas Plen Air
           </Link>
-          <h1 className="text-xl font-semibold text-foreground">Iniciar sesion</h1>
+          <h1 className="text-xl font-semibold text-foreground">Iniciar sesión</h1>
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -54,7 +56,7 @@ export default function LoginPage() {
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="password">Contrasena</Label>
+            <Label htmlFor="password">Contraseña</Label>
             <Input
               id="password"
               type="password"
@@ -70,12 +72,20 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          No tenes cuenta?{' '}
+          No tenés cuenta?{' '}
           <Link href="/auth/register" className="text-primary underline underline-offset-2">
             Registrate
           </Link>
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }
