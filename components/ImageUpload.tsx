@@ -204,6 +204,7 @@ export function ImageUpload({
       )}
 
       <Button
+        type="button"
         onClick={handleUpload}
         disabled={uploading || previews.length === 0}
         className="w-full"

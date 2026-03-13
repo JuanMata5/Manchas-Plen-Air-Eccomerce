@@ -159,7 +159,11 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
           : 'Producto actualizado exitosamente',
       )
 
-      router.push('/admin/productos')
+      if (mode === 'create') {
+        router.push(`/admin/productos/${savedProduct.id}`)
+      } else {
+        router.push('/admin/productos')
+      }
       router.refresh()
     } catch (error) {
       console.error('Form error:', error)

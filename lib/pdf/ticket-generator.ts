@@ -16,7 +16,7 @@ export interface TicketData {
  */
 export async function generateTicketPDF(ticket: TicketData): Promise<Buffer> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-  const qrUrl = `${baseUrl}/api/tickets/qr/${ticket.ticketCode}`
+  const qrUrl = `${baseUrl}/tickets/validar/${ticket.ticketCode}`
   const qrDataURL = await QRCode.toDataURL(qrUrl, {
     errorCorrectionLevel: 'H',
     type: 'image/png',
@@ -125,7 +125,7 @@ export async function generateMultipleTicketsPDF(tickets: TicketData[]): Promise
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
   const qrCodes = await Promise.all(
     tickets.map((t) =>
-      QRCode.toDataURL(`${baseUrl}/api/tickets/qr/${t.ticketCode}`, {
+      QRCode.toDataURL(`${baseUrl}/tickets/validar/${t.ticketCode}`, {
         errorCorrectionLevel: 'H',
         type: 'image/png',
         quality: 0.95,

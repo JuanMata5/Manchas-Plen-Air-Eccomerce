@@ -30,7 +30,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
     // Generate QR code client-side using canvas
     import('qrcode').then((QRCode) => {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin
-      const qrUrl = `${baseUrl}/api/tickets/qr/${ticket.qr_code}`
+      const qrUrl = `${baseUrl}/tickets/validar/${ticket.qr_code}`
       QRCode.toDataURL(qrUrl, {
         errorCorrectionLevel: 'H',
         width: 200,
