@@ -31,9 +31,60 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const product = await getProduct(slug)
   if (!product) return { title: 'Producto no encontrado' }
   return {
-    title: `${product.name} — Plen Air`,
-    description: product.description ?? undefined,
+    title: product.name,
+    description: product.description || `${product.name} — Disponible en Manchas Plen Air`,
+    openGraph: {
+      title: product.name,
+      description: product.description || `${product.name} — Manchas Plen Air`,
+      type: 'website',
+      ...(product.image_url && { images: [{ url: product.image_url, width: 1200, height: 630, alt: product.name }] }),
+    },
   }
+}
+
+function ProductJsonLd({ product }: { product: Product }) {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://manchas-plen-air-eccomerce.vercel.app'
+  const jsonLd: Record<string, any> = {
+    '@context': 'https://schema.org',
+    '@type': product.product_type === 'ticket' ? 'Event' : 'Product',
+    name: product.name,
+    description: product.description || product.name,
+    url: `${baseUrl}/tienda/${product.slug}`,
+    ...(product.image_url && { image: product.image_url }),
+  }
+
+  if (product.product_type === 'ticket') {
+    jsonLd.eventStatus = 'https://schema.org/EventScheduled'
+    jsonLd.eventAttendanceMode = 'https://schema.org/OfflineEventAttendanceMode'
+    if (product.event_date) jsonLd.startDate = product.event_date
+    if (product.event_location) {
+      jsonLd.location = { '@type': 'Place', name: product.event_location }
+    }
+    jsonLd.offers = {
+      '@type': 'Offer',
+      price: product.price_ars,
+      priceCurrency: 'ARS',
+      availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
+      url: `${baseUrl}/tienda/${product.slug}`,
+    }
+    jsonLd.organizer = { '@type': 'Organization', name: 'Manchas Plen Air' }
+  } else {
+    jsonLd.offers = {
+      '@type': 'Offer',
+      price: product.price_ars,
+      priceCurrency: 'ARS',
+      availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
+      url: `${baseUrl}/tienda/${product.slug}`,
+    }
+    jsonLd.brand = { '@type': 'Brand', name: 'Manchas Plen Air' }
+  }
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  )
 }
 
 export default async function ProductPage({ params }: PageProps) {
@@ -46,6 +97,7 @@ export default async function ProductPage({ params }: PageProps) {
 
   return (
     <>
+      <ProductJsonLd product={product} />
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 py-10">
         {/* Breadcrumb */}

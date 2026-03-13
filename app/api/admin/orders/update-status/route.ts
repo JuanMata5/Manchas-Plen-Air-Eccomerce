@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/sendgrid'
 import { generateMultipleTicketsPDF, type TicketData } from '@/lib/pdf/ticket-generator'
+import { generateSecureTicketCode } from '@/lib/ticket-security'
 
 const VALID_STATUSES = ['pending', 'payment_pending', 'paid', 'cancelled', 'refunded']
 
@@ -64,10 +65,6 @@ export async function POST(request: NextRequest) {
         .single()
 
       if (orderItems && order) {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-        const genCode = () =>
-          'PA-' + Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-
         // Get product names for the PDF
         const productIds = [...new Set(orderItems.map((i: any) => i.product_id))]
         const { data: products } = await adminDb
@@ -77,15 +74,19 @@ export async function POST(request: NextRequest) {
         const productMap = new Map((products ?? []).map((p: any) => [p.id, p.name]))
 
         const tickets = orderItems.flatMap((item: { id: string; quantity: number; product_id: string }) =>
-          Array.from({ length: item.quantity }, () => ({
-            order_id,
-            product_id: item.product_id,
-            order_item_id: item.id,
-            qr_code: genCode(),
-            holder_name: order.buyer_name,
-            holder_email: order.buyer_email,
-            holder_dni: order.buyer_dni,
-          })),
+          Array.from({ length: item.quantity }, () => {
+            const { code, signature } = generateSecureTicketCode()
+            return {
+              order_id,
+              product_id: item.product_id,
+              order_item_id: item.id,
+              qr_code: code,
+              qr_signature: signature,
+              holder_name: order.buyer_name,
+              holder_email: order.buyer_email,
+              holder_dni: order.buyer_dni,
+            }
+          }),
         )
         if (tickets.length > 0) {
           await adminDb.from('tickets').insert(tickets)

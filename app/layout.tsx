@@ -9,16 +9,33 @@ const _lato = Lato({ subsets: ['latin'], weight: ['300', '400', '700', '900'] })
 const _playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '600', '700'] })
 const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://manchas-plen-air-eccomerce.vercel.app'
+
 export const metadata: Metadata = {
-  title: 'Plen Air — Convención de Pintura al Aire Libre',
+  title: {
+    default: 'Manchas Plen Air — Entradas, Viajes y Experiencias',
+    template: '%s | Manchas Plen Air',
+  },
   description:
-    'Comprá tus entradas y merchandising para Plen Air, la convención argentina de pintura al aire libre. Plein air painting en Argentina.',
-  keywords: ['plen air', 'plein air', 'pintura', 'convención', 'arte', 'Argentina', 'entradas'],
+    'Comprá entradas, viajes y experiencias únicas en toda Argentina. Pago seguro con Mercado Pago, entrega inmediata por email.',
+  keywords: ['manchas plen air', 'entradas', 'tickets', 'viajes', 'experiencias', 'eventos', 'Argentina', 'merchandising'],
+  metadataBase: new URL(BASE_URL),
   openGraph: {
-    title: 'Plen Air — Convención de Pintura al Aire Libre',
-    description: 'Comprá tus entradas y productos para Plen Air.',
+    title: 'Manchas Plen Air — Entradas, Viajes y Experiencias',
+    description: 'Comprá entradas, viajes y experiencias únicas en toda Argentina.',
     type: 'website',
     locale: 'es_AR',
+    siteName: 'Manchas Plen Air',
+    url: BASE_URL,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Manchas Plen Air',
+    description: 'Entradas, viajes y experiencias únicas en Argentina.',
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 }
 

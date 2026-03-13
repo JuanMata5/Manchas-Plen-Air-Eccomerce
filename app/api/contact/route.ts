@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email/sendgrid'
+import { apiLimiter, withRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimited = withRateLimit(request, apiLimiter)
+    if (rateLimited) return rateLimited
+
     const { name, email, message } = await request.json()
 
     if (!name?.trim() || !email?.trim() || !message?.trim()) {

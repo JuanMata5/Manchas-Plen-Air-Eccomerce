@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { apiLimiter, withRateLimit } from '@/lib/rate-limit'
 import { v2 as cloudinary } from 'cloudinary'
 
 cloudinary.config({
@@ -10,6 +12,9 @@ cloudinary.config({
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimited = withRateLimit(request, apiLimiter)
+    if (rateLimited) return rateLimited
+
     const formData = await request.formData()
     const file = formData.get('file') as File | null
     const orderId = formData.get('order_id') as string | null
@@ -18,17 +23,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Archivo y order_id requeridos' }, { status: 400 })
     }
 
+    const supabase = await createClient()
     const adminDb = createAdminClient()
 
-    // Verify order exists
+    // Auth check - verify user owns this order
+    const { data: { user } } = await supabase.auth.getUser()
+
     const { data: order } = await adminDb
       .from('orders')
-      .select('id, payment_method')
+      .select('id, payment_method, user_id, buyer_email')
       .eq('id', orderId)
       .single()
 
     if (!order) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 })
+    }
+
+    // IDOR protection: only the order owner can upload a receipt
+    if (user && order.user_id && user.id !== order.user_id) {
+      return NextResponse.json({ error: 'Sin permiso' }, { status: 403 })
     }
 
     // Upload to Cloudinary

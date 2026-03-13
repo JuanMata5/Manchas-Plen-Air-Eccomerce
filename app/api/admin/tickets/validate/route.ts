@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { apiLimiter, withRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {
+  const rateLimited = withRateLimit(request, apiLimiter)
+  if (rateLimited) return rateLimited
+
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/sendgrid'
 import { orderConfirmationTemplate, adminNotificationTemplate } from '@/lib/email/templates'
+import { paymentLimiter, withRateLimit } from '@/lib/rate-limit'
 
 interface OrderItemInput {
   product_id: string
@@ -12,6 +13,9 @@ interface OrderItemInput {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateLimited = withRateLimit(request, paymentLimiter)
+    if (rateLimited) return rateLimited
+
     const body = await request.json()
     const {
       buyer_name,
