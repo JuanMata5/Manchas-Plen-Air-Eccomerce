@@ -3,7 +3,11 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/sendgrid'
 import { paymentConfirmedTemplate } from '@/lib/email/templates'
 import { generateMultipleTicketsPDF } from '@/lib/pdf/ticket-generator'
-import { generateSecureTicketCode } from '@/lib/ticket-security'
+
+function genTicketCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return 'PA-' + Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,18 +90,15 @@ export async function POST(request: NextRequest) {
 
           if (orderItems && order) {
             const tickets = orderItems.flatMap((item: any) =>
-              Array.from({ length: item.quantity }, () => {
-                const { code } = generateSecureTicketCode()
-                return {
-                  order_id: orderId,
-                  product_id: item.product_id,
-                  order_item_id: item.id,
-                  qr_code: code,
-                  holder_name: order.buyer_name,
-                  holder_email: order.buyer_email,
-                  holder_dni: order.buyer_dni,
-                }
-              }),
+              Array.from({ length: item.quantity }, () => ({
+                order_id: orderId,
+                product_id: item.product_id,
+                order_item_id: item.id,
+                qr_code: genTicketCode(),
+                holder_name: order.buyer_name,
+                holder_email: order.buyer_email,
+                holder_dni: order.buyer_dni,
+              })),
             )
 
             if (tickets.length > 0) {

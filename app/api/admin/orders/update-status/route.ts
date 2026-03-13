@@ -3,9 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/sendgrid'
 import { generateMultipleTicketsPDF, type TicketData } from '@/lib/pdf/ticket-generator'
-import { generateSecureTicketCode } from '@/lib/ticket-security'
 
 const VALID_STATUSES = ['pending', 'payment_pending', 'paid', 'cancelled', 'refunded']
+
+function genTicketCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return 'PA-' + Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -74,21 +78,23 @@ export async function POST(request: NextRequest) {
         const productMap = new Map((products ?? []).map((p: any) => [p.id, p.name]))
 
         const tickets = orderItems.flatMap((item: { id: string; quantity: number; product_id: string }) =>
-          Array.from({ length: item.quantity }, () => {
-            const { code } = generateSecureTicketCode()
-            return {
-              order_id,
-              product_id: item.product_id,
-              order_item_id: item.id,
-              qr_code: code,
-              holder_name: order.buyer_name,
-              holder_email: order.buyer_email,
-              holder_dni: order.buyer_dni,
-            }
-          }),
+          Array.from({ length: item.quantity }, () => ({
+            order_id,
+            product_id: item.product_id,
+            order_item_id: item.id,
+            qr_code: genTicketCode(),
+            holder_name: order.buyer_name,
+            holder_email: order.buyer_email,
+            holder_dni: order.buyer_dni,
+          })),
         )
         if (tickets.length > 0) {
-          await adminDb.from('tickets').insert(tickets)
+          const { error: ticketError } = await adminDb.from('tickets').insert(tickets)
+          if (ticketError) {
+            console.error('[ADMIN] Error inserting tickets:', ticketError)
+            return NextResponse.json({ ok: true, warning: 'Orden actualizada pero error al generar tickets' })
+          }
+          console.log('[ADMIN] Tickets created:', tickets.length)
 
           // Generate PDF and send via email (fire-and-forget)
           const ticketDataForPDF: TicketData[] = tickets.map((t) => ({
