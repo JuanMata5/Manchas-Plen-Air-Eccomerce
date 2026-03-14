@@ -53,29 +53,29 @@ async function getAllProducts(): Promise<Product[]> {
 const categories = [
   {
     icon: Ticket,
-    title: 'Entradas generales',
-    description: 'Tickets oficiales para los eventos de Manchas Plein Air.',
+    title: 'Eventos',
+    description: 'Entradas oficiales para convenciones, shows y actividades en vivo.',
     href: '/tienda',
     color: 'bg-blue-500/10 text-blue-600',
   },
   {
-    icon: Calendar,
-    title: 'Convenciones',
-    description: 'Encuentros principales de la comunidad artistica durante el ano.',
+    icon: Plane,
+    title: 'Viajes artisticos',
+    description: 'Salidas, encuentros y experiencias creativas en distintas locaciones.',
     href: '/tienda',
     color: 'bg-emerald-500/10 text-emerald-600',
   },
   {
-    icon: Palette,
-    title: 'Workshops',
-    description: 'Talleres y clinicas con docentes invitados y cupos limitados.',
+    icon: Package,
+    title: 'Productos',
+    description: 'Materiales, kits y productos oficiales seleccionados para artistas.',
     href: '/tienda',
     color: 'bg-purple-500/10 text-purple-600',
   },
   {
-    icon: MapPin,
-    title: 'Experiencias en vivo',
-    description: 'Actividades presenciales, salidas y jornadas de pintura guiada.',
+    icon: Palette,
+    title: 'Workshops',
+    description: 'Talleres y clinicas con docentes invitados para todos los niveles.',
     href: '/tienda',
     color: 'bg-amber-500/10 text-amber-600',
   },
@@ -206,11 +206,11 @@ export default async function HomePage() {
               Ticketera oficial de Manchas Plein Air
             </div>
             <h1 className="font-serif font-bold text-4xl sm:text-5xl md:text-7xl lg:text-8xl tracking-tight text-balance leading-[1.1]">
-              Entradas para eventos<br />de nuestra comunidad
+              Eventos, productos y viajes<br />para artistas
             </h1>
             <p className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl leading-relaxed text-balance">
-              Compra tickets oficiales para convenciones, workshops y experiencias artisticas.
-              Pago seguro, confirmacion inmediata y validacion oficial en cada evento.
+              Desde ahora promocionamos en un solo lugar nuestros eventos, productos y viajes artisticos.
+              Compra segura, confirmacion inmediata y acompanamiento real en cada experiencia.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <Button
@@ -219,7 +219,7 @@ export default async function HomePage() {
                 className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold text-base px-8"
               >
                 <Link href="/tienda">
-                  Ver eventos
+                  Explorar catalogo
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -260,7 +260,7 @@ export default async function HomePage() {
           <div className="text-center mb-10">
             <p className="text-sm uppercase tracking-widest text-muted-foreground font-medium mb-2">Categorias</p>
             <h2 className="font-serif font-bold text-3xl md:text-5xl text-foreground">Que estas buscando?</h2>
-            <p className="text-muted-foreground mt-2">Elegi tu tipo de experiencia y encontra tu proxima entrada en segundos.</p>
+            <p className="text-muted-foreground mt-2">Explora eventos, productos y viajes artisticos desde un mismo lugar.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
