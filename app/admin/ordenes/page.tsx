@@ -13,6 +13,10 @@ const statusLabels: Record<string, { label: string; className: string }> = {
   refunded: { label: 'Reembolsado', className: 'bg-gray-100 text-gray-800' },
 }
 
+function hasRefundRequest(notes: string | null | undefined) {
+  return notes?.includes('[[REFUND_REQUEST]]') ?? false
+}
+
 export default async function AdminOrdersPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -58,6 +62,7 @@ export default async function AdminOrdersPage() {
             <tbody>
               {allOrders.map((order) => {
                 const st = statusLabels[order.status] ?? { label: order.status, className: 'bg-gray-100 text-gray-800' }
+                const refundRequested = hasRefundRequest(order.notes)
                 return (
                   <tr key={order.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-3">
@@ -85,6 +90,11 @@ export default async function AdminOrdersPage() {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${st.className}`}>
                         {st.label}
                       </span>
+                      {refundRequested && (
+                        <span className="block mt-1 text-xs text-orange-700 font-medium">
+                          Reembolso solicitado
+                        </span>
+                      )}
                       {order.receipt_url && (
                         <span className="block mt-1 text-xs text-green-600 font-medium">
                           Comprobante

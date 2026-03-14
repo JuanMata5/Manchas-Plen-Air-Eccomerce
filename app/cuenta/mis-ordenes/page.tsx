@@ -8,6 +8,7 @@ import { Empty } from '@/components/ui/empty'
 import { Button } from '@/components/ui/button'
 import { DeleteOrderButton } from '@/components/delete-order-button'
 import { RetryPaymentButton } from '@/components/retry-payment-button'
+import { RequestRefundButton } from '@/components/request-refund-button'
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pendiente', className: 'bg-yellow-100 text-yellow-800' },
@@ -15,6 +16,10 @@ const statusLabels: Record<string, { label: string; className: string }> = {
   paid: { label: 'Pagado', className: 'bg-green-100 text-green-800' },
   cancelled: { label: 'Cancelado', className: 'bg-red-100 text-red-800' },
   refunded: { label: 'Reembolsado', className: 'bg-gray-100 text-gray-800' },
+}
+
+function hasRefundRequest(notes: string | null | undefined) {
+  return notes?.includes('[[REFUND_REQUEST]]') ?? false
 }
 
 export default async function MisOrdenesPage() {
@@ -48,6 +53,7 @@ export default async function MisOrdenesPage() {
           <div className="flex flex-col gap-4">
             {orders.map((order) => {
               const st = statusLabels[order.status] ?? { label: order.status, className: 'bg-gray-100 text-gray-800' }
+              const refundRequested = hasRefundRequest(order.notes)
               return (
                 <div key={order.id} className="bg-card border border-border rounded-xl p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
@@ -67,6 +73,11 @@ export default async function MisOrdenesPage() {
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${st.className}`}>
                         {st.label}
                       </span>
+                      {refundRequested && (
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          Reembolso solicitado
+                        </span>
+                      )}
                       <span className="font-bold text-foreground tabular-nums">
                         {formatARS(order.total_ars)}
                       </span>
@@ -103,12 +114,18 @@ export default async function MisOrdenesPage() {
                     </div>
                   )}
                   {order.status === 'paid' && (
-                    <div className="mt-4 pt-4 border-t border-border">
+                    <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center gap-3">
                       <Button asChild size="sm" className="gap-1.5">
                         <Link href="/cuenta/mis-tickets">
                           Ver mis tickets
                         </Link>
                       </Button>
+                      <RequestRefundButton orderId={order.id} disabled={refundRequested} />
+                      {refundRequested && (
+                        <span className="text-xs text-muted-foreground">
+                          Tu solicitud fue enviada y esta pendiente de revision.
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

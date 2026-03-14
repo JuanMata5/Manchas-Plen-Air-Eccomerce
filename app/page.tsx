@@ -349,6 +349,20 @@ export default async function HomePage() {
                   </div>
                   <p className="mt-2 text-[11px] text-amber-700">72% de capacidad reservada</p>
                 </div>
+
+                <div className="rounded-xl border border-border/70 bg-card/90 p-4">
+                  <p className="text-xs uppercase tracking-widest font-semibold text-foreground">
+                    Politica de cancelacion y reembolso
+                  </p>
+                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground leading-relaxed">
+                    <li>Hasta 20/02/26: reembolso del 100%, menos u$s 15.5.</li>
+                    <li>Del 21/02/26 al 15/03/26: 50% de reembolso, menos u$s 15.5.</li>
+                    <li>Desde el 16/03/26: sin reembolso.</li>
+                  </ul>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Entrada transferible, reingreso permitido, apto menores, accesibilidad y sin suspension por lluvia.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
