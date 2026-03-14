@@ -486,7 +486,7 @@ export default async function HomePage() {
               size="lg"
               className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold shrink-0"
             >
-              <Link href="/auth/registro">
+              <Link href="/auth/register">
                 Crear cuenta gratis
               </Link>
             </Button>
@@ -549,7 +549,7 @@ export default async function HomePage() {
                 size="lg"
                 className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 text-base px-8"
               >
-                <Link href="/auth/registro">Crear cuenta gratis</Link>
+                <Link href="/auth/register">Crear cuenta gratis</Link>
               </Button>
             </div>
           </div>
