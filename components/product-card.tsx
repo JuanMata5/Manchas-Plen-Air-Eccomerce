@@ -36,16 +36,16 @@ export function ProductCard({ product }: ProductCardProps) {
     <>
       <article
         onClick={() => setModalOpen(true)}
-        className="cursor-pointer group bg-card rounded-xl overflow-hidden border border-border shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 flex flex-col h-full"
+        className="cursor-pointer group bg-card rounded-xl overflow-hidden border border-border shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 flex flex-col h-full hover-lift surface-sheen"
       >
         {/* Image */}
-        <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+        <div className="relative aspect-4/3 bg-muted overflow-hidden">
           {product.image_url ? (
             <Image
               src={product.image_url}
               alt={product.name}
               fill
-              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              className="object-cover group-hover:scale-110 transition-transform duration-500"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (

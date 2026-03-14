@@ -11,7 +11,7 @@ function TikTokIcon({ className }: { className?: string }) {
 
 export function Footer() {
   return (
-    <footer className="bg-foreground text-background mt-16">
+    <footer className="bg-foreground text-background mt-16 page-enter">
       <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {/* Brand */}
         <div className="sm:col-span-2 lg:col-span-1">
@@ -28,7 +28,7 @@ export function Footer() {
               href="https://www.instagram.com/manchas_plein_air/"
               target="_blank"
               rel="noopener noreferrer"
-              className="h-9 w-9 rounded-lg bg-background/10 flex items-center justify-center hover:bg-background/20 transition-colors"
+              className="h-9 w-9 rounded-lg bg-background/10 flex items-center justify-center hover:bg-background/20 transition-all duration-300 hover:-translate-y-1 hover:scale-105"
               aria-label="Instagram"
             >
               <Instagram className="h-4 w-4" />
@@ -37,7 +37,7 @@ export function Footer() {
               href="https://www.facebook.com/MPABSAS2/#"
               target="_blank"
               rel="noopener noreferrer"
-              className="h-9 w-9 rounded-lg bg-background/10 flex items-center justify-center hover:bg-background/20 transition-colors"
+              className="h-9 w-9 rounded-lg bg-background/10 flex items-center justify-center hover:bg-background/20 transition-all duration-300 hover:-translate-y-1 hover:scale-105"
               aria-label="Facebook"
             >
               <Facebook className="h-4 w-4" />
@@ -46,7 +46,7 @@ export function Footer() {
               href="https://www.threads.com/@manchas_plein_air"
               target="_blank"
               rel="noopener noreferrer"
-              className="h-9 w-9 rounded-lg bg-background/10 flex items-center justify-center hover:bg-background/20 transition-colors"
+              className="h-9 w-9 rounded-lg bg-background/10 flex items-center justify-center hover:bg-background/20 transition-all duration-300 hover:-translate-y-1 hover:scale-105"
               aria-label="Threads"
             >
               <TikTokIcon className="h-4 w-4" />

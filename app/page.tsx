@@ -25,6 +25,7 @@ import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
 import { ContactSection } from '@/components/contact-section'
 import { EventCountdown } from '@/components/event-countdown'
+import { Reveal } from '@/components/reveal'
 import type { Product } from '@/lib/types'
 
 async function getFeaturedProducts(): Promise<Product[]> {
@@ -200,7 +201,7 @@ export default async function HomePage() {
         {/* ── Hero — Evento Principal ── */}
         <section className="relative bg-primary text-primary-foreground overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.1),transparent_70%)]" />
-          <div className="relative z-10 max-w-6xl mx-auto px-4 py-24 md:py-36 flex flex-col items-center text-center gap-6">
+          <div className="relative z-10 max-w-6xl mx-auto px-4 py-24 md:py-36 flex flex-col items-center text-center gap-6 animate-float-gentle">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary-foreground/20 bg-primary-foreground/5 text-xs uppercase tracking-widest text-primary-foreground/70 font-medium">
               <Sparkles className="h-3.5 w-3.5" />
               Ticketera oficial de Manchas Plein Air
@@ -257,36 +258,37 @@ export default async function HomePage() {
 
         {/* ── Categories ── */}
         <section className="max-w-6xl mx-auto px-4 py-16 md:py-20">
-          <div className="text-center mb-10">
+          <Reveal className="text-center mb-10">
             <p className="text-sm uppercase tracking-widest text-muted-foreground font-medium mb-2">Categorias</p>
             <h2 className="font-serif font-bold text-3xl md:text-5xl text-foreground">Que estas buscando?</h2>
             <p className="text-muted-foreground mt-2">Explora eventos, productos y viajes artisticos desde un mismo lugar.</p>
-          </div>
+          </Reveal>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {categories.map((cat) => (
-              <Link
-                key={cat.title}
-                href={cat.href}
-                className="group relative overflow-hidden flex flex-col items-center text-center gap-3 p-7 rounded-2xl border border-border bg-linear-to-b from-card to-card/80 hover:border-primary/50 hover:-translate-y-1 hover:shadow-xl transition-all duration-300"
-              >
-                <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary/0 via-primary/70 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className={`h-16 w-16 rounded-2xl ${cat.color} flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
-                  <cat.icon className="h-8 w-8" />
-                </div>
-                <h3 className="font-serif font-semibold text-foreground text-xl">{cat.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{cat.description}</p>
-                <span className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                  Ver productos <ArrowRight className="h-3 w-3" />
-                </span>
-              </Link>
+            {categories.map((cat, index) => (
+              <Reveal key={cat.title} delay={index * 90}>
+                <Link
+                  href={cat.href}
+                  className="group relative overflow-hidden flex flex-col items-center text-center gap-3 p-7 rounded-2xl border border-border bg-linear-to-b from-card to-card/80 hover:border-primary/50 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 hover-lift surface-sheen"
+                >
+                  <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary/0 via-primary/70 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className={`h-16 w-16 rounded-2xl ${cat.color} flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
+                    <cat.icon className="h-8 w-8" />
+                  </div>
+                  <h3 className="font-serif font-semibold text-foreground text-xl">{cat.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{cat.description}</p>
+                  <span className="text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                    Ver productos <ArrowRight className="h-3 w-3" />
+                  </span>
+                </Link>
+              </Reveal>
             ))}
           </div>
         </section>
 
         {/* ── Evento Destacado ── */}
         <section id="evento" className="max-w-6xl mx-auto px-4 pb-16 md:pb-20 scroll-mt-20">
-          <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-linear-to-br from-primary/10 via-background to-amber-500/10 p-6 md:p-10">
+          <Reveal className="relative overflow-hidden rounded-3xl border border-primary/20 bg-linear-to-br from-primary/10 via-background to-amber-500/10 p-6 md:p-10 animate-glow-pulse">
             <div className="absolute -top-16 -right-16 h-44 w-44 rounded-full bg-primary/20 blur-3xl" />
             <div className="absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-amber-500/20 blur-3xl" />
 
@@ -365,28 +367,30 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
-          </div>
+          </Reveal>
         </section>
 
         {/* ── How it works ── */}
         <section id="como-funciona" className="bg-muted scroll-mt-20">
           <div className="max-w-6xl mx-auto px-4 py-16 md:py-20">
-            <div className="text-center mb-12">
+            <Reveal className="text-center mb-12">
               <p className="text-sm uppercase tracking-widest text-muted-foreground font-medium mb-2">Simple</p>
               <h2 className="font-serif font-bold text-3xl md:text-4xl text-foreground">Como funciona</h2>
-            </div>
+            </Reveal>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {howItWorks.map((step, i) => (
-                <div key={step.step} className="relative flex flex-col items-center text-center gap-4">
-                  <div className="h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-serif font-bold text-xl">
-                    {step.step}
+                <Reveal key={step.step} delay={i * 90}>
+                  <div className="relative flex flex-col items-center text-center gap-4">
+                    <div className="h-16 w-16 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-serif font-bold text-xl transition-transform duration-300 hover:scale-105">
+                      {step.step}
+                    </div>
+                    {i < howItWorks.length - 1 && (
+                      <div className="hidden lg:block absolute top-8 left-[calc(50%+40px)] w-[calc(100%-80px)] h-px bg-border" />
+                    )}
+                    <h3 className="font-serif font-semibold text-foreground text-lg">{step.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
                   </div>
-                  {i < howItWorks.length - 1 && (
-                    <div className="hidden lg:block absolute top-8 left-[calc(50%+40px)] w-[calc(100%-80px)] h-px bg-border" />
-                  )}
-                  <h3 className="font-serif font-semibold text-foreground text-lg">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -395,7 +399,7 @@ export default async function HomePage() {
         {/* ── Featured Products ── */}
         {productsToShow.length > 0 && (
           <section className="max-w-6xl mx-auto px-4 py-16 md:py-20">
-            <div className="flex items-end justify-between mb-10">
+            <Reveal className="flex items-end justify-between mb-10">
               <div>
                 <p className="text-sm uppercase tracking-widest text-muted-foreground font-medium mb-2">
                   <TrendingUp className="h-3.5 w-3.5 inline mr-1" />
@@ -411,10 +415,12 @@ export default async function HomePage() {
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
-            </div>
+            </Reveal>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {productsToShow.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {productsToShow.map((product, index) => (
+                <Reveal key={product.id} delay={index * 80}>
+                  <ProductCard product={product} />
+                </Reveal>
               ))}
             </div>
             <div className="mt-8 text-center sm:hidden">
@@ -431,21 +437,23 @@ export default async function HomePage() {
         {/* ── Benefits ── */}
         <section className="bg-muted">
           <div className="max-w-6xl mx-auto px-4 py-16 md:py-20">
-            <div className="text-center mb-12">
+            <Reveal className="text-center mb-12">
               <p className="text-sm uppercase tracking-widest text-muted-foreground font-medium mb-2">Por que elegirnos</p>
               <h2 className="font-serif font-bold text-3xl md:text-4xl text-foreground">
                 Compra con tranquilidad
               </h2>
-            </div>
+            </Reveal>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {benefits.map((b) => (
-                <div key={b.title} className="bg-card rounded-xl border border-border p-6 flex flex-col gap-4">
-                  <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <b.icon className="h-6 w-6 text-primary" />
+              {benefits.map((b, index) => (
+                <Reveal key={b.title} delay={index * 80}>
+                  <div className="bg-card rounded-xl border border-border p-6 flex flex-col gap-4 hover-lift surface-sheen">
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center transition-transform duration-300 hover:scale-105">
+                      <b.icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-foreground">{b.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{b.description}</p>
                   </div>
-                  <h3 className="font-semibold text-foreground">{b.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{b.description}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -453,7 +461,7 @@ export default async function HomePage() {
 
         {/* ── Testimonials ── */}
         <section className="max-w-6xl mx-auto px-4 py-16 md:py-20">
-          <div className="text-center mb-12">
+          <Reveal className="text-center mb-12">
             <p className="text-sm uppercase tracking-widest text-muted-foreground font-medium mb-2">
               <Heart className="h-3.5 w-3.5 inline mr-1" />
               Testimonios
@@ -461,31 +469,33 @@ export default async function HomePage() {
             <h2 className="font-serif font-bold text-3xl md:text-4xl text-foreground">
               Lo que dicen nuestros clientes
             </h2>
-          </div>
+          </Reveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {testimonials.map((t) => (
-              <div key={t.name} className="bg-card rounded-xl border border-border p-5 flex flex-col gap-4">
-                <div className="flex gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed flex-1">&ldquo;{t.text}&rdquo;</p>
-                <div className="pt-3 border-t border-border flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.location}</p>
+            {testimonials.map((t, index) => (
+              <Reveal key={t.name} delay={index * 80}>
+                <div className="bg-card rounded-xl border border-border p-5 flex flex-col gap-4 hover-lift surface-sheen">
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    ))}
                   </div>
-                  <span className="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground">{t.event}</span>
+                  <p className="text-sm text-muted-foreground leading-relaxed flex-1">&ldquo;{t.text}&rdquo;</p>
+                  <div className="pt-3 border-t border-border flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                      <p className="text-xs text-muted-foreground">{t.location}</p>
+                    </div>
+                    <span className="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground">{t.event}</span>
+                  </div>
                 </div>
-              </div>
+              </Reveal>
             ))}
           </div>
         </section>
 
         {/* ── Promo banner ── */}
         <section className="max-w-6xl mx-auto px-4 pb-16 md:pb-20">
-          <div className="bg-linear-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-6 md:gap-10">
+          <Reveal className="bg-linear-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-6 md:gap-10 animate-glow-pulse">
             <div className="h-20 w-20 rounded-2xl bg-primary-foreground/10 flex items-center justify-center shrink-0">
               <Gift className="h-10 w-10" />
             </div>
@@ -504,29 +514,31 @@ export default async function HomePage() {
                 Crear cuenta gratis
               </Link>
             </Button>
-          </div>
+          </Reveal>
         </section>
 
         {/* ── FAQ ── */}
         <section className="bg-muted">
           <div className="max-w-3xl mx-auto px-4 py-16 md:py-20">
-            <div className="text-center mb-12">
+            <Reveal className="text-center mb-12">
               <p className="text-sm uppercase tracking-widest text-muted-foreground font-medium mb-2">FAQ</p>
               <h2 className="font-serif font-bold text-3xl md:text-4xl text-foreground">
                 Preguntas frecuentes
               </h2>
-            </div>
+            </Reveal>
             <div className="flex flex-col gap-3">
-              {faqs.map((faq) => (
-                <details key={faq.q} className="group bg-card border border-border rounded-xl overflow-hidden">
-                  <summary className="flex items-center justify-between p-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                    <span className="font-medium text-foreground text-sm pr-4">{faq.q}</span>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-open:rotate-180" />
-                  </summary>
-                  <div className="px-5 pb-5 -mt-1">
-                    <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
-                  </div>
-                </details>
+              {faqs.map((faq, index) => (
+                <Reveal key={faq.q} delay={index * 60}>
+                  <details className="group bg-card border border-border rounded-xl overflow-hidden hover-lift">
+                    <summary className="flex items-center justify-between p-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                      <span className="font-medium text-foreground text-sm pr-4">{faq.q}</span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div className="px-5 pb-5 -mt-1">
+                      <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+                    </div>
+                  </details>
+                </Reveal>
               ))}
             </div>
           </div>

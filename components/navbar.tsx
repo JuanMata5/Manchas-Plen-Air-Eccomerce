@@ -81,12 +81,12 @@ export function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-md">
+    <header className="sticky top-0 z-50 bg-primary/92 text-primary-foreground shadow-md backdrop-blur-md animate-header-in">
       <nav className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2 font-serif font-bold text-xl tracking-wide hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2 font-serif font-bold text-xl tracking-wide hover:opacity-90 transition-all duration-300 hover:scale-[1.02]"
         >
           <Leaf className="h-5 w-5" />
           Manchas Plen Air
@@ -98,7 +98,7 @@ export function Navbar() {
             <li key={link.href}>
               <Link
                 href={link.href}
-                className="text-sm font-medium hover:text-primary-foreground/70 transition-colors"
+                className="text-sm font-medium hover:text-primary-foreground/70 transition-all duration-300 hover:-translate-y-0.5"
               >
                 {link.label}
               </Link>
@@ -113,7 +113,7 @@ export function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="text-primary-foreground hover:bg-primary/80"
+              className="text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105"
               aria-label="Cambiar tema"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
@@ -127,7 +127,7 @@ export function Navbar() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-primary-foreground hover:bg-primary/80"
+                className="text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105"
                 aria-label="Mi cuenta"
               >
                 <User className="h-5 w-5" />
@@ -189,7 +189,7 @@ export function Navbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="relative text-primary-foreground hover:bg-primary/80"
+              className="relative text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105"
               aria-label={`Carrito con ${mounted ? totalItems : 0} productos`}
             >
               <ShoppingCart className="h-5 w-5" />
@@ -207,7 +207,7 @@ export function Navbar() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden text-primary-foreground hover:bg-primary/80"
+                className="md:hidden text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105"
                 aria-label="Abrir menú"
               >
                 <Menu className="h-5 w-5" />
