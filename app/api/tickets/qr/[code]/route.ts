@@ -17,7 +17,7 @@ export async function GET(
 
     const { data: ticket } = await adminDb
       .from('tickets')
-      .select('*, products(name), orders(id, buyer_name)')
+      .select('*, products(name, event_date, event_location), orders(id, buyer_name)')
       .eq('qr_code', code)
       .single()
 
@@ -33,6 +33,9 @@ export async function GET(
       ticketCode: ticket.qr_code,
       holderName: ticket.holder_name,
       productName: ticket.products?.name || 'Entrada',
+      eventName: ticket.products?.name || 'Evento',
+      eventDate: ticket.products?.event_date || undefined,
+      eventLocation: ticket.products?.event_location || undefined,
     })
 
     return new NextResponse(pdfBuffer, {

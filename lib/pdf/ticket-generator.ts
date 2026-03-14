@@ -11,6 +11,161 @@ export interface TicketData {
   eventName?: string
 }
 
+const COLORS = {
+  orange: [234, 106, 35] as const,
+  orangeDark: [196, 79, 18] as const,
+  background: [250, 247, 243] as const,
+  card: [255, 255, 255] as const,
+  text: [38, 38, 38] as const,
+  muted: [112, 112, 112] as const,
+  border: [226, 220, 212] as const,
+}
+
+function formatEventDate(value?: string): string {
+  if (!value) return 'A confirmar'
+  try {
+    return new Date(value).toLocaleDateString('es-AR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  } catch {
+    return value
+  }
+}
+
+function writeLabelValue(doc: jsPDF, label: string, value: string, x: number, y: number, width: number): number {
+  doc.setFont(undefined, 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(...COLORS.muted)
+  doc.text(label.toUpperCase(), x, y)
+
+  doc.setFont(undefined, 'normal')
+  doc.setFontSize(11)
+  doc.setTextColor(...COLORS.text)
+  const lines = doc.splitTextToSize(value || '-', width)
+  doc.text(lines, x, y + 5)
+  return y + 5 + lines.length * 5 + 4
+}
+
+function drawTicketPage(
+  doc: jsPDF,
+  ticket: TicketData,
+  qrDataUrl: string,
+  pageNumber: number,
+  totalPages: number,
+) {
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+
+  doc.setFillColor(...COLORS.background)
+  doc.rect(0, 0, pageWidth, pageHeight, 'F')
+
+  doc.setFillColor(...COLORS.orange)
+  doc.rect(0, 0, pageWidth, 32, 'F')
+
+  doc.setDrawColor(...COLORS.orangeDark)
+  doc.setLineWidth(0.6)
+  doc.line(0, 32, pageWidth, 32)
+
+  doc.setTextColor(255, 255, 255)
+  doc.setFont(undefined, 'bold')
+  doc.setFontSize(22)
+  doc.text('MANCHAS PLEIN AIR', 14, 14)
+
+  doc.setFont(undefined, 'normal')
+  doc.setFontSize(9)
+  doc.text('Entrada oficial - valida para ingreso', 14, 21)
+  doc.text('www.manchaspleinair.com', 14, 27)
+
+  const cardX = 12
+  const cardY = 39
+  const cardW = pageWidth - 24
+  const cardH = pageHeight - 56
+
+  doc.setFillColor(...COLORS.card)
+  doc.setDrawColor(...COLORS.border)
+  doc.roundedRect(cardX, cardY, cardW, cardH, 4, 4, 'FD')
+
+  doc.setFillColor(255, 243, 233)
+  doc.roundedRect(cardX + 4, cardY + 4, cardW - 8, 16, 3, 3, 'F')
+
+  doc.setFont(undefined, 'bold')
+  doc.setFontSize(12)
+  doc.setTextColor(...COLORS.orangeDark)
+  doc.text(ticket.eventName || 'Evento destacado', cardX + 8, cardY + 12)
+
+  doc.setFont(undefined, 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(...COLORS.muted)
+  doc.text(`Codigo de entrada: ${ticket.ticketCode}`, cardX + 8, cardY + 18)
+
+  const detailsX = cardX + 8
+  const detailsY = cardY + 30
+  const detailsW = 108
+
+  let cursorY = detailsY
+  cursorY = writeLabelValue(doc, 'Titular', ticket.holderName, detailsX, cursorY, detailsW)
+  cursorY = writeLabelValue(doc, 'Tipo de entrada', ticket.productName || 'General', detailsX, cursorY, detailsW)
+  cursorY = writeLabelValue(doc, 'Fecha', formatEventDate(ticket.eventDate), detailsX, cursorY, detailsW)
+  cursorY = writeLabelValue(
+    doc,
+    'Ubicacion',
+    ticket.eventLocation || 'A confirmar por la organizacion',
+    detailsX,
+    cursorY,
+    detailsW,
+  )
+
+  doc.setFillColor(248, 248, 248)
+  doc.setDrawColor(...COLORS.border)
+  doc.roundedRect(detailsX, cursorY + 2, detailsW, 30, 2, 2, 'FD')
+  doc.setFont(undefined, 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(...COLORS.text)
+  doc.text('Condiciones', detailsX + 3, cursorY + 8)
+  doc.setFont(undefined, 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...COLORS.muted)
+  const terms = [
+    'Entrada transferible y valida para un ingreso.',
+    'Presentar QR en puerta junto con documento.',
+    'Reembolsos sujetos a la politica publicada.',
+  ]
+  doc.text(terms, detailsX + 3, cursorY + 13)
+
+  const qrBoxX = cardX + cardW - 64
+  const qrBoxY = cardY + 30
+  const qrBoxW = 52
+  const qrBoxH = 78
+
+  doc.setFillColor(255, 255, 255)
+  doc.setDrawColor(...COLORS.border)
+  doc.roundedRect(qrBoxX, qrBoxY, qrBoxW, qrBoxH, 2, 2, 'FD')
+
+  doc.setFont(undefined, 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(...COLORS.text)
+  doc.text('Validacion QR', qrBoxX + 6, qrBoxY + 8)
+
+  doc.addImage(qrDataUrl, 'PNG', qrBoxX + 6, qrBoxY + 12, 40, 40)
+
+  doc.setFont(undefined, 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...COLORS.muted)
+  const scanLines = doc.splitTextToSize('Escanear este codigo al ingresar al evento.', qrBoxW - 8)
+  doc.text(scanLines, qrBoxX + 4, qrBoxY + 58)
+
+  doc.setDrawColor(...COLORS.border)
+  doc.line(cardX + 6, pageHeight - 24, pageWidth - 18, pageHeight - 24)
+  doc.setFont(undefined, 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...COLORS.muted)
+  doc.text(`Referencia de orden: ${ticket.orderReference}`, cardX + 6, pageHeight - 18)
+  doc.text('Soporte: soporte@plenair.com.ar', cardX + 6, pageHeight - 13)
+  doc.text(`Pagina ${pageNumber}/${totalPages}`, pageWidth - 30, pageHeight - 13)
+}
+
 /**
  * Generate a single ticket PDF with QR code
  */
@@ -31,89 +186,7 @@ export async function generateTicketPDF(ticket: TicketData): Promise<Buffer> {
     format: 'a4',
   })
 
-  // Background color
-  doc.setFillColor(102, 126, 234) // Purple gradient color
-  doc.rect(0, 0, doc.internal.pageSize.getWidth(), 30, 'F')
-
-  // Title
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(24)
-  doc.setFont(undefined, 'bold')
-  doc.text('PLEN AIR', 15, 20)
-
-  // Event info section
-  doc.setTextColor(0, 0, 0)
-  doc.setFontSize(11)
-  doc.setFont(undefined, 'normal')
-
-  let yPos = 45
-
-  doc.text('INFORMACIÓN DE LA ENTRADA', 15, yPos)
-  yPos += 10
-
-  doc.setFont(undefined, 'normal')
-  doc.setFontSize(10)
-
-  doc.text(`Código: ${ticket.ticketCode}`, 15, yPos)
-  yPos += 7
-
-  doc.text(`Titular: ${ticket.holderName}`, 15, yPos)
-  yPos += 7
-
-  if (ticket.productName) {
-    doc.text(`Tipo de entrada: ${ticket.productName}`, 15, yPos)
-    yPos += 7
-  }
-
-  if (ticket.eventDate) {
-    const formattedDate = new Date(ticket.eventDate).toLocaleDateString('es-AR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-    doc.text(`Fecha: ${formattedDate}`, 15, yPos)
-    yPos += 7
-  }
-
-  if (ticket.eventLocation) {
-    const lines = doc.splitTextToSize(`Lugar: ${ticket.eventLocation}`, 180)
-    doc.text(lines, 15, yPos)
-    yPos += lines.length * 7 + 5
-  }
-
-  // QR Code section
-  yPos += 10
-  doc.setFont(undefined, 'bold')
-  doc.setFontSize(10)
-  doc.text('CÓDIGO QR (escanear en entrada)', 15, yPos)
-  yPos += 8
-
-  // Add QR code image to PDF - centered
-  const qrSize = 60 // 60mm QR code
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const qrX = (pageWidth - qrSize) / 2
-  doc.addImage(qrDataURL, 'PNG', qrX, yPos, qrSize, qrSize)
-
-  yPos += qrSize + 10
-
-  // Footer with terms
-  doc.setFontSize(8)
-  doc.setFont(undefined, 'normal')
-  doc.setTextColor(100, 100, 100)
-
-  const footerText = [
-    'Esta entrada es intransferible. Debe ser presentada en la entrada del evento.',
-    `Referencia de orden: ${ticket.orderReference}`,
-    'Para consultas: soporte@plenair.com.ar',
-  ]
-
-  footerText.forEach((line, idx) => {
-    doc.text(line, 15, yPos + idx * 5)
-  })
-
-  // Add page number
-  doc.setFontSize(9)
-  doc.text(`Pág. 1`, pageWidth - 20, doc.internal.pageSize.getHeight() - 5)
+  drawTicketPage(doc, ticket, qrDataURL, 1, 1)
 
   return Buffer.from(doc.output('arraybuffer'))
 }
@@ -146,76 +219,7 @@ export async function generateMultipleTicketsPDF(tickets: TicketData[]): Promise
       doc.addPage()
     }
 
-    // Background color
-    doc.setFillColor(102, 126, 234)
-    doc.rect(0, 0, doc.internal.pageSize.getWidth(), 30, 'F')
-
-    // Title
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(24)
-    doc.setFont(undefined, 'bold')
-    doc.text('MANCHAS PLEN AIR', 15, 20)
-
-    // Event info
-    doc.setTextColor(0, 0, 0)
-    doc.setFontSize(11)
-    doc.setFont(undefined, 'normal')
-
-    let yPos = 45
-
-    doc.text('INFORMACIÓN DE LA ENTRADA', 15, yPos)
-    yPos += 10
-
-    doc.setFont(undefined, 'normal')
-    doc.setFontSize(10)
-
-    doc.text(`Código: ${ticket.ticketCode}`, 15, yPos)
-    yPos += 7
-    doc.text(`Titular: ${ticket.holderName}`, 15, yPos)
-    yPos += 7
-
-    if (ticket.productName) {
-      doc.text(`Tipo: ${ticket.productName}`, 15, yPos)
-      yPos += 7
-    }
-
-    if (ticket.eventDate) {
-      const date = new Date(ticket.eventDate).toLocaleDateString('es-AR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-      doc.text(`Fecha: ${date}`, 15, yPos)
-      yPos += 7
-    }
-
-    if (ticket.eventLocation) {
-      doc.text(`Lugar: ${ticket.eventLocation}`, 15, yPos)
-      yPos += 7
-    }
-
-    // QR
-    yPos += 10
-    doc.setFont(undefined, 'bold')
-    doc.setFontSize(10)
-    doc.text('CÓDIGO QR', 15, yPos)
-    yPos += 8
-
-    const qrSize = 60
-    const pageWidth = doc.internal.pageSize.getWidth()
-    const qrX = (pageWidth - qrSize) / 2
-    doc.addImage(qrCodes[index], 'PNG', qrX, yPos, qrSize, qrSize)
-
-    // Footer
-    yPos += qrSize + 10
-    doc.setFontSize(8)
-    doc.setFont(undefined, 'normal')
-    doc.setTextColor(100, 100, 100)
-    doc.text(
-      `Entrada ${index + 1}/${tickets.length} | Ref: ${ticket.orderReference} | soporte@plenair.com.ar`,
-      15,
-      yPos,
-    )
+    drawTicketPage(doc, ticket, qrCodes[index], index + 1, tickets.length)
   })
 
   return Buffer.from(doc.output('arraybuffer'))
