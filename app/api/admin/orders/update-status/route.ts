@@ -57,12 +57,14 @@ export async function POST(request: NextRequest) {
       .eq('order_id', order_id)
 
     if (!existingTickets || existingTickets.length === 0) {
-      const { data: orderItems } = await adminDb
+      const { data: orderItems, error: itemsErr } = await adminDb
         .from('order_items')
         .select('*')
         .eq('order_id', order_id)
 
-      const { data: order } = await adminDb
+      console.log('[ADMIN] Order items found:', orderItems?.length ?? 0, 'error:', itemsErr)
+
+      const { data: order, error: orderErr } = await adminDb
         .from('orders')
         .select('buyer_name, buyer_email, buyer_dni')
         .eq('id', order_id)
@@ -96,7 +98,7 @@ export async function POST(request: NextRequest) {
           }
           console.log('[ADMIN] Tickets created:', tickets.length)
 
-          // Generate PDF and send via email (fire-and-forget)
+          // Return success with ticket count before PDF generation (fire-and-forget)
           const ticketDataForPDF: TicketData[] = tickets.map((t) => ({
             orderReference: order_id.slice(0, 8).toUpperCase(),
             ticketCode: t.qr_code,
@@ -136,8 +138,14 @@ export async function POST(request: NextRequest) {
               })
             })
             .catch((e) => console.warn('[ADMIN] Ticket PDF email failed:', e))
+
+          return NextResponse.json({ ok: true, tickets_created: tickets.length })
         }
+      } else {
+        console.log('[ADMIN] No order data found. orderItems:', !!orderItems, 'order:', !!order)
       }
+    } else {
+      console.log('[ADMIN] Tickets already exist for order:', order_id, 'count:', existingTickets?.length)
     }
   }
 

@@ -47,7 +47,14 @@ export function OrderStatusActions({ orderId, currentStatus }: OrderStatusAction
         body: JSON.stringify({ order_id: orderId, status: newStatus }),
       })
       if (res.ok) {
-        toast.success('Estado actualizado')
+        const data = await res.json()
+        if (data.warning) {
+          toast.warning(data.warning)
+        } else if (data.tickets_created) {
+          toast.success(`Estado actualizado — ${data.tickets_created} ticket(s) creados`)
+        } else {
+          toast.success('Estado actualizado')
+        }
         // Reload to refresh server-side data
         window.location.reload()
       } else {

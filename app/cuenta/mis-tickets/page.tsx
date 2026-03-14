@@ -15,15 +15,31 @@ export default async function MisTicketsPage() {
 
   const adminDb = createAdminClient()
 
-  // Get tickets for orders belonging to this user
-  const { data: tickets } = await adminDb
+  // Get user email for fallback matching
+  const userEmail = user.email ?? ''
+
+  // Strategy 1: tickets from orders with user_id
+  const { data: ticketsByUserId } = await adminDb
     .from('tickets')
-    .select('*, products(name, image_url), orders(id, buyer_name, created_at, status)')
+    .select('*, products(name, image_url), orders!inner(id, buyer_name, created_at, status, user_id)')
     .eq('orders.user_id', user.id)
     .order('created_at', { ascending: false })
 
-  // Filter tickets that belong to this user (supabase inner join filter)
-  const userTickets = (tickets ?? []).filter((t: any) => t.orders !== null)
+  // Strategy 2: tickets where holder_email matches (covers orders without user_id)
+  const { data: ticketsByEmail } = await adminDb
+    .from('tickets')
+    .select('*, products(name, image_url), orders(id, buyer_name, created_at, status, user_id)')
+    .eq('holder_email', userEmail)
+    .order('created_at', { ascending: false })
+
+  // Merge and deduplicate
+  const allTickets = [...(ticketsByUserId ?? []), ...(ticketsByEmail ?? [])]
+  const seen = new Set<string>()
+  const userTickets = allTickets.filter((t: any) => {
+    if (seen.has(t.id)) return false
+    seen.add(t.id)
+    return t.orders !== null
+  })
 
   return (
     <>
