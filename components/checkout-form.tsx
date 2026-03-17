@@ -20,12 +20,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Empty } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
 
-// --- CORRECCIÓN DEFINITIVA: Solo Nombre y Email ---
+// --- CORRECCIÓN: Validación más inteligente ---
 const checkoutSchema = z.object({
-  buyer_name: z.string().min(2, 'Ingresa tu nombre completo'),
+  buyer_name: z.string().trim().min(2, 'Ingresa tu nombre completo'),
   buyer_email: z.string().email('Email invalido'),
-  buyer_dni: z.string().optional(), // No requerido en UI
-  buyer_phone: z.string().optional(), // No requerido en UI
+  buyer_dni: z.string().optional(),
+  buyer_phone: z.string().optional(),
   coupon_code: z.string().optional(),
   payment_method: z.enum(['mercadopago', 'transfer']),
 })
@@ -68,7 +68,8 @@ export function CheckoutForm() {
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
-    // Inicialización correcta y simple
+    // --- CORRECCIÓN: Validar al instante ---
+    mode: 'onChange',
     defaultValues: {
       buyer_name: '',
       buyer_email: '',
@@ -77,7 +78,6 @@ export function CheckoutForm() {
     },
   })
 
-  // Autocompletar con datos del usuario logueado
   useEffect(() => {
     if (user) {
       setValue('buyer_name', user.user_metadata.full_name || '')
@@ -200,7 +200,6 @@ export function CheckoutForm() {
           <h2 className="font-serif font-semibold text-lg text-foreground mb-5">
             Datos del comprador
           </h2>
-          {/* --- UI SIMPLIFICADA -- */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="buyer_name">Nombre completo *</Label>
