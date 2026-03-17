@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ShoppingCart, Menu, X, Leaf, Settings, LogOut, LogIn, UserPlus, Sun, Moon } from 'lucide-react'
+import { ShoppingCart, Menu, X, Leaf, Settings, LogOut, LogIn, UserPlus, Sun, Moon, Ticket } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
@@ -126,8 +126,17 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-4 ml-2">
             {user ? (
               <>
+                <Link href="/cuenta/mis-ordenes" className="text-sm font-medium hover:text-primary-foreground/70 transition-colors flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4" />
+                  Mis Órdenes
+                </Link>
+                <Link href="/cuenta/mis-tickets" className="text-sm font-medium hover:text-primary-foreground/70 transition-colors flex items-center gap-2">
+                  <Ticket className="h-4 w-4" />
+                  Mis Tickets
+                </Link>
                 {isAdmin && (
-                  <Link href="/admin" className="text-sm font-medium hover:text-primary-foreground/70 transition-colors">
+                  <Link href="/admin" className="text-sm font-medium hover:text-primary-foreground/70 transition-colors flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
                     Panel Admin
                   </Link>
                 )}
