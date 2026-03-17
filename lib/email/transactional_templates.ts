@@ -29,19 +29,38 @@ export interface PasswordResetTemplate {
 export function passwordResetEmailTemplate(data: PasswordResetTemplate): string {
   const { name, resetLink } = data;
   return `
-    Asunto: Solicitud de cambio de contraseña
-
-    Hola ${name},
-
-    Recibimos una solicitud para cambiar tu contraseña. Si no fuiste vos, por favor ignorá este email.
-
-    Para continuar, hacé click en el siguiente enlace:
-    ${resetLink}
-
-    Este enlace expira en 1 hora.
-
-    Saludos,
-    El equipo de Plen Air
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restablecer contraseña</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, Cantarell, sans-serif; line-height: 1.6; background: #f9f9f9; margin: 0; padding: 0; color: #222;">
+  <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 10px; overflow: hidden; border: 1px solid #eee;">
+    <div style="background: #f59e0b; padding: 28px 20px; color: #111827;">
+      <h1 style="margin: 0; font-size: 22px;">Restablecer contraseña</h1>
+      <p style="margin: 8px 0 0 0; font-size: 13px; opacity: 0.9;">Solicitud de cambio de contraseña</p>
+    </div>
+    <div style="padding: 22px 20px;">
+      <p style="margin-top: 0;">Hola ${name},</p>
+      <p>Recibimos una solicitud para cambiar tu contraseña. Si no fuiste vos, podés ignorar este correo.</p>
+      <div style="margin: 18px 0; text-align: center;">
+        <a href="${resetLink}" style="display: inline-block; background: #111827; color: #ffffff; text-decoration: none; padding: 12px 18px; border-radius: 8px; font-weight: 600;">
+          Crear una nueva contraseña
+        </a>
+      </div>
+      <p style="font-size: 13px; color: #6b7280; margin-bottom: 0;">
+        Si el botón no funciona, copiá y pegá este enlace en tu navegador:<br/>
+        <span style="word-break: break-all;">${resetLink}</span>
+      </p>
+    </div>
+    <div style="background: #fafafa; padding: 14px 20px; font-size: 12px; color: #6b7280; border-top: 1px solid #eee;">
+      <p style="margin: 0;">Si necesitás ayuda, respondé este correo.</p>
+    </div>
+  </div>
+</body>
+</html>
   `;
 }
 

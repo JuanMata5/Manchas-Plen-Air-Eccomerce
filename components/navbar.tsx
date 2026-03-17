@@ -136,7 +136,10 @@ export function Navbar() {
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent
+              align="end"
+              className="w-56 z-[100] bg-background text-foreground border-border shadow-lg"
+            >
               {user ? (
                 <>
                   <div className="px-2 py-2 text-sm">

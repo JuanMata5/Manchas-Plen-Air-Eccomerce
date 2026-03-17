@@ -1,5 +1,7 @@
 
 import { enqueueEmail } from "./queue";
+import { sendEmail } from "./resend";
+import { passwordResetEmailTemplate } from "./transactional_templates";
 
 const FROM_EMAIL = process.env.EMAIL_FROM || "info@manchaspleinair.com.ar";
 
@@ -23,20 +25,21 @@ export async function sendWelcomeEmail(name: string, email: string) {
 }
 
 /**
- * Encola un email para restablecer la contraseña.
+ * Envía (directo) el email para restablecer la contraseña.
+ * Esto evita depender del cron/cola para un flujo crítico de UX.
  */
 export async function sendPasswordResetEmail(name: string, email: string, resetLink: string) {
   try {
-    console.log(`[ACTION] Enqueuing password reset email for ${email}`);
-    await enqueueEmail(
-      email,
-      "Solicitud de cambio de contraseña",
-      "password_reset",
-      { name, resetLink }
-    );
-    console.log(`[ACTION] Password reset email enqueued for ${email}`);
+    console.log(`[ACTION] Sending password reset email for ${email}`);
+    const html = passwordResetEmailTemplate({ name, resetLink });
+    await sendEmail({
+      to: email,
+      subject: "Solicitud de cambio de contraseña",
+      html,
+    });
+    console.log(`[ACTION] Password reset email sent for ${email}`);
   } catch (error) {
-    console.error(`[ACTION ERROR] Failed to enqueue password reset for ${email}:`, error);
+    console.error(`[ACTION ERROR] Failed to send password reset for ${email}:`, error);
     throw error;
   }
 }
