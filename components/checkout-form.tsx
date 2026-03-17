@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { CreditCard, Building2, ShoppingBag, Loader2, Gift } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,6 +11,7 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { useCartStore } from '@/lib/cart-store'
 import { formatARS } from '@/lib/format'
+import { useUser } from '@/components/user-provider' // Importar el nuevo hook
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -48,7 +48,7 @@ const paymentMethods = [
 
 export function CheckoutForm() {
   const router = useRouter()
-  const supabase = createClient()
+  const { user, isLoading: isUserLoading } = useUser() // Usar el hook
   const { items, totalARS, clearCart } = useCartStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [couponApplied, setCouponApplied] = useState<{
@@ -70,17 +70,13 @@ export function CheckoutForm() {
     defaultValues: { payment_method: 'mercadopago' },
   })
 
-  // --- Corrección BUG: Cargar datos del usuario logueado y FORZAR la validación ---
+  // --- Refactorizado: Cargar datos del usuario desde el hook ---
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setValue('buyer_name', user.user_metadata.full_name || '', { shouldValidate: true });
-        setValue('buyer_email', user.email || '', { shouldValidate: true });
-      }
-    };
-    fetchUser();
-  }, [supabase, setValue]);
+    if (user) {
+      setValue('buyer_name', user.user_metadata.full_name || '', { shouldValidate: true });
+      setValue('buyer_email', user.email || '', { shouldValidate: true });
+    }
+  }, [user, setValue]);
 
   useEffect(() => {
     fetch('/api/orders/first-purchase')
@@ -390,7 +386,7 @@ export function CheckoutForm() {
             </div>
           </div>
 
-          <Button type="submit" size="lg" className="w-full mt-2" disabled={isSubmitting}>
+          <Button type="submit" size="lg" className="w-full mt-2" disabled={isSubmitting || isUserLoading}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
