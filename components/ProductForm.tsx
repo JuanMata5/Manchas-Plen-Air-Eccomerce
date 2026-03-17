@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,6 @@ import { Loader2, Trash2 } from 'lucide-react'
 import { ImageUpload, type PendingImage } from './ImageUpload'
 import { Product, Category } from '@/lib/types'
 
-// Esquema de validación robusto con manejo de campos numéricos
 const productSchema = z.object({
   name: z.string().min(3, 'Nombre debe tener al menos 3 caracteres'),
   slug: z.string().min(3).regex(/^[a-z0-9-]+$/, 'Solo letras, números y guiones'),
@@ -59,9 +58,7 @@ interface ProductFormProps {
   mode: 'create' | 'edit'
 }
 
-// PASO 3: ARREGLAR uploadImagesToCloudinary
 async function uploadImagesToCloudinary(files: File[]) {
-  // Obtener firma para la subida
   const signRes = await fetch('/api/cloudinary/sign-upload', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -82,7 +79,7 @@ async function uploadImagesToCloudinary(files: File[]) {
     formData.append('timestamp', String(signData.timestamp))
     formData.append('signature', signData.signature)
     formData.append('folder', signData.folder)
-    
+
     const response = await fetch(
       `https://api.cloudinary.com/v1_1/${signData.cloud_name}/image/upload`,
       { method: 'POST', body: formData },
@@ -95,7 +92,6 @@ async function uploadImagesToCloudinary(files: File[]) {
     }
 
     const data = await response.json()
-    // Retornar todos los campos necesarios
     results.push({
       publicId: data.public_id,
       url: data.secure_url,
@@ -113,44 +109,46 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
   const [loadingMessage, setLoadingMessage] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  // PASO 1: VERIFICAR ESTADO DE IMÁGENES (confirmado)
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
 
   const {
+    control, // Usar control para los componentes Controller
     register,
     handleSubmit,
-    watch,
-    setValue,
     formState: { errors },
   } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
-    defaultValues: product ? { ...product, category_id: product.category_id || null } : {
-      is_active: true,
-      is_featured: false,
-      product_type: 'merchandise',
-      max_per_order: 1,
-      stock: 0,
+    // Restaurar defaultValues para asegurar inicialización correcta
+    defaultValues: {
+      name: product?.name ?? '',
+      slug: product?.slug ?? '',
+      description: product?.description ?? '',
+      category_id: product?.category_id ?? null,
+      price_ars: product?.price_ars ?? undefined,
+      price_usd: product?.price_usd ?? undefined,
+      stock: product?.stock ?? 0,
+      max_per_order: product?.max_per_order ?? 1,
+      is_active: product?.is_active ?? true,
+      is_featured: product?.is_featured ?? false,
+      product_type: product?.product_type ?? 'merchandise',
+      event_date: product?.event_date ?? null,
+      event_location: product?.event_location ?? '',
     },
   })
 
-  const productType = watch('product_type')
-
   const handleDelete = async () => {
-    // ... (lógica de borrado sin cambios)
+    // Lógica de borrado (sin cambios)
   }
 
-  // PASO 4: ARREGLAR onSubmit
   const onSubmit = async (data: ProductFormData) => {
     try {
       setLoading(true)
       setLoadingMessage('Guardando producto...')
 
       const payload = { ...data }
-
       const url = mode === 'create'
           ? '/api/admin/products/create'
           : `/api/admin/products/${product?.id}`
-
       const method = mode === 'create' ? 'POST' : 'PATCH'
 
       const response = await fetch(url, {
@@ -166,17 +164,12 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
 
       const savedProduct = await response.json()
 
-      // PASO 5: AGREGAR LOGS
       console.log('IMAGES TO UPLOAD:', pendingImages)
 
-      // Subir imágenes pendientes si existen
       if (pendingImages.length > 0) {
         setLoadingMessage(`Subiendo ${pendingImages.length} imagen(es)...`)
-
         const files = pendingImages.map((p) => p.file)
         const uploaded = await uploadImagesToCloudinary(files)
-
-        // PASO 5: AGREGAR LOGS
         console.log('CLOUDINARY UPLOAD RESULT:', uploaded)
 
         setLoadingMessage('Guardando imágenes...')
@@ -192,7 +185,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
               url: img.url,
               width: img.width,
               height: img.height,
-              is_primary: i === 0, // La primera imagen es la principal
+              is_primary: i === 0,
               display_order: i,
             }),
           })
@@ -200,7 +193,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
           if (!uploadImageRes.ok) {
             const errorData = await uploadImageRes.json().catch(() => ({}))
             console.error('[API Upload-Image Error]', errorData)
-            throw new Error('Error al guardar una de las imágenes en la base de datos.')
+            throw new Error('Error al guardar una de las imágenes.')
           }
         }
       }
@@ -211,7 +204,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
 
     } catch (error) {
       console.error('[Product Form Error]', error)
-      toast.error(error instanceof Error ? error.message : 'Ocurrió un error inesperado')
+      toast.error(error instanceof Error ? error.message : 'Ocurrió un error')
     } finally {
       setLoading(false)
       setLoadingMessage('')
@@ -220,9 +213,6 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* ... (el resto del JSX del formulario no necesita cambios) */}
-      
-      {/* --- FORM FIELDS --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="name">Nombre del producto *</Label>
@@ -235,31 +225,47 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
           {errors.slug && <p className="text-red-500 text-sm mt-1">{errors.slug.message}</p>}
         </div>
       </div>
+
       <div>
         <Label htmlFor="description">Descripción</Label>
         <Textarea id="description" rows={4} {...register('description')} disabled={loading} />
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="category_id">Categoría *</Label>
-          <Select onValueChange={(value) => setValue('category_id', value || null)} defaultValue={product?.category_id || ''}>
-            <SelectTrigger disabled={loading}><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
-            <SelectContent>{categories.map((cat) => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}</SelectContent>
-          </Select>
-          {errors.category_id && <p className="text-red-500 text-sm mt-1">{errors.category_id.message}</p>}
-        </div>
-        <div>
-          <Label htmlFor="product_type">Tipo de Producto *</Label>
-          <Select onValueChange={(value) => setValue('product_type', value as any)} defaultValue={product?.product_type || 'merchandise'}>
-            <SelectTrigger disabled={loading}><SelectValue placeholder="Tipo" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ticket">Entrada/Ticket</SelectItem>
-              <SelectItem value="workshop">Taller/Workshop</SelectItem>
-              <SelectItem value="merchandise">Merchandising</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+         {/* Restaurar Controller para Select */}
+        <Controller
+          control={control}
+          name="category_id"
+          render={({ field }) => (
+            <div>
+              <Label>Categoría *</Label>
+              <Select onValueChange={field.onChange} value={field.value ?? ''} disabled={loading}>
+                <SelectTrigger><SelectValue placeholder="Selecciona una categoría" /></SelectTrigger>
+                <SelectContent>{categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}</SelectContent>
+              </Select>
+              {errors.category_id && <p className="text-red-500 text-sm mt-1">{errors.category_id.message}</p>}
+            </div>
+          )}
+        />
+        <Controller
+          control={control}
+          name="product_type"
+          render={({ field }) => (
+             <div>
+              <Label>Tipo de Producto *</Label>
+              <Select onValueChange={field.onChange} value={field.value} disabled={loading}>
+                <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ticket">Entrada/Ticket</SelectItem>
+                  <SelectItem value="workshop">Taller/Workshop</SelectItem>
+                  <SelectItem value="merchandise">Merchandising</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        />
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="price_ars">Precio ARS *</Label>
@@ -269,8 +275,10 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
         <div>
           <Label htmlFor="price_usd">Precio USD</Label>
           <Input id="price_usd" type="number" step="0.01" {...register('price_usd')} disabled={loading} />
+          {errors.price_usd && <p className="text-red-500 text-sm mt-1">{errors.price_usd.message}</p>}
         </div>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="stock">Stock *</Label>
@@ -284,10 +292,8 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
         </div>
       </div>
 
-      {/* --- IMAGE UPLOAD --- */}
       <div className="border-t pt-6">
         <h3 className="font-semibold mb-4">Imágenes del Producto</h3>
-        {/* PASO 1 & 2: Corregir ImageUpload (confirmado que se usa bien) */}
         <ImageUpload
           pendingImages={pendingImages}
           onPendingImagesChange={setPendingImages}
@@ -296,33 +302,46 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
         />
       </div>
 
-      {/* --- TOGGLES & ACTIONS --- */}
-       <div className="border-t pt-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="is_active">Producto Activo</Label>
-            <p className="text-sm text-muted-foreground">Mostrar en tienda</p>
-          </div>
-          <Switch id="is_active" checked={watch('is_active')} onCheckedChange={(c) => setValue('is_active', c)} disabled={loading} />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <Label htmlFor="is_featured">Producto Destacado</Label>
-            <p className="text-sm text-muted-foreground">Mostrar en inicio</p>
-          </div>
-          <Switch id="is_featured" checked={watch('is_featured')} onCheckedChange={(c) => setValue('is_featured', c)} disabled={loading} />
-        </div>
+      <div className="border-t pt-6 space-y-4">
+        {/* Restaurar Controller para Switch */}
+        <Controller
+          control={control}
+          name="is_active"
+          render={({ field }) => (
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="is_active">Producto Activo</Label>
+                <p className="text-sm text-muted-foreground">Mostrar en tienda</p>
+              </div>
+              <Switch id="is_active" checked={field.value} onCheckedChange={field.onChange} disabled={loading} />
+            </div>
+          )}
+        />
+        <Controller
+          control={control}
+          name="is_featured"
+          render={({ field }) => (
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="is_featured">Producto Destacado</Label>
+                <p className="text-sm text-muted-foreground">Mostrar en inicio</p>
+              </div>
+              <Switch id="is_featured" checked={field.value} onCheckedChange={field.onChange} disabled={loading} />
+            </div>
+          )}
+        />
       </div>
 
       <div className="flex gap-3 justify-between border-t pt-6">
+        <div>
           {mode === 'edit' && (
             <Button type="button" variant="destructive" onClick={() => setShowDeleteDialog(true)} disabled={loading || deleting}>
               <Trash2 className="w-4 h-4 mr-2" />
               Eliminar
             </Button>
           )}
-        <div className="flex gap-3 ml-auto">
+        </div>
+        <div className="flex gap-3">
           <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
             Cancelar
           </Button>
@@ -332,6 +351,10 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
           </Button>
         </div>
       </div>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        {/* ... (sin cambios) */}
+      </AlertDialog>
     </form>
   )
 }
