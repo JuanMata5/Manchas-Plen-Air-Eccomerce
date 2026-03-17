@@ -130,7 +130,7 @@ export function Navbar() {
             </Button>
           )}
 
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105" aria-label="Mi cuenta">
                 <User className="h-5 w-5" />
@@ -138,7 +138,7 @@ export function Navbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="end"
-              className="w-56 z-[100] bg-background text-foreground border-border shadow-lg"
+              className="w-56 z-[9999] bg-background text-foreground border-border shadow-lg"
             >
               {user ? (
                 <>

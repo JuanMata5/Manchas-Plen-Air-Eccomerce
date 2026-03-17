@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendEmail } from '@/lib/email/resend'
 
+export const runtime = 'nodejs'
+
 /**
  * POST /api/emails/send
  * Send email (internal endpoint)

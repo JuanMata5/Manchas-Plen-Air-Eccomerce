@@ -1,6 +1,6 @@
 
 import { enqueueEmail } from "./queue";
-import { sendEmail } from "./resend";
+import { sendEmailWithRetry } from "./resend";
 import { passwordResetEmailTemplate } from "./transactional_templates";
 
 const FROM_EMAIL = process.env.EMAIL_FROM || "info@manchaspleinair.com.ar";
@@ -32,7 +32,7 @@ export async function sendPasswordResetEmail(name: string, email: string, resetL
   try {
     console.log(`[ACTION] Sending password reset email for ${email}`);
     const html = passwordResetEmailTemplate({ name, resetLink });
-    await sendEmail({
+    await sendEmailWithRetry({
       to: email,
       subject: "Solicitud de cambio de contraseña",
       html,

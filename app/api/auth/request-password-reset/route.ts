@@ -1,6 +1,6 @@
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+export const runtime = 'nodejs';
+
 import { sendPasswordResetEmail } from '@/lib/email/actions';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
@@ -53,10 +53,10 @@ export async function POST(request: Request) {
 
   try {
     await sendPasswordResetEmail(userName, email, resetLink);
-    console.log(`[API] Email de reseteo encolado para ${email}`);
-    return NextResponse.json({ success: true, message: 'Password reset email enqueued.' });
+    console.log(`[API] Email de reseteo enviado para ${email}`);
+    return NextResponse.json({ success: true, message: 'Password reset email sent.' });
   } catch (emailError) {
-    console.error('[API ERROR] Fallo al encolar el email de reseteo:', emailError);
+    console.error('[API ERROR] Fallo al enviar el email de reseteo:', emailError);
     return NextResponse.json({ error: 'Failed to send reset email' }, { status: 500 });
   }
 }

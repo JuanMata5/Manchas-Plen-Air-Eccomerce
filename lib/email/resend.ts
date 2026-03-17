@@ -2,9 +2,16 @@ import { Resend } from 'resend'
 
 let resend: Resend | null = null;
 
+function getRequiredEnv(name: string) {
+  const v = process.env[name]
+  if (!v) throw new Error(`[EMAIL CONFIG] Missing env var: ${name}`)
+  return v
+}
+
 const getResend = () => {
     if (!resend) {
-        resend = new Resend(process.env.RESEND_API_KEY);
+        const key = getRequiredEnv('RESEND_API_KEY')
+        resend = new Resend(key);
     }
     return resend;
 }
@@ -62,6 +69,27 @@ export async function sendEmail({
     console.error('[EMAIL ERROR]', error)
     throw error
   }
+}
+
+export async function sendEmailWithRetry(
+  options: EmailOptions,
+  retries = Number(process.env.EMAIL_RETRIES ?? 2),
+  baseDelayMs = Number(process.env.EMAIL_RETRY_DELAY_MS ?? 400),
+) {
+  let lastError: unknown
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      if (attempt > 0) {
+        const delay = baseDelayMs * Math.pow(2, attempt - 1)
+        await new Promise((r) => setTimeout(r, delay))
+        console.warn(`[EMAIL] retry attempt ${attempt}/${retries}`, { to: options.to, subject: options.subject })
+      }
+      return await sendEmail(options)
+    } catch (err) {
+      lastError = err
+    }
+  }
+  throw lastError
 }
 
 export async function sendBulkEmail(emails: EmailOptions[]) {
