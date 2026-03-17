@@ -19,9 +19,21 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    (request.headers.get('x-forwarded-proto') && request.headers.get('host')
+      ? `${request.headers.get('x-forwarded-proto')}://${request.headers.get('host')}`
+      : undefined) ||
+    'http://localhost:3000';
+
+  const redirectTo = `${baseUrl}/auth/reset-password`;
+
   const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
     email: email,
+    options: {
+      redirectTo,
+    },
   });
 
   if (linkError) {
