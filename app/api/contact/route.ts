@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendEmail } from '@/lib/email/sendgrid'
+import { sendEmail } from '@/lib/email/resend'
 import { apiLimiter, withRateLimit } from '@/lib/rate-limit'
 
 export async function POST(request: NextRequest) {

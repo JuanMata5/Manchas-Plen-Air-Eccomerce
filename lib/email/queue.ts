@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { sendEmail, EmailOptions } from './sendgrid'
+import { sendEmail, EmailOptions } from './resend'
 
 export interface EmailQueueItem {
   id: string

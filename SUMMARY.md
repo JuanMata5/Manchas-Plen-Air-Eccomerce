@@ -13,7 +13,7 @@
 Sistema completo de emails automáticos implementado.
 
 **Archivos:**
-- `lib/email/sendgrid.ts` - Cliente SendGrid con manejo de errores
+- `lib/email/resend.ts` - Cliente SendGrid con manejo de errores
 - `lib/email/templates.ts` - 4 templates HTML profesionales
 - `lib/email/queue.ts` - Sistema de cola con reintentos automáticos
 - `lib/pdf/ticket-generator.ts` - Generador PDF con QR (jsPDF)
