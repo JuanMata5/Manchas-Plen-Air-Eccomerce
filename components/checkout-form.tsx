@@ -11,11 +11,11 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { useCartStore } from '@/lib/cart-store'
 import { formatARS } from '@/lib/format'
-import { useUser } from '@/components/user-provider' // Importar el nuevo hook
+import { useUser } from '@/components/user-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
+import { Separator } from '@/components/ui/separator' // ¡ERROR SOLUCIONADO!
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Empty } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
@@ -48,7 +48,7 @@ const paymentMethods = [
 
 export function CheckoutForm() {
   const router = useRouter()
-  const { user, isLoading: isUserLoading } = useUser() // Usar el hook
+  const { user, isLoading: isUserLoading } = useUser()
   const { items, totalARS, clearCart } = useCartStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [couponApplied, setCouponApplied] = useState<{
@@ -70,7 +70,6 @@ export function CheckoutForm() {
     defaultValues: { payment_method: 'mercadopago' },
   })
 
-  // --- Refactorizado: Cargar datos del usuario desde el hook ---
   useEffect(() => {
     if (user) {
       setValue('buyer_name', user.user_metadata.full_name || '', { shouldValidate: true });
