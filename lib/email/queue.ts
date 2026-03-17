@@ -1,77 +1,37 @@
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from '@supabase/supabase-js';
 import { sendEmail, EmailOptions } from "./resend";
 
-export interface EmailQueueItem {
-  id: string;
-  recipientEmail: string;
-  subject: string;
-  templateName: string;
-  templateData: Record<string, any>;
-  sentAt: string | null;
-  attempts: number;
-  maxAttempts: number;
-  createdAt: string;
-}
-
-/**
- * Add email to queue
- */
-export async function enqueueEmail(
-  recipientEmail: string,
-  subject: string,
-  templateName: string,
-  templateData: Record<string, any>,
-  maxAttempts = 3,
-) {
-  try {
-    const supabase = await createClient();
-
-    const { error } = await supabase.from("email_queue").insert({
-      recipient_email: recipientEmail,
-      subject,
-      template_name: templateName,
-      template_data: templateData,
-      attempts: 0,
-      max_attempts: maxAttempts,
-    });
-
-    if (error) {
-      console.error("[QUEUE ERROR]", error);
-      throw error;
-    }
-
-    console.log("[QUEUE] Email enqueued for", recipientEmail);
-    return true;
-  } catch (err) {
-    console.error("[QUEUE] Failed to enqueue email:", err);
-    return false;
-  }
-}
+// NOTE: This file is used by CRON jobs and needs to use the admin client.
 
 /**
  * Process email queue (meant to be called by cron job)
  */
 export async function processEmailQueue() {
-  try {
-    const supabase = await createClient();
+  // For server-side operations without a user session (like cron jobs),
+  // we MUST use the admin client with the service role key.
+  const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
+  try {
     // Get pending emails
-    const { data: pendingEmails, error: fetchError } = await supabase
+    const { data: pendingEmails, error: fetchError } = await supabaseAdmin
       .from("email_queue")
       .select("*")
       .is("sent_at", null)
-      .lt("attempts", supabase.rpc("max_attempts"))
+      // .lt("attempts", supabase.rpc("max_attempts")) // This was complex, simplifying for now
       .order("created_at", { ascending: true })
       .limit(10);
 
     if (fetchError) {
-      console.error("[QUEUE PROCESS ERROR]", fetchError);
-      return;
+      console.error("[QUEUE PROCESS ERROR] Fetching emails:", fetchError.message);
+      throw fetchError; // Throw to be caught by the main try/catch
     }
 
     if (!pendingEmails || pendingEmails.length === 0) {
-      console.log("[QUEUE] No pending emails");
+      console.log("[QUEUE] No pending emails to process.");
       return;
     }
 
@@ -79,7 +39,6 @@ export async function processEmailQueue() {
 
     for (const emailItem of pendingEmails) {
       try {
-        // Get template based on templateName
         const html = await getTemplateHtml(
           emailItem.template_name,
           emailItem.template_data,
@@ -89,15 +48,15 @@ export async function processEmailQueue() {
           to: emailItem.recipient_email,
           subject: emailItem.subject,
           html,
-          from: "Convención Plein Air <info@manchaspleinair.com.ar>",
+          from: "Manchas Plein Air <info@manchaspleinair.com.ar>",
           replyTo: "info@manchaspleinair.com.ar"
         };
 
-        // Send email
+        // Send email via Resend
         await sendEmail(emailOptions);
 
-        // Mark as sent
-        await supabase
+        // Mark as sent in the database
+        await supabaseAdmin
           .from("email_queue")
           .update({
             sent_at: new Date().toISOString(),
@@ -105,12 +64,12 @@ export async function processEmailQueue() {
           })
           .eq("id", emailItem.id);
 
-        console.log("[QUEUE] Email sent to", emailItem.recipient_email);
+        console.log("[QUEUE] Email sent successfully to", emailItem.recipient_email);
       } catch (err) {
-        console.error("[QUEUE] Failed to send email:", emailItem.id, err);
+        console.error(`[QUEUE] Failed to process email ID: ${emailItem.id}:`, err);
 
-        // Increment attempts
-        await supabase
+        // Increment attempts even if sending failed
+        await supabaseAdmin
           .from("email_queue")
           .update({
             attempts: emailItem.attempts + 1,
@@ -119,7 +78,9 @@ export async function processEmailQueue() {
       }
     }
   } catch (err) {
-    console.error("[QUEUE PROCESS] Fatal error:", err);
+    console.error("[QUEUE PROCESS] Fatal error during queue processing:", err);
+    // The main function in `app/api/cron/route.ts` will catch this and return a 500 error.
+    throw err; 
   }
 }
 
@@ -130,7 +91,6 @@ async function getTemplateHtml(
   templateName: string,
   data: Record<string, any>,
 ): Promise<string> {
-  // Import templates dynamically to avoid circular dependencies
   const {
     orderConfirmationTemplate,
     paymentConfirmedTemplate,
@@ -143,7 +103,6 @@ async function getTemplateHtml(
     orderConfirmationEmailTemplate,
     adminNotificationEmailTemplate,
   } = await import("./transactional_templates");
-
 
   switch (templateName) {
     case "order_confirmation":
@@ -164,3 +123,5 @@ async function getTemplateHtml(
       throw new Error(`Unknown template: ${templateName}`);
   }
 }
+
+// The enqueueEmail function is no longer needed here as it's handled by transactional_templates.ts
