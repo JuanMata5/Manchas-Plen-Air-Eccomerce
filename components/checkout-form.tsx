@@ -67,20 +67,26 @@ export function CheckoutForm() {
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
-    defaultValues: { payment_method: 'mercadopago' },
+    // --- CORRECCIÓN DIRECTA: Inicializar todos los campos ---
+    defaultValues: {
+      buyer_name: '',
+      buyer_email: '',
+      buyer_dni: '',
+      buyer_phone: '',
+      coupon_code: '',
+      payment_method: 'mercadopago',
+    },
   })
 
-  // --- CORRECCIÓN: Autocompletar campos sin validación inmediata ---
   useEffect(() => {
     if (user) {
-      setValue('buyer_name', user.user_metadata.full_name || '');
-      setValue('buyer_email', user.email || '');
-      // Bonus: si el DNI existe en metadata, también lo rellena
+      setValue('buyer_name', user.user_metadata.full_name || '')
+      setValue('buyer_email', user.email || '')
       if (user.user_metadata.dni) {
-        setValue('buyer_dni', user.user_metadata.dni);
+        setValue('buyer_dni', user.user_metadata.dni)
       }
     }
-  }, [user, setValue]);
+  }, [user, setValue])
 
   useEffect(() => {
     fetch('/api/orders/first-purchase')
@@ -119,9 +125,8 @@ export function CheckoutForm() {
       ? Math.round((subtotal * couponApplied.value) / 100)
       : couponApplied.value
     : 0
-  const firstPurchaseAmount = firstPurchaseDiscount > 0
-    ? Math.round((subtotal * firstPurchaseDiscount) / 100)
-    : 0
+  const firstPurchaseAmount =
+    firstPurchaseDiscount > 0 ? Math.round((subtotal * firstPurchaseDiscount) / 100) : 0
   const discountAmount = couponDiscount + firstPurchaseAmount
   const total = subtotal - discountAmount
 
