@@ -30,6 +30,7 @@ const navLinks = [
 export function Navbar() {
   const totalItems = useCartStore((s) => s.totalItems())
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -50,6 +51,10 @@ export function Navbar() {
       }
 
       const currentSession = data.session
+      console.log('[Navbar] initial getSession()', {
+        hasSession: Boolean(currentSession),
+        email: currentSession?.user?.email,
+      })
       setSession(currentSession)
 
       if (currentSession?.user) {
@@ -71,6 +76,11 @@ export function Navbar() {
     })()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('[Navbar] onAuthStateChange', {
+        event: _event,
+        hasSession: Boolean(session),
+        email: session?.user?.email,
+      })
       setSession(session)
       if (session?.user) {
         const { data, error } = await supabase
@@ -130,7 +140,18 @@ export function Navbar() {
             </Button>
           )}
 
-          <DropdownMenu modal={false}>
+          <DropdownMenu
+            modal={false}
+            open={accountMenuOpen}
+            onOpenChange={(open) => {
+              console.log('[Navbar] account dropdown open change', {
+                open,
+                hasUser: Boolean(user),
+                email: user?.email,
+              })
+              setAccountMenuOpen(open)
+            }}
+          >
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105" aria-label="Mi cuenta">
                 <User className="h-5 w-5" />
