@@ -39,7 +39,37 @@ export function Navbar() {
 
   useEffect(() => {
     setMounted(true)
-    
+
+    ;(async () => {
+      const { data, error } = await supabase.auth.getSession()
+      if (error) {
+        console.error("Error getting session:", error.message)
+        setSession(null)
+        setProfile(null)
+        return
+      }
+
+      const currentSession = data.session
+      setSession(currentSession)
+
+      if (currentSession?.user) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentSession.user.id)
+          .single()
+
+        if (profileError) {
+          console.error("Error fetching profile:", profileError.message)
+          setProfile(null)
+        } else {
+          setProfile(profileData)
+        }
+      } else {
+        setProfile(null)
+      }
+    })()
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
       if (session?.user) {

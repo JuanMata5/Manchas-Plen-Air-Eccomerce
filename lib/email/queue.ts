@@ -1,11 +1,13 @@
 
 import { createClient as createAdminClient } from '@supabase/supabase-js';
-import { createClient } from "@/lib/supabase/server";
 import { sendEmail, EmailOptions } from "./resend";
 
 /**
  * Añade un email a la cola de la base de datos para ser procesado.
- * Esta función se usa desde las acciones del servidor y usa el cliente estándar de Supabase.
+ * Se usa desde server actions / route handlers.
+ *
+ * Importante: para poder encolar sin depender de sesión/cookies (y evitar RLS),
+ * usamos el Service Role en servidor.
  */
 export async function enqueueEmail(
   recipientEmail: string,
@@ -14,10 +16,12 @@ export async function enqueueEmail(
   templateData: Record<string, any>,
   maxAttempts = 3,
 ) {
-  try {
-    const supabase = await createClient(); // Cliente estándar de Supabase para servidor
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
 
-    const { error } = await supabase.from("email_queue").insert({
+  const { error } = await supabaseAdmin.from("email_queue").insert({
       recipient_email: recipientEmail,
       subject,
       template_name: templateName,
@@ -26,17 +30,13 @@ export async function enqueueEmail(
       max_attempts: maxAttempts,
     });
 
-    if (error) {
-      console.error("[QUEUE ERROR] No se pudo insertar el email en la cola:", error);
-      throw error;
-    }
-
-    console.log(`[QUEUE] Email para ${recipientEmail} añadido a la cola.`);
-    return true;
-  } catch (err) {
-    console.error("[QUEUE] Error fatal en enqueueEmail:", err);
-    return false;
+  if (error) {
+    console.error("[QUEUE ERROR] No se pudo insertar el email en la cola:", error);
+    throw error;
   }
+
+  console.log(`[QUEUE] Email para ${recipientEmail} añadido a la cola.`);
+  return true;
 }
 
 
@@ -65,12 +65,19 @@ export async function processEmailQueue() {
 
     if (!pendingEmails || pendingEmails.length === 0) {
       console.log("[CRON] No hay emails pendientes para procesar.");
-      return;
+      return { sentCount: 0, failedCount: 0, processedCount: 0 };
     }
 
     console.log(`[CRON] Procesando ${pendingEmails.length} emails.`);
 
+    let sentCount = 0;
+    let failedCount = 0;
+
     for (const emailItem of pendingEmails) {
+      if (typeof emailItem.max_attempts === "number" && emailItem.attempts >= emailItem.max_attempts) {
+        console.warn(`[CRON] Saltando email ID ${emailItem.id} (max_attempts alcanzado).`);
+        continue;
+      }
       try {
         const html = await getTemplateHtml(emailItem.template_name, emailItem.template_data);
 
@@ -90,13 +97,17 @@ export async function processEmailQueue() {
           }).eq("id", emailItem.id);
 
         console.log(`[CRON] Email enviado a ${emailItem.recipient_email}`);
+        sentCount += 1;
       } catch (err) {
         console.error(`[CRON ERROR] Fallo al procesar email ID: ${emailItem.id}:`, err);
         await supabaseAdmin.from("email_queue").update({
             attempts: emailItem.attempts + 1,
           }).eq("id", emailItem.id);
+        failedCount += 1;
       }
     }
+
+    return { sentCount, failedCount, processedCount: pendingEmails.length };
   } catch (err) {
     console.error("[CRON ERROR] Error fatal durante el procesamiento:", err);
     throw err; 

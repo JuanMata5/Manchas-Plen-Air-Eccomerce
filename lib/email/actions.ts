@@ -18,7 +18,7 @@ export async function sendWelcomeEmail(name: string, email: string) {
     console.log(`[ACTION] Welcome email enqueued for ${email}`);
   } catch (error) {
     console.error(`[ACTION ERROR] Failed to enqueue welcome email for ${email}:`, error);
-    // Opcional: implementar un reintento o notificación de fallo
+    throw error;
   }
 }
 
@@ -37,6 +37,7 @@ export async function sendPasswordResetEmail(name: string, email: string, resetL
     console.log(`[ACTION] Password reset email enqueued for ${email}`);
   } catch (error) {
     console.error(`[ACTION ERROR] Failed to enqueue password reset for ${email}:`, error);
+    throw error;
   }
 }
 
@@ -55,6 +56,7 @@ export async function sendPasswordChangedEmail(name: string, email: string) {
     console.log(`[ACTION] Password changed confirmation enqueued for ${email}`);
   } catch (error) {
     console.error(`[ACTION ERROR] Failed to enqueue password changed confirmation for ${email}:`, error);
+    throw error;
   }
 }
 
@@ -79,6 +81,7 @@ export async function sendOrderConfirmationEmail(
     console.log(`[ACTION] Order confirmation enqueued for ${buyerEmail}`);
   } catch (error) {
     console.error(`[ACTION ERROR] Failed to enqueue order confirmation for ${buyerEmail}:`, error);
+    throw error;
   }
 }
 
@@ -103,5 +106,6 @@ export async function sendAdminNotificationEmail(
     console.log(`[ACTION] Admin notification enqueued for order ${orderReference}`);
   } catch (error) {
     console.error(`[ACTION ERROR] Failed to enqueue admin notification for ${orderReference}:`, error);
+    throw error;
   }
 }
