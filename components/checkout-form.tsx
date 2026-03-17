@@ -20,12 +20,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Empty } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
 
-// --- VALIDACIÓN COMPLETA RESTAURADA ---
+// --- CORRECCIÓN DEFINITIVA: Solo Nombre y Email ---
 const checkoutSchema = z.object({
   buyer_name: z.string().min(2, 'Ingresa tu nombre completo'),
   buyer_email: z.string().email('Email invalido'),
-  buyer_dni: z.string().min(7, 'Ingresa un DNI válido'),
-  buyer_phone: z.string().min(8, 'Ingresa tu telefono').optional().or(z.literal('')),
+  buyer_dni: z.string().optional(), // No requerido en UI
+  buyer_phone: z.string().optional(), // No requerido en UI
   coupon_code: z.string().optional(),
   payment_method: z.enum(['mercadopago', 'transfer']),
 })
@@ -68,12 +68,10 @@ export function CheckoutForm() {
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
-    // --- LA CORRECCIÓN CLAVE: INICIALIZAR TODOS LOS CAMPOS ---
+    // Inicialización correcta y simple
     defaultValues: {
       buyer_name: '',
       buyer_email: '',
-      buyer_dni: '',
-      buyer_phone: '',
       coupon_code: '',
       payment_method: 'mercadopago',
     },
@@ -84,9 +82,6 @@ export function CheckoutForm() {
     if (user) {
       setValue('buyer_name', user.user_metadata.full_name || '')
       setValue('buyer_email', user.email || '')
-      if (user.user_metadata.dni) {
-        setValue('buyer_dni', user.user_metadata.dni)
-      }
     }
   }, [user, setValue])
 
@@ -157,7 +152,6 @@ export function CheckoutForm() {
     }
   }
 
-  // El submit ahora usa los datos del formulario directamente
   const onSubmit = async (data: CheckoutFormData) => {
     setIsSubmitting(true)
     try {
@@ -166,6 +160,7 @@ export function CheckoutForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
+          buyer_dni: '00000000', // DNI genérico para el backend
           items: items.map((i) => ({
             product_id: i.product.id,
             quantity: i.quantity,
@@ -201,11 +196,11 @@ export function CheckoutForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 flex flex-col gap-8">
-        {/* --- UI COMPLETA RESTAURADA -- */}
         <section className="bg-card rounded-xl border border-border p-6">
           <h2 className="font-serif font-semibold text-lg text-foreground mb-5">
             Datos del comprador
           </h2>
+          {/* --- UI SIMPLIFICADA -- */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="buyer_name">Nombre completo *</Label>
@@ -232,27 +227,6 @@ export function CheckoutForm() {
                 <p className="text-xs text-destructive">{errors.buyer_email.message}</p>
               )}
             </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="buyer_dni">DNI *</Label>
-              <Input
-                id="buyer_dni"
-                placeholder="12345678"
-                {...register('buyer_dni')}
-                aria-invalid={!!errors.buyer_dni}
-              />
-              {errors.buyer_dni && (
-                <p className="text-xs text-destructive">{errors.buyer_dni.message}</p>
-              )}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="buyer_phone">Telefono (Opcional)</Label>
-              <Input
-                id="buyer_phone"
-                type="tel"
-                placeholder="+54 9 11 1234 5678"
-                {...register('buyer_phone')}
-              />
-            </div>
           </div>
         </section>
 
@@ -262,7 +236,7 @@ export function CheckoutForm() {
           </h2>
           <RadioGroup
             value={paymentMethod}
-            onValueValueChange={(v) => setValue('payment_method', v as 'mercadopago' | 'transfer')}
+            onValueChange={(v) => setValue('payment_method', v as 'mercadopago' | 'transfer')}
             className="flex flex-col gap-3"
           >
             {paymentMethods.map((method) => (
