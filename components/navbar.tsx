@@ -6,17 +6,18 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useCartStore } from '@/lib/cart-store'
-import { useUser } from '@/components/user-provider' // Importar el hook!
-import { createClient } from '@/lib/supabase/client' // Solo para signOut
+import { useUser } from '@/components/user-provider'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Separator } from '@/components/ui/separator' // CORRECCIÓN: Import agregado
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
+  DropdownMenuSeparator, // Import específico para Dropdown
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
@@ -34,7 +35,7 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const { theme, setTheme } = useTheme()
-  const { user, session } = useUser() // Usar el hook!
+  const { user } = useUser()
   const supabase = createClient()
 
   useEffect(() => {
