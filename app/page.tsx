@@ -138,7 +138,7 @@ const faqs = [
   },
   {
     q: 'Que metodos de pago aceptan?',
-    a: 'Aceptamos Mercado Pago (tarjetas de credito, debito, dinero en cuenta) y transferencia bancaria. En tu primera compra tenes un 10% de descuento automatico.',
+    a: 'Aceptamos Mercado Pago (tarjetas de credito, debito, dinero en cuenta) y transferencia bancaria. En tu primera compra tienes un 10% de descuento automático.',
   },
   {
     q: 'Cuales son los datos para pagar por transferencia?',
@@ -404,7 +404,7 @@ export default async function HomePage() {
                     </div>
                   </details>
                 </Reveal>
-              ))}
+              ))}\
             </div>
           </div>
         </section>
