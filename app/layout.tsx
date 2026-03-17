@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Lato, Playfair_Display, Geist_Mono } from 'next/font/google'
+import { Lato, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -7,7 +7,6 @@ import './globals.css'
 
 const _lato = Lato({ subsets: ['latin'], weight: ['300', '400', '700', '900'] })
 const _playfair = Playfair_Display({ subsets: ['latin'], weight: ['400', '600', '700'] })
-const _geistMono = Geist_Mono({ subsets: ['latin'] })
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://manchas-plen-air-eccomerce.vercel.app'
 
