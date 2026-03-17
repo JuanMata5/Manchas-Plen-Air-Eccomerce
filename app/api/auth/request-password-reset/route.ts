@@ -78,7 +78,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, message: 'If an account with this email exists, a reset link has been sent.' });
   }
 
-  const resetLink = data.properties.action_link;
+  // Workaround: Supabase puede devolver action_link con redirect_to=Site URL (p.ej. localhost)
+  // incluso si pasamos options.redirectTo. Reescribimos el query param manteniendo el token.
+  const actionLink = data.properties.action_link;
+  const resetUrl = new URL(actionLink);
+  resetUrl.searchParams.set('redirect_to', redirectTo);
+  const resetLink = resetUrl.toString();
   const user = data.user;
   
   let userName = '';
