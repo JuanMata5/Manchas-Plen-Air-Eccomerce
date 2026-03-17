@@ -251,7 +251,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
           <Input
             id="name"
             placeholder="Ej: Entrada General 2025"
-            {...register('name')}'''
+            {...register('name')}
             disabled={loading}
           />
           {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
@@ -263,7 +263,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
           <Input
             id="slug"
             placeholder="entrada-general-2025"
-            {...register('slug')}'''
+            {...register('slug')}
             disabled={loading}
           />
           {errors.slug && <p className="text-red-500 text-sm mt-1">{errors.slug.message}</p>}
@@ -277,7 +277,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
           id="description"
           placeholder="Descripción detallada del producto..."
           rows={4}
-          {...register('description')}'''
+          {...register('description')}
           disabled={loading}
         />
       </div>
@@ -334,7 +334,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             type="number"
             step="100"
             placeholder="15000"
-            {...register('price_ars')}'''
+            {...register('price_ars')}
             disabled={loading}
           />
           {errors.price_ars && (
@@ -349,7 +349,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             type="number"
             step="0.01"
             placeholder="15"
-            {...register('price_usd')}'''
+            {...register('price_usd')}
             disabled={loading}
           />
         </div>
@@ -364,7 +364,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             type="number"
             min="0"
             placeholder="100"
-            {...register('stock')}'''
+            {...register('stock')}
             disabled={loading}
           />
           {errors.stock && <p className="text-red-500 text-sm mt-1">{errors.stock.message}</p>}
@@ -377,7 +377,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             type="number"
             min="1"
             placeholder="5"
-            {...register('max_per_order')}'''
+            {...register('max_per_order')}
             disabled={loading}
           />
           {errors.max_per_order && (
@@ -395,7 +395,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
               <Input
                 id="event_date"
                 type="date"
-                {...register('event_date')}'''
+                {...register('event_date')}
                 disabled={loading}
               />
             </div>
@@ -405,7 +405,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
               <Input
                 id="event_location"
                 placeholder="Ej: Parque Los Andes, Buenos Aires"
-                {...register('event_location')}'''
+                {...register('event_location')}
                 disabled={loading}
               />
             </div>
@@ -431,7 +431,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             <Label htmlFor="is_active">Producto Activo</Label>
             <p className="text-sm text-muted-foreground">Mostrar en tienda</p>
           </div>
-          <Switch {...register('is_active')}''' disabled={loading} />
+          <Switch {...register('is_active')} disabled={loading} />
         </div>
 
         <div className="flex items-center justify-between">
@@ -439,7 +439,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             <Label htmlFor="is_featured">Producto Destacado</Label>
             <p className="text-sm text-muted-foreground">Mostrar en inicio</p>
           </div>
-          <Switch {...register('is_featured')}''' disabled={loading} />
+          <Switch {...register('is_featured')} disabled={loading} />
         </div>
       </div>
 
