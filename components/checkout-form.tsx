@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 import { CreditCard, Building2, ShoppingBag, Loader2, Gift } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -23,7 +24,7 @@ const checkoutSchema = z.object({
   buyer_name: z.string().min(2, 'Ingresa tu nombre completo'),
   buyer_email: z.string().email('Email invalido'),
   buyer_phone: z.string().min(8, 'Ingresa tu telefono').optional().or(z.literal('')),
-  buyer_dni: z.string().min(6, 'Ingresa tu DNI').optional().or(z.literal('')),
+  buyer_dni: z.string().min(7, 'Ingresa un DNI válido'), // Corregido: DNI es obligatorio
   coupon_code: z.string().optional(),
   payment_method: z.enum(['mercadopago', 'transfer']),
 })
@@ -47,6 +48,7 @@ const paymentMethods = [
 
 export function CheckoutForm() {
   const router = useRouter()
+  const supabase = createClient()
   const { items, totalARS, clearCart } = useCartStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [couponApplied, setCouponApplied] = useState<{
@@ -56,17 +58,6 @@ export function CheckoutForm() {
     value: number
   } | null>(null)
   const [firstPurchaseDiscount, setFirstPurchaseDiscount] = useState(0)
-
-  useEffect(() => {
-    fetch('/api/orders/first-purchase')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.first_purchase) {
-          setFirstPurchaseDiscount(data.discount_percent ?? 5)
-        }
-      })
-      .catch(() => {})
-  }, [])
 
   const {
     register,
@@ -79,10 +70,33 @@ export function CheckoutForm() {
     defaultValues: { payment_method: 'mercadopago' },
   })
 
+  // --- Corrección: Cargar datos del usuario logueado ---
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setValue('buyer_name', user.user_metadata.full_name || '');
+        setValue('buyer_email', user.email || '');
+      }
+    };
+    fetchUser();
+  }, [supabase, setValue]);
+
+  useEffect(() => {
+    fetch('/api/orders/first-purchase')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.first_purchase) {
+          setFirstPurchaseDiscount(data.discount_percent ?? 10) // Usar el 10% que definimos
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const paymentMethod = watch('payment_method')
   const couponCode = watch('coupon_code')
 
-  if (items.length === 0) {
+  if (items.length === 0 && !isSubmitting) {
     return (
       <Empty
         title="Tu carrito esta vacio"
@@ -160,11 +174,11 @@ export function CheckoutForm() {
 
       if (!res.ok) {
         toast.error(result.error ?? 'Error al crear la orden')
+        setIsSubmitting(false)
         return
       }
 
       if (data.payment_method === 'mercadopago' && result.init_point) {
-        // Don't clear cart yet - clear on success page after MP confirms payment
         window.location.href = result.init_point
       } else if (data.payment_method === 'transfer') {
         clearCart()
@@ -172,7 +186,6 @@ export function CheckoutForm() {
       }
     } catch {
       toast.error('Ocurrio un error. Intenta nuevamente.')
-    } finally {
       setIsSubmitting(false)
     }
   }
@@ -213,20 +226,24 @@ export function CheckoutForm() {
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="buyer_phone">Telefono</Label>
+              <Label htmlFor="buyer_dni">DNI *</Label>
+              <Input
+                id="buyer_dni"
+                placeholder="12345678"
+                {...register('buyer_dni')}
+                aria-invalid={!!errors.buyer_dni}
+              />
+              {errors.buyer_dni && (
+                <p className="text-xs text-destructive">{errors.buyer_dni.message}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="buyer_phone">Telefono (Opcional)</Label>
               <Input
                 id="buyer_phone"
                 type="tel"
                 placeholder="+54 9 11 1234 5678"
                 {...register('buyer_phone')}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="buyer_dni">DNI</Label>
-              <Input
-                id="buyer_dni"
-                placeholder="12345678"
-                {...register('buyer_dni')}
               />
             </div>
           </div>

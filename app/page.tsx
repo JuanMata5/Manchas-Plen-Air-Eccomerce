@@ -138,7 +138,11 @@ const faqs = [
   },
   {
     q: 'Que metodos de pago aceptan?',
-    a: 'Aceptamos Mercado Pago (tarjetas de credito, debito, dinero en cuenta) y transferencia bancaria. En tu primera compra tenes un 5% de descuento automatico.',
+    a: 'Aceptamos Mercado Pago (tarjetas de credito, debito, dinero en cuenta) y transferencia bancaria. En tu primera compra tenes un 10% de descuento automatico.',
+  },
+  {
+    q: 'Cuales son los datos para pagar por transferencia?',
+    a: 'Para pagar por transferencia, usa los siguientes datos y luego subí tu comprobante en el detalle de tu orden. Las ordenes sin pago se cancelan tras 48hs. Nombre: Liliana Viviana Paola Nievas, CUIT/CUIL: 27214734686, ALIAS: TROTE.DAMA.FUENTE, CBU: 0290002511000000179412.'
   },
   {
     q: 'Puedo cancelar o pedir reembolso?',
@@ -229,9 +233,9 @@ export default async function HomePage() {
               <Gift className="h-10 w-10" />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h3 className="font-serif font-bold text-2xl md:text-3xl mb-2">¿Primera compra? 5% OFF</h3>
+              <h3 className="font-serif font-bold text-2xl md:text-3xl mb-2">¿Primera compra? 10% OFF</h3>
               <p className="text-primary-foreground/80">
-                Registrate y obtene un 5% de descuento automatico en tu primera compra. Sin codigos, se aplica solo.
+                Registrate y obtene un 10% de descuento automatico en tu primera compra. Sin codigos, se aplica solo.
               </p>
             </div>
             <Button
@@ -240,7 +244,7 @@ export default async function HomePage() {
               className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold shrink-0"
             >
               <Link href="/auth/register">
-                Crear cuenta y recibir 5% OFF
+                Crear cuenta y recibir 10% OFF
               </Link>
             </Button>
           </Reveal>
