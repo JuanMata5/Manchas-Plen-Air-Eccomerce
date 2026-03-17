@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ShoppingCart, Menu, X, Leaf, User, Settings, LogOut, LogIn, UserPlus, Ticket, Sun, Moon } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { useCartStore } from '@/lib/cart-store'
@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { type Profile } from '@/lib/types'
+import { type Session } from '@supabase/supabase-js'
 
 const navLinks = [
   { href: '/', label: 'Inicio' },
@@ -29,100 +30,87 @@ const navLinks = [
 export function Navbar() {
   const totalItems = useCartStore((s) => s.totalItems())
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const { theme, setTheme } = useTheme()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     setMounted(true)
-    const supabase = createClient()
 
-    const fetchProfile = async (user: any) => {
-      if (!user) {
+    const fetchUserAndProfile = async (session: Session | null) => {
+      setSession(session)
+      if (session?.user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+        
+        if (error) {
+          console.error("Error fetching profile:", error)
+          setProfile(null)
+        } else {
+          setProfile(data)
+        }
+      } else {
         setProfile(null)
-        return
       }
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      setProfile(data)
     }
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-      fetchProfile(user)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      fetchUserAndProfile(session)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-      fetchProfile(session?.user)
+      fetchUserAndProfile(session)
     })
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [supabase])
 
   const handleSignOut = async () => {
-    const supabase = createClient()
     await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
     router.push('/')
     router.refresh()
   }
   
+  const user = session?.user
   const userName = profile ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') : ''
   const isAdmin = profile?.is_admin ?? false
 
   return (
     <header className="sticky top-0 z-50 bg-primary/92 text-primary-foreground shadow-md backdrop-blur-md animate-header-in">
       <nav className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        {/* Logo */}
-        <Link
-          href="/"
-          className="flex items-center gap-2 font-serif font-bold text-xl tracking-wide hover:opacity-90 transition-all duration-300 hover:scale-[1.02]"
-        >
+        <Link href="/" className="flex items-center gap-2 font-serif font-bold text-xl tracking-wide hover:opacity-90 transition-all duration-300 hover:scale-[1.02]">
           <Leaf className="h-5 w-5" />
           Manchas Plen Air
         </Link>
 
-        {/* Desktop nav */}
         <ul className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => (
             <li key={link.href}>
-              <Link
-                href={link.href}
-                className="text-sm font-medium hover:text-primary-foreground/70 transition-all duration-300 hover:-translate-y-0.5"
-              >
+              <Link href={link.href} className="text-sm font-medium hover:text-primary-foreground/70 transition-all duration-300 hover:-translate-y-0.5">
                 {link.label}
               </Link>
             </li>
           ))}
         </ul>
 
-        {/* Actions */}
         <div className="flex items-center gap-2">
-          {/* Theme toggle */}
           {mounted && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105"
-              aria-label="Cambiar tema"
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            >
+            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105" aria-label="Cambiar tema" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
               {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
           )}
 
-          {/* User menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105"
-                aria-label="Mi cuenta"
-              >
+              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105" aria-label="Mi cuenta">
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
@@ -180,12 +168,7 @@ export function Navbar() {
           </DropdownMenu>
 
           <Link href="/carrito">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105"
-              aria-label={`Carrito con ${mounted ? totalItems : 0} productos`}
-            >
+            <Button variant="ghost" size="icon" className="relative text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105" aria-label={`Carrito con ${mounted ? totalItems : 0} productos`}>
               <ShoppingCart className="h-5 w-5" />
               {mounted && totalItems > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-brand-earth text-white border-0">
@@ -195,98 +178,35 @@ export function Navbar() {
             </Button>
           </Link>
 
-          {/* Mobile menu */}
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105"
-                aria-label="Abrir menú"
-              >
+              <Button variant="ghost" size="icon" className="md:hidden text-primary-foreground hover:bg-primary/80 transition-transform duration-300 hover:scale-105" aria-label="Abrir menú">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="bg-primary text-primary-foreground w-64 pt-12">
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="absolute top-4 right-4 text-primary-foreground/70 hover:text-primary-foreground"
-                aria-label="Cerrar menú"
-              >
+              <button onClick={() => setMobileOpen(false)} className="absolute top-4 right-4 text-primary-foreground/70 hover:text-primary-foreground" aria-label="Cerrar menú">
                 <X className="h-5 w-5" />
               </button>
               <ul className="flex flex-col gap-6 mt-4">
                 {navLinks.map((link) => (
                   <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-lg font-medium hover:text-primary-foreground/70 transition-colors"
-                      onClick={() => setMobileOpen(false)}
-                    >
+                    <Link href={link.href} className="text-lg font-medium hover:text-primary-foreground/70 transition-colors" onClick={() => setMobileOpen(false)}>
                       {link.label}
                     </Link>
                   </li>
                 ))}
                 {user ? (
                   <>
-                    <li>
-                      <Link
-                        href="/cuenta/mis-ordenes"
-                        className="text-lg font-medium hover:text-primary-foreground/70 transition-colors"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        Mis ordenes
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href="/cuenta/mis-tickets"
-                        className="text-lg font-medium hover:text-primary-foreground/70 transition-colors"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        Mis tickets
-                      </Link>
-                    </li>
-                    {isAdmin && (
-                      <li>
-                        <Link
-                          href="/admin"
-                          className="text-lg font-medium hover:text-primary-foreground/70 transition-colors"
-                          onClick={() => setMobileOpen(false)}
-                        >
-                          Panel Admin
-                        </Link>
-                      </li>
-                    )}
-                    <li>
-                      <button
-                        onClick={() => { handleSignOut(); setMobileOpen(false) }}
-                        className="text-lg font-medium text-red-300 hover:text-red-200 transition-colors"
-                      >
-                        Cerrar sesion
-                      </button>
-                    </li>
+                    <li><Link href="/cuenta/mis-ordenes" className="text-lg font-medium hover:text-primary-foreground/70 transition-colors" onClick={() => setMobileOpen(false)}>Mis ordenes</Link></li>
+                    <li><Link href="/cuenta/mis-tickets" className="text-lg font-medium hover:text-primary-foreground/70 transition-colors" onClick={() => setMobileOpen(false)}>Mis tickets</Link></li>
+                    {isAdmin && <li><Link href="/admin" className="text-lg font-medium hover:text-primary-foreground/70 transition-colors" onClick={() => setMobileOpen(false)}>Panel Admin</Link></li>}
+                    <li><button onClick={() => { handleSignOut(); setMobileOpen(false) }} className="text-lg font-medium text-red-300 hover:text-red-200 transition-colors">Cerrar sesion</button></li>
                   </>
                 ) : (
                   <>
-                    <li>
-                      <Link
-                        href="/auth/login"
-                        className="text-lg font-medium hover:text-primary-foreground/70 transition-colors"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        Iniciar sesion
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href="/auth/register"
-                        className="text-lg font-medium hover:text-primary-foreground/70 transition-colors"
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        Registrarse
-                      </Link>
-                    </li>
+                    <li><Link href="/auth/login" className="text-lg font-medium hover:text-primary-foreground/70 transition-colors" onClick={() => setMobileOpen(false)}>Iniciar sesion</Link></li>
+                    <li><Link href="/auth/register" className="text-lg font-medium hover:text-primary-foreground/70 transition-colors" onClick={() => setMobileOpen(false)}>Registrarse</Link></li>
                   </>
                 )}
               </ul>
