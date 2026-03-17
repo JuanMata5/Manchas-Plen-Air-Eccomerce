@@ -160,7 +160,7 @@ export default async function HomePage() {
       <Navbar />
       <main>
         {/* ── 1. Hero Section ── */}
-        <section className="relative w-full h-[70vh] min-h-[550px] flex items-center justify-center text-center text-white overflow-hidden">
+        <section className="relative w-full h-[60vh] min-h-[500px] flex items-center justify-center text-center text-white overflow-hidden">
           {/* -- Video de fondo -- */}
           {/* Reemplaza este src con la URL de tu video. El video debe estar en la carpeta /public/videos/ */}
           <video 
