@@ -14,8 +14,6 @@ export async function POST(request: Request) {
 
   console.log(`[API] Solicitud de reseteo de contraseña para: ${email}`);
 
-  // IMPORTANTE: Para usar auth.admin, necesitamos un cliente con Service Role Key.
-  // No podemos usar el cliente de servidor estándar que depende de las cookies.
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -27,17 +25,34 @@ export async function POST(request: Request) {
   });
 
   if (linkError) {
-    // Si el usuario no existe, Supabase devuelve un error aquí. 
-    // Es seguro registrarlo en el log del servidor, pero no se lo mostramos al usuario.
     console.error('[API ERROR] No se pudo generar el enlace de reseteo:', linkError.message);
-    // Devolvemos una respuesta genérica para no revelar si el email existe o no.
     return NextResponse.json({ success: true, message: 'If an account with this email exists, a reset link has been sent.' });
   }
 
   const resetLink = data.properties.action_link;
+  const user = data.user;
+  
+  let userName = '';
+
+  if (user) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+    
+      if (profile && profile.full_name) {
+        userName = profile.full_name;
+      }
+  }
+
+  if (!userName) {
+    userName = email.split('@')[0];
+  }
+
 
   try {
-    await sendPasswordResetEmail('Hola', email, resetLink);
+    await sendPasswordResetEmail(userName, email, resetLink);
     console.log(`[API] Email de reseteo encolado para ${email}`);
     return NextResponse.json({ success: true, message: 'Password reset email enqueued.' });
   } catch (emailError) {
