@@ -1,305 +1,255 @@
--- ==========================================================
--- Plen Air - Schema completo
--- ==========================================================
 
--- -------------------------------------------------------
--- EXTENSIONES
--- -------------------------------------------------------
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+-- Habilitar extensiones requeridas
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- -------------------------------------------------------
--- CATEGORIAS DE PRODUCTOS
--- -------------------------------------------------------
+-- Opcional: Limpiar base de datos (solo para desarrollo)
+-- DROP SCHEMA public CASCADE;
+-- CREATE SCHEMA public;
+
+---------------------------------------
+-- 1. Tabla de Usuarios (Auth)
+---------------------------------------
+-- Supabase maneja su propio esquema `auth` con la tabla `users`.
+-- Columnas relevantes: id (UUID), email, raw_user_meta_data (JSONB)
+-- `raw_user_meta_data` se usa para guardar datos extra como nombre, dni, etc.
+
+
+---------------------------------------
+-- 2. Tabla de Categorías de Productos
+---------------------------------------
 CREATE TABLE IF NOT EXISTS public.categories (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name       TEXT NOT NULL,
-  slug       TEXT NOT NULL UNIQUE,
-  sort_order INT  NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) NOT NULL UNIQUE,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -------------------------------------------------------
--- PRODUCTOS
--- -------------------------------------------------------
+
+---------------------------------------
+-- 3. Tabla de Productos
+---------------------------------------
+CREATE TYPE product_type AS ENUM ('ticket', 'workshop', 'physical', 'digital');
+
 CREATE TABLE IF NOT EXISTS public.products (
-  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  category_id      UUID REFERENCES public.categories(id) ON DELETE SET NULL,
-  name             TEXT NOT NULL,
-  slug             TEXT NOT NULL UNIQUE,
-  description      TEXT,
-  price_ars        NUMERIC(12,2) NOT NULL DEFAULT 0,
-  price_usd        NUMERIC(10,2),
-  stock            INT  NOT NULL DEFAULT 0,
-  max_per_order    INT  NOT NULL DEFAULT 10,
-  image_url        TEXT,
-  is_active        BOOLEAN NOT NULL DEFAULT TRUE,
-  is_featured      BOOLEAN NOT NULL DEFAULT FALSE,
-  product_type     TEXT NOT NULL DEFAULT 'merchandise'
-                   CHECK (product_type IN ('ticket','workshop','merchandise')),
-  event_date       DATE,
-  event_location   TEXT,
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  category_id INTEGER REFERENCES public.categories(id),
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) NOT NULL UNIQUE,
+  description TEXT,
+  price_ars NUMERIC(10, 2) NOT NULL,
+  price_usd NUMERIC(10, 2),
+  stock INTEGER NOT NULL DEFAULT 0,
+  max_per_order INTEGER DEFAULT 10,
+  is_active BOOLEAN DEFAULT TRUE,
+  is_featured BOOLEAN DEFAULT FALSE,
+  image_url VARCHAR(255),
+  product_type product_type NOT NULL DEFAULT 'ticket',
+  event_date TIMESTAMPTZ, -- Para tickets o workshops
+  event_location VARCHAR(255), -- Para tickets o workshops
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -------------------------------------------------------
--- PERFILES DE USUARIO (extiende auth.users)
--- -------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id         UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  first_name TEXT,
-  last_name  TEXT,
-  phone      TEXT,
-  dni        TEXT,
-  is_admin   BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+---------------------------------------
+-- 4. Tabla de Órdenes
+---------------------------------------
+CREATE TYPE order_status AS ENUM (
+  'pending_payment', -- Esperando pago
+  'paid',            -- Pagado
+  'cancelled',       -- Cancelado
+  'refunded',        -- Reembolsado
+  'payment_failed'   -- Pago fallido
 );
 
--- -------------------------------------------------------
--- ORDENES
--- -------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.orders (
-  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id             UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  -- datos del comprador (para órdenes de invitados)
-  buyer_email         TEXT NOT NULL,
-  buyer_name          TEXT NOT NULL,
-  buyer_phone         TEXT,
-  buyer_dni           TEXT,
-  -- totales
-  subtotal_ars        NUMERIC(12,2) NOT NULL DEFAULT 0,
-  discount_ars        NUMERIC(12,2) NOT NULL DEFAULT 0,
-  total_ars           NUMERIC(12,2) NOT NULL DEFAULT 0,
-  -- estado
-  status              TEXT NOT NULL DEFAULT 'pending'
-                      CHECK (status IN ('pending','payment_pending','paid','cancelled','refunded')),
-  payment_method      TEXT CHECK (payment_method IN ('mercadopago','transfer')),
-  payment_ref         TEXT,           -- MP preference_id o referencia transfer
-  mp_payment_id       TEXT,           -- ID de pago confirmado MP
-  transfer_ref        TEXT,           -- código único para transferencia
-  notes               TEXT,
-  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) NOT NULL,
+  status order_status NOT NULL DEFAULT 'pending_payment',
+  total_ars NUMERIC(10, 2) NOT NULL,
+  total_usd NUMERIC(10, 2),
+  subtotal_ars NUMERIC(10, 2),
+  discount_ars NUMERIC(10, 2),
+  payment_method VARCHAR(50), -- e.g., 'mercadopago', 'transfer'
+  payment_id VARCHAR(255),   -- ID de la transacción externa (e.g., MercadoPago)
+  buyer_name VARCHAR(255),
+  buyer_email VARCHAR(255),
+  buyer_dni VARCHAR(50),
+  bank_transfer_ref VARCHAR(16) UNIQUE, -- Referencia para transferencia
+  receipt_url VARCHAR(255), -- URL a comprobante de transferencia
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -------------------------------------------------------
--- ITEMS DE ORDEN
--- -------------------------------------------------------
+-- Generar referencia única para transferencias
+CREATE OR REPLACE FUNCTION generate_transfer_ref()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.bank_transfer_ref := UPPER(SUBSTRING(REPLACE(NEW.id::text, '-', ''), 1, 8));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER before_insert_order
+  BEFORE INSERT ON public.orders
+  FOR EACH ROW
+  EXECUTE FUNCTION generate_transfer_ref();
+
+---------------------------------------
+-- 5. Tabla de Items de la Orden
+---------------------------------------
 CREATE TABLE IF NOT EXISTS public.order_items (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id    UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
-  product_id  UUID REFERENCES public.products(id) ON DELETE SET NULL,
-  product_snapshot JSONB NOT NULL,   -- copia del producto al momento de la compra
-  quantity    INT  NOT NULL DEFAULT 1,
-  unit_price  NUMERIC(12,2) NOT NULL,
-  total_price NUMERIC(12,2) NOT NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id SERIAL PRIMARY KEY,
+  order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
+  product_id UUID REFERENCES public.products(id),
+  quantity INTEGER NOT NULL,
+  unit_price_ars NUMERIC(10, 2) NOT NULL,
+  unit_price_usd NUMERIC(10, 2),
+  -- Snapshot de datos del producto
+  product_name VARCHAR(255),
+  product_description TEXT
 );
 
--- -------------------------------------------------------
--- TICKETS (generados tras pago confirmado)
--- -------------------------------------------------------
+---------------------------------------
+-- 6. Tabla de Tickets generados
+---------------------------------------
 CREATE TABLE IF NOT EXISTS public.tickets (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id    UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
-  order_item_id UUID REFERENCES public.order_items(id) ON DELETE CASCADE,
-  product_id  UUID REFERENCES public.products(id) ON DELETE SET NULL,
-  holder_name TEXT NOT NULL,
-  holder_email TEXT NOT NULL,
-  holder_dni  TEXT,
-  qr_code     TEXT UNIQUE NOT NULL DEFAULT encode(gen_random_bytes(16), 'hex'),
-  is_used     BOOLEAN NOT NULL DEFAULT FALSE,
-  used_at     TIMESTAMPTZ,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id SERIAL PRIMARY KEY,
+  order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id),
+  product_id UUID REFERENCES public.products(id),
+  qr_code_url VARCHAR(255), -- URL a la imagen del QR
+  ticket_code VARCHAR(255) NOT NULL UNIQUE, -- El codigo a escanear
+  is_validated BOOLEAN DEFAULT FALSE,
+  validated_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -------------------------------------------------------
--- CUPONES DE DESCUENTO
--- -------------------------------------------------------
+---------------------------------------
+-- 7. Tabla de Cupones
+---------------------------------------
+CREATE TYPE discount_type AS ENUM ('percentage', 'fixed_ars');
+
 CREATE TABLE IF NOT EXISTS public.coupons (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code            TEXT NOT NULL UNIQUE,
-  description     TEXT,
-  discount_type   TEXT NOT NULL DEFAULT 'percentage'
-                  CHECK (discount_type IN ('percentage','fixed')),
-  discount_value  NUMERIC(10,2) NOT NULL,
-  min_order_ars   NUMERIC(12,2) NOT NULL DEFAULT 0,
-  max_uses        INT,
-  uses_count      INT NOT NULL DEFAULT 0,
-  valid_from      TIMESTAMPTZ,
-  valid_until     TIMESTAMPTZ,
-  is_active       BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    discount_type discount_type NOT NULL,
+    discount_value NUMERIC(10, 2) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    valid_from TIMESTAMPTZ,
+    valid_until TIMESTAMPTZ,
+    max_uses INTEGER,
+    current_uses INTEGER DEFAULT 0,
+    min_spend_ars NUMERIC(10, 2),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- -------------------------------------------------------
--- WEBHOOK LOGS (para debug de MP)
--- -------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.webhook_logs (
-  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  source     TEXT NOT NULL,
-  payload    JSONB,
-  processed  BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+ALTER TABLE public.orders
+ADD COLUMN coupon_id INTEGER REFERENCES public.coupons(id);
 
--- -------------------------------------------------------
--- UPDATED_AT TRIGGER
--- -------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.set_updated_at()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$;
 
-CREATE OR REPLACE TRIGGER trg_products_updated_at
-  BEFORE UPDATE ON public.products
-  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+---------------------------------------
+-- VISTAS (VIEWS)
+---------------------------------------
+-- Vista para facilitar consulta de órdenes con datos de usuario
+CREATE OR REPLACE VIEW public.orders_with_users AS
+  SELECT
+    o.*,
+    u.email AS user_email,
+    u.raw_user_meta_data->>'full_name' AS user_full_name
+  FROM public.orders o
+  LEFT JOIN auth.users u ON o.user_id = u.id;
 
-CREATE OR REPLACE TRIGGER trg_orders_updated_at
-  BEFORE UPDATE ON public.orders
-  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
-CREATE OR REPLACE TRIGGER trg_profiles_updated_at
-  BEFORE UPDATE ON public.profiles
-  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+---------------------------------------
+-- DATOS INICIALES (SEEDING)
+---------------------------------------
+-- Solo correr en un entorno limpio para evitar duplicados
 
--- -------------------------------------------------------
--- TRIGGER: auto-crear perfil al registrarse
--- -------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-BEGIN
-  INSERT INTO public.profiles (id, first_name, last_name)
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'first_name', NULL),
-    COALESCE(NEW.raw_user_meta_data->>'last_name', NULL)
-  )
-  ON CONFLICT (id) DO NOTHING;
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- -------------------------------------------------------
--- ROW LEVEL SECURITY
--- -------------------------------------------------------
-
--- categories: lectura pública, escritura solo admin (service role)
-ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "categories_public_read" ON public.categories FOR SELECT USING (TRUE);
-
--- products: lectura pública de activos, escritura solo admin
-ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "products_public_read" ON public.products FOR SELECT USING (is_active = TRUE);
-
--- profiles: el usuario ve/edita solo su perfil
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "profiles_insert_own" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
-CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
-
--- orders: el usuario ve sus propias órdenes
-ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "orders_select_own" ON public.orders FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "orders_insert_own" ON public.orders FOR INSERT WITH CHECK (TRUE); -- cualquiera puede crear (guest checkout)
-
--- order_items: legible si el usuario es dueño de la orden
-ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "order_items_select_own" ON public.order_items FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.orders o WHERE o.id = order_id AND (o.user_id = auth.uid() OR auth.uid() IS NULL)
-  ));
-CREATE POLICY "order_items_insert" ON public.order_items FOR INSERT WITH CHECK (TRUE);
-
--- tickets: el titular puede ver su ticket
-ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "tickets_select_own" ON public.tickets FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.orders o WHERE o.id = order_id AND o.user_id = auth.uid()
-  ));
-
--- coupons: lectura pública para validar código
-ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "coupons_public_read" ON public.coupons FOR SELECT USING (is_active = TRUE);
-
--- webhook_logs: solo service role
-ALTER TABLE public.webhook_logs ENABLE ROW LEVEL SECURITY;
-
--- -------------------------------------------------------
--- DATOS SEMILLA
--- -------------------------------------------------------
-
-INSERT INTO public.categories (name, slug, sort_order) VALUES
-  ('Tickets de Entrada',  'tickets',    1),
-  ('Talleres',            'talleres',   2),
-  ('Merchandising',       'merch',      3)
+-- 1. Insertar Categorías
+INSERT INTO public.categories (name, slug, description) VALUES
+  ('Entradas', 'entradas', 'Entradas para eventos y convenciones.'),
+  ('Talleres', 'talleres', 'Workshops y clases magistrales.'),
+  ('Merchandising', 'merchandising', 'Productos oficiales del evento.'),
+  ('Digital', 'digital', 'Productos y contenido digital.')
 ON CONFLICT (slug) DO NOTHING;
+
+-- 2. Insertar Productos
+-- Borrar productos existentes para evitar conflictos de slug
+-- Asegurarse que esto solo se corra en desarrollo
+DELETE FROM public.products WHERE slug IN (
+    'entrada-general-1-dia',
+    'entrada-general-3-dias',
+    'pase-basico-3-dias',
+    'entrada-vip-3-dias',
+    'streaming-evento-completo'
+);
 
 INSERT INTO public.products (
   category_id, name, slug, description,
   price_ars, price_usd, stock, max_per_order,
   is_active, is_featured, product_type, event_date, event_location
 ) VALUES
+-- Producto 1: Entrada General · 1 Día
 (
-  (SELECT id FROM public.categories WHERE slug = 'tickets'),
-  'Entrada General - Plen Air 2025',
-  'entrada-general-2025',
-  'Acceso completo a la convención Plen Air 2025. Dos días de arte, naturaleza y comunidad creativa en el exterior.',
-  15000, 15, 200, 5,
-  TRUE, TRUE, 'ticket', '2025-11-15', 'Parque Los Andes, Buenos Aires'
+  (SELECT id FROM public.categories WHERE slug = 'entradas'),
+  'Entrada General · 1 Día',
+  'entrada-general-1-dia',
+  'Acceso general para un día al evento. Elige el día que prefieras al validar tu entrada.',
+  8000.00, 8.00, 500, 10,
+  TRUE, TRUE, 'ticket', '2026-05-01', 'Av. Sarmiento 1875, C.O.M.'
 ),
+-- Producto 2: Entrada General · 3 Días
 (
-  (SELECT id FROM public.categories WHERE slug = 'tickets'),
-  'Entrada VIP - Plen Air 2025',
-  'entrada-vip-2025',
-  'Acceso VIP con kit de bienvenida, área exclusiva y masterclass privada con artistas invitados.',
-  35000, 35, 50, 2,
-  TRUE, TRUE, 'ticket', '2025-11-15', 'Parque Los Andes, Buenos Aires'
+  (SELECT id FROM public.categories WHERE slug = 'entradas'),
+  'Entrada General · 3 Días',
+  'entrada-general-3-dias',
+  'Acceso general para los tres días del evento.',
+  16000.00, 16.00, 500, 10,
+  TRUE, TRUE, 'ticket', '2026-05-01', 'Av. Sarmiento 1875, C.O.M.'
 ),
+-- Producto 3: Pase Básico (3 días)
 (
-  (SELECT id FROM public.categories WHERE slug = 'talleres'),
-  'Taller: Acuarela al Aire Libre',
-  'taller-acuarela-2025',
-  'Taller intensivo de 4 horas de acuarela en plein air. Incluye materiales básicos. Cupos limitados.',
-  20000, 20, 20, 1,
-  TRUE, FALSE, 'workshop', '2025-11-16', 'Parque Los Andes, Buenos Aires'
+  (SELECT id FROM public.categories WHERE slug = 'entradas'),
+  'Pase Básico (3 días)',
+  'pase-basico-3-dias',
+  'Acceso completo para los 3 días de la convención, con acceso a todas las charlas y demos.',
+  55000.00, 55.00, 200, 5,
+  TRUE, TRUE, 'ticket', '2026-05-01', 'Av. Sarmiento 1875, C.O.M.'
 ),
+-- Producto 4: VIP · 3 Días
 (
-  (SELECT id FROM public.categories WHERE slug = 'talleres'),
-  'Taller: Óleo y Paisaje Urbano',
-  'taller-oleo-2025',
-  'Técnicas de óleo para paisaje urbano con artista invitado internacional. Materiales no incluidos.',
-  25000, 25, 15, 1,
-  TRUE, FALSE, 'workshop', '2025-11-16', 'Parque Los Andes, Buenos Aires'
+  (SELECT id FROM public.categories WHERE slug = 'entradas'),
+  'VIP · 3 Días',
+  'entrada-vip-3-dias',
+  'Acceso VIP para los 3 días. Incluye kit de bienvenida, acceso a zona VIP y meet & greet con artistas.',
+  75000.00, 75.00, 100, 2,
+  TRUE, TRUE, 'ticket', '2026-05-01', 'Av. Sarmiento 1875, C.O.M.'
 ),
+-- Producto 5: Streaming
 (
-  (SELECT id FROM public.categories WHERE slug = 'merch'),
-  'Remera Plen Air 2025',
-  'remera-plen-air-2025',
-  'Remera 100% algodón con diseño exclusivo de la edición 2025. Tallas S-M-L-XL.',
-  8000, 8, 100, 5,
-  TRUE, FALSE, 'merchandise', NULL, NULL
-),
-(
-  (SELECT id FROM public.categories WHERE slug = 'merch'),
-  'Bolso de Tela Artista',
-  'bolso-artista-2025',
-  'Bolso de tela resistente con bolsillos internos para materiales de pintura. Diseño plein air.',
-  6500, 7, 80, 3,
-  TRUE, FALSE, 'merchandise', NULL, NULL
-)
-ON CONFLICT (slug) DO NOTHING;
+  (SELECT id FROM public.categories WHERE slug = 'digital'),
+  'Streaming',
+  'streaming-evento-completo',
+  'Acceso a la transmisión en vivo de todo el evento. Charlas, demos y contenido exclusivo online.',
+  24000.00, 24.00, 1000, 1,
+  TRUE, TRUE, 'digital', '2026-05-01', 'Online'
+);
 
--- Cupón de ejemplo
-INSERT INTO public.coupons (code, description, discount_type, discount_value, min_order_ars, max_uses, valid_until, is_active)
-VALUES ('BIENVENIDA20', '20% de descuento para nuevos usuarios', 'percentage', 20, 10000, 100, '2025-12-31', TRUE)
-ON CONFLICT (code) DO NOTHING;
+-- 3. Insertar Cupones
+INSERT INTO public.coupons (code, description, discount_type, discount_value, is_active) VALUES
+  ('BIENVENIDO10', '10% de descuento para nuevos clientes', 'percentage', 10, TRUE)
+ON CONFLICT (code) DO UPDATE SET 
+  description = EXCLUDED.description,
+  discount_value = EXCLUDED.discount_value;
+
+INSERT INTO public.coupons (code, description, discount_type, discount_value, is_active, max_uses, min_spend_ars) VALUES
+  ('LANZAMIENTO20', '20% de descuento por lanzamiento (primeros 100)', 'percentage', 20, TRUE, 100, 10000)
+ON CONFLICT (code) DO UPDATE SET 
+  description = EXCLUDED.description,
+  discount_value = EXCLUDED.discount_value,
+  max_uses = EXCLUDED.max_uses,
+  min_spend_ars = EXCLUDED.min_spend_ars;
+

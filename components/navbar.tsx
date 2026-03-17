@@ -42,7 +42,7 @@ export function Navbar() {
   const isAdmin = false; // TODO: Implement profile fetching if needed
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full bg-amber-600 text-white">
       <nav className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-serif font-bold text-xl tracking-wide hover:opacity-90 transition-all duration-300 hover:scale-[1.02]">
           <Leaf className="h-5 w-5" />
@@ -52,7 +52,7 @@ export function Navbar() {
         <ul className="hidden md:flex items-center gap-6">
           {navLinks.map((link) => (
             <li key={link.href}>
-              <Link href={link.href} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Link href={link.href} className="text-sm font-medium text-amber-100 hover:text-white transition-colors">
                 {link.label}
               </Link>
             </li>
@@ -61,7 +61,7 @@ export function Navbar() {
 
         <div className="flex items-center gap-2">
           {mounted && (
-            <Button variant="ghost" size="icon" aria-label="Cambiar tema" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+            <Button variant="ghost" size="icon" aria-label="Cambiar tema" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="hover:bg-white/10">
               {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
           )}
@@ -70,32 +70,32 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-4 ml-2">
             {user ? (
               <>
-                <Link href="/cuenta/mis-ordenes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                <Link href="/cuenta/mis-ordenes" className="text-sm font-medium text-amber-100 hover:text-white transition-colors flex items-center gap-2">
                   <ShoppingCart className="h-4 w-4" />
                   Mis Órdenes
                 </Link>
-                <Link href="/cuenta/mis-tickets" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                <Link href="/cuenta/mis-tickets" className="text-sm font-medium text-amber-100 hover:text-white transition-colors flex items-center gap-2">
                   <Ticket className="h-4 w-4" />
                   Mis Tickets
                 </Link>
                 {isAdmin && (
-                  <Link href="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                  <Link href="/admin" className="text-sm font-medium text-amber-100 hover:text-white transition-colors flex items-center gap-2">
                     <Settings className="h-4 w-4" />
                     Panel Admin
                   </Link>
                 )}
-                <button onClick={handleSignOut} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                <button onClick={handleSignOut} className="text-sm font-medium text-amber-100 hover:text-white transition-colors flex items-center gap-2">
                   <LogOut className="h-4 w-4" />
                   Cerrar sesión
                 </button>
               </>
             ) : (
               <>
-                <Link href="/auth/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                <Link href="/auth/login" className="text-sm font-medium text-amber-100 hover:text-white transition-colors flex items-center gap-2">
                   <LogIn className="h-4 w-4" />
                   Iniciar Sesión
                 </Link>
-                <Link href="/auth/register" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                <Link href="/auth/register" className="text-sm font-medium text-amber-100 hover:text-white transition-colors flex items-center gap-2">
                   <UserPlus className="h-4 w-4" />
                   Registrarse
                 </Link>
@@ -104,7 +104,7 @@ export function Navbar() {
           </div>
 
           <Link href="/carrito">
-            <Button variant="ghost" size="icon" className="relative" aria-label={`Carrito con ${mounted ? totalItems : 0} productos`}>
+            <Button variant="ghost" size="icon" className="relative hover:bg-white/10" aria-label={`Carrito con ${mounted ? totalItems : 0} productos`}>
               <ShoppingCart className="h-5 w-5" />
               {mounted && totalItems > 0 && (
                 <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-xs">
@@ -116,7 +116,7 @@ export function Navbar() {
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden" aria-label="Abrir menú">
+              <Button variant="ghost" size="icon" className="md:hidden hover:bg-white/10" aria-label="Abrir menú">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>

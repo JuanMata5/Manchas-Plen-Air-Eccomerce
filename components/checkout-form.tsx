@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { CreditCard, Building2, ShoppingBag, Loader2, Gift } from 'lucide-react'
+import { CreditCard, Building2, ShoppingBag, Loader2, Gift, Ticket } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -20,7 +20,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Empty } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
 
-// --- SOLUCIÓN FINAL: Solo email es visible, el resto es automático ---
 const checkoutSchema = z.object({
   buyer_email: z.string().email(),
   coupon_code: z.string().optional(),
@@ -55,7 +54,6 @@ export function CheckoutForm() {
     type: 'percentage' | 'fixed_ars'
     value: number
   } | null>(null)
-  const [firstPurchaseDiscount, setFirstPurchaseDiscount] = useState(0)
 
   const {
     register,
@@ -79,17 +77,6 @@ export function CheckoutForm() {
     }
   }, [user, setValue])
 
-  useEffect(() => {
-    fetch('/api/orders/first-purchase')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.first_purchase) {
-          setFirstPurchaseDiscount(data.discount_percent ?? 10)
-        }
-      })
-      .catch(() => {})
-  }, [])
-
   const paymentMethod = watch('payment_method')
   const couponCode = watch('coupon_code')
 
@@ -111,14 +98,11 @@ export function CheckoutForm() {
   }
 
   const subtotal = totalARS()
-  const couponDiscount = couponApplied
+  const discountAmount = couponApplied
     ? couponApplied.type === 'percentage'
       ? Math.round((subtotal * couponApplied.value) / 100)
       : couponApplied.value
     : 0
-  const firstPurchaseAmount =
-    firstPurchaseDiscount > 0 ? Math.round((subtotal * firstPurchaseDiscount) / 100) : 0
-  const discountAmount = couponDiscount + firstPurchaseAmount
   const total = subtotal - discountAmount
 
   const handleApplyCoupon = async () => {
@@ -154,12 +138,11 @@ export function CheckoutForm() {
 
     setIsSubmitting(true)
     try {
-      // --- DATOS AUTOMÁTICOS DE LA CUENTA ---
       const payload = {
         ...data,
-        buyer_name: user.user_metadata.full_name || user.email, // Usar nombre del perfil o email como fallback
-        buyer_email: user.email, // Asegurar email de la cuenta
-        buyer_dni: user.user_metadata.dni || '00000000', // Usar DNI del perfil o uno genérico
+        buyer_name: user.user_metadata.full_name || user.email,
+        buyer_email: user.email,
+        buyer_dni: user.user_metadata.dni || '00000000',
         items: items.map((i) => ({
           product_id: i.product.id,
           quantity: i.quantity,
@@ -202,14 +185,13 @@ export function CheckoutForm() {
       <div className="lg:col-span-2 flex flex-col gap-8">
         <section className="bg-card rounded-xl border border-border p-6">
           <h2 className="font-serif font-semibold text-lg text-foreground mb-5">Datos del comprador</h2>
-          {/* --- UI DEFINITIVA: Solo email (deshabilitado) -- */}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="buyer_email">Email de la cuenta</Label>
             <Input
               id="buyer_email"
               type="email"
               {...register('buyer_email')}
-              disabled // El email se toma de la sesión y no se puede cambiar
+              disabled
             />
             {isUserLoading && <p className="text-xs text-muted-foreground">Cargando tu información...</p>}
           </div>
@@ -259,6 +241,14 @@ export function CheckoutForm() {
           <h2 className="font-serif font-semibold text-lg text-foreground">Tu orden</h2>
           <Separator />
 
+          {/* --- AVISO CUPÓN BIENVENIDA --- */}
+          {!couponApplied && (
+            <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-200 rounded-lg text-amber-800 text-sm">
+              <Gift className="h-4 w-4 shrink-0" />
+              <span>¿Primera compra? Usa el cupón <strong>BIENVENIDO10</strong> y obtén 10% OFF.</span>
+            </div>
+          )}
+
           <div className="flex flex-col gap-3">
             {items.map(({ product, quantity }) => (
               <div key={product.id} className="flex items-center gap-3">
@@ -295,7 +285,7 @@ export function CheckoutForm() {
             <div className="flex gap-2">
               <Input
                 id="coupon_code"
-                placeholder="CODIGO"
+                placeholder="BIENVENIDO10"
                 className="uppercase"
                 {...register('coupon_code')}
                 disabled={!!couponApplied}
@@ -311,16 +301,9 @@ export function CheckoutForm() {
               </Button>
             </div>
             {couponApplied && (
-              <p className="text-xs text-primary">Descuento: -{formatARS(discountAmount)}</p>
+              <p className="text-xs text-primary">Descuento aplicado: {couponApplied.code}</p>
             )}
           </div>
-
-          {firstPurchaseDiscount > 0 && (
-            <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-200 rounded-lg text-green-800 text-sm">
-              <Gift className="h-4 w-4 shrink-0" />
-              <span>Primera compra: <strong>{firstPurchaseDiscount}% de descuento</strong> aplicado automaticamente</span>
-            </div>
-          )}
 
           <Separator />
 
@@ -329,16 +312,10 @@ export function CheckoutForm() {
               <span className="text-muted-foreground">Subtotal</span>
               <span className="tabular-nums">{formatARS(subtotal)}</span>
             </div>
-            {couponDiscount > 0 && (
+            {discountAmount > 0 && (
               <div className="flex justify-between text-primary">
-                <span>Cupon</span>
-                <span className="tabular-nums">-{formatARS(couponDiscount)}</span>
-              </div>
-            )}
-            {firstPurchaseAmount > 0 && (
-              <div className="flex justify-between text-green-600">
-                <span>Primera compra (-{firstPurchaseDiscount}%)</span>
-                <span className="tabular-nums">-{formatARS(firstPurchaseAmount)}</span>
+                <span>Descuento</span>
+                <span className="tabular-nums">-{formatARS(discountAmount)}</span>
               </div>
             )}
             <Separator />
