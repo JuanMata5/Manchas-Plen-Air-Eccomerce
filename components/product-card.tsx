@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { ShoppingCart, Check, Star, Mail, ArrowRight } from 'lucide-react'
+import { ShoppingCart, Check, Mail } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { Product } from '@/lib/types'
@@ -14,21 +14,6 @@ import { ProductModal } from '@/components/product-modal'
 interface ProductCardProps {
   product: Product
 }
-
-// --- Componente de Estrellas (para prueba social) ---
-const StarRating = ({ rating = 4.5 }: { rating?: number }) => (
-  <div className="flex items-center gap-1">
-    <div className="flex gap-0.5">
-      {[...Array(5)].map((_, i) => (
-        <Star
-          key={i}
-          className={`h-4 w-4 ${i < Math.floor(rating) ? 'fill-amber-400 text-amber-400' : 'fill-muted stroke-muted-foreground'}`}
-        />
-      ))}
-    </div>
-    <span className="text-xs text-muted-foreground font-medium">{rating.toFixed(1)}</span>
-  </div>
-)
 
 export function ProductCard({ product }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem)
@@ -50,11 +35,7 @@ export function ProductCard({ product }: ProductCardProps) {
   }
 
   const isSoldOut = product.stock <= 0
-  const isLowStock = product.stock > 0 && product.stock <= 10 // Aumentamos el umbral para crear mas urgencia
-  
-  // --- Tactica CRO: Falso descuento para crear valor ---
-  const originalPrice = product.price_ars * 1.15; // Simula un 15% de descuento
-  const discountPercentage = 15; // Para la badge
+  const isLowStock = product.stock > 0 && product.stock <= 10
 
   return (
     <>
@@ -78,13 +59,8 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
           )}
           
-          {/* --- Badges de Oferta y Estado --- */}
+          {/* --- Badges de Estado --- */}
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-            {!isSoldOut && (
-                <Badge className="bg-red-600 text-white text-xs font-semibold border-0">
-                    {discountPercentage}% OFF
-                </Badge>
-            )}
             {isLowStock && !isSoldOut && (
               <Badge className="bg-amber-500 text-white text-xs font-semibold border-0 animate-pulse">
                 ¡Poco Stock!
@@ -100,25 +76,17 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* --- Informacion del producto --- */}
         <div className="p-4 flex flex-col flex-1">
-          <div className="flex justify-between items-start gap-2">
-            {product.categories && (
-                <span className="text-xs text-primary font-semibold uppercase tracking-wider">
-                {product.categories.name}
-                </span>
-            )}
-            {/* --- Prueba Social: Estrellas --- */}
-            <StarRating />
-          </div>
+          {product.categories && (
+              <span className="text-xs text-primary font-semibold uppercase tracking-wider">
+              {product.categories.name}
+              </span>
+          )}
 
           <h2 className="font-serif font-bold text-lg text-foreground mt-2 mb-2 leading-snug text-balance group-hover:text-primary transition-colors">
             {product.name}
           </h2>
 
-          {/* --- Precio con Anclaje (CRO) --- */}
           <div className="mt-auto mb-4">
-            <p className="text-sm text-muted-foreground line-through">
-                {formatARS(originalPrice)}
-            </p>
             <p className="font-display font-bold text-2xl text-foreground -mt-1">
                 {formatARS(product.price_ars)}
             </p>

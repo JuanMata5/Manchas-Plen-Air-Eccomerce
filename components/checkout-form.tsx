@@ -23,8 +23,8 @@ import { cn } from '@/lib/utils'
 const checkoutSchema = z.object({
   buyer_name: z.string().min(2, 'Ingresa tu nombre completo'),
   buyer_email: z.string().email('Email invalido'),
+  buyer_dni: z.string().min(7, 'Ingresa un DNI válido'),
   buyer_phone: z.string().min(8, 'Ingresa tu telefono').optional().or(z.literal('')),
-  buyer_dni: z.string().min(7, 'Ingresa un DNI válido'), // Corregido: DNI es obligatorio
   coupon_code: z.string().optional(),
   payment_method: z.enum(['mercadopago', 'transfer']),
 })
@@ -70,13 +70,13 @@ export function CheckoutForm() {
     defaultValues: { payment_method: 'mercadopago' },
   })
 
-  // --- Corrección: Cargar datos del usuario logueado ---
+  // --- Corrección BUG: Cargar datos del usuario logueado y FORZAR la validación ---
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        setValue('buyer_name', user.user_metadata.full_name || '');
-        setValue('buyer_email', user.email || '');
+        setValue('buyer_name', user.user_metadata.full_name || '', { shouldValidate: true });
+        setValue('buyer_email', user.email || '', { shouldValidate: true });
       }
     };
     fetchUser();
@@ -87,7 +87,7 @@ export function CheckoutForm() {
       .then((r) => r.json())
       .then((data) => {
         if (data.first_purchase) {
-          setFirstPurchaseDiscount(data.discount_percent ?? 10) // Usar el 10% que definimos
+          setFirstPurchaseDiscount(data.discount_percent ?? 10)
         }
       })
       .catch(() => {})
