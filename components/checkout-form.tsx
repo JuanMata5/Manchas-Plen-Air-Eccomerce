@@ -54,6 +54,7 @@ export function CheckoutForm() {
     type: 'percentage' | 'fixed_ars'
     value: number
   } | null>(null)
+  const [showWelcomeCoupon, setShowWelcomeCoupon] = useState(false)
 
   const {
     register,
@@ -63,7 +64,6 @@ export function CheckoutForm() {
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
-    // 🔥 CORRECCIÓN: Actualizar el estado del formulario en tiempo real
     mode: 'onChange',
     defaultValues: {
       buyer_email: '',
@@ -78,6 +78,27 @@ export function CheckoutForm() {
       setValue('buyer_email', user.email)
     }
   }, [user, setValue])
+
+  // 🔥 CORRECCIÓN: Verificar si el usuario ya usó el cupón de bienvenida
+  useEffect(() => {
+    const checkCoupon = async () => {
+        if (!user) { // No mostrar si no hay usuario
+            setShowWelcomeCoupon(true)
+            return
+        }
+      try {
+        const res = await fetch('/api/coupons/check-usage?code=BIENVENIDO10')
+        if (res.ok) {
+          const { used } = await res.json()
+          setShowWelcomeCoupon(!used)
+        }
+      } catch (err) {
+        console.error('Error checking coupon usage, defaulting to show', err)
+        setShowWelcomeCoupon(true) // Mostrar por defecto si hay error de red
+      }
+    }
+    checkCoupon()
+  }, [user])
 
   const paymentMethod = watch('payment_method')
   const couponCode = watch('coupon_code')
@@ -244,7 +265,7 @@ export function CheckoutForm() {
           <Separator />
 
           {/* --- AVISO CUPÓN BIENVENIDA --- */}
-          {!couponApplied && (
+          {showWelcomeCoupon && !couponApplied && (
             <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-200 rounded-lg text-amber-800 text-sm">
               <Gift className="h-4 w-4 shrink-0" />
               <span>¿Primera compra? Usa el cupón <strong>BIENVENIDO10</strong> y obtén 10% OFF.</span>
