@@ -1,3 +1,4 @@
+
 import { createClient } from "@/lib/supabase/server";
 import { sendEmail, EmailOptions } from "./resend";
 
@@ -89,6 +90,7 @@ export async function processEmailQueue() {
           subject: emailItem.subject,
           html,
           from: "Convención Plein Air <info@manchaspleinair.com.ar>",
+          replyTo: "info@manchaspleinair.com.ar"
         };
 
         // Send email
@@ -132,8 +134,16 @@ async function getTemplateHtml(
   const {
     orderConfirmationTemplate,
     paymentConfirmedTemplate,
-    adminNotificationTemplate,
   } = await import("./templates");
+
+  const {
+    welcomeEmailTemplate,
+    passwordResetEmailTemplate,
+    passwordChangedEmailTemplate,
+    orderConfirmationEmailTemplate,
+    adminNotificationEmailTemplate,
+  } = await import("./transactional_templates");
+
 
   switch (templateName) {
     case "order_confirmation":
@@ -141,7 +151,15 @@ async function getTemplateHtml(
     case "payment_confirmed":
       return paymentConfirmedTemplate(data);
     case "admin_notification":
-      return adminNotificationTemplate(data);
+        return adminNotificationEmailTemplate(data);
+    case "welcome":
+        return welcomeEmailTemplate(data);
+    case "password_reset":
+        return passwordResetEmailTemplate(data);
+    case "password_changed":
+        return passwordChangedEmailTemplate(data);
+    case "order_confirmation_plain":
+        return orderConfirmationEmailTemplate(data);
     default:
       throw new Error(`Unknown template: ${templateName}`);
   }
