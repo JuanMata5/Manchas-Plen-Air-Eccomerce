@@ -142,7 +142,7 @@ const faqs = [
   },
   {
     q: 'Cuales son los datos para pagar por transferencia?',
-    a: 'Para pagar por transferencia, usa los siguientes datos y luego subí tu comprobante en el detalle de tu orden. Las ordenes sin pago se cancelan tras 48hs. Nombre: Liliana Viviana Paola Nievas, CUIT/CUIL: 27214734686, ALIAS: TROTE.DAMA.FUENTE, CBU: 0290002511000000179412.'
+    a: 'Para pagar por transferencia, usa los siguientes datos y luego subí tu comprobante en el detalle de tu orden. Las ordenes sin pago se cancelan tras 48hs. <br/><br/><b>CUENTA PESOS (ARS):</b><br/>Nombre: Liliana Viviana Paola Nievas<br/>CUIT/CUIL: 27214734686<br/>ALIAS: TROTE.DAMA.FUENTE<br/>CBU: 0290002511000000179412<br/><br/><b>CUENTA DÓLARES (USD):</b><br/>ALIAS: EJEMPLO.DOLAR.CUENTA<br/>CBU/CVU: 1234567890123456789012',
   },
   {
     q: 'Puedo cancelar o pedir reembolso?',
@@ -400,18 +400,18 @@ export default async function HomePage() {
                       <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 transition-transform group-open:rotate-180" />
                     </summary>
                     <div className="px-5 pb-5 -mt-1">
-                      <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: faq.a }} />
                     </div>
                   </details>
                 </Reveal>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <ContactSection />
-      </main>
-      <Footer />
-    </>
-  )
-}
+              ))}\
+            </div>\
+          </div>\
+        </section>\
+\
+        <ContactSection />\
+      </main>\
+      <Footer />\
+    </>\
+  )\
+}\

@@ -14,12 +14,22 @@ interface PageProps {
   params: Promise<{ orderId: string }>
 }
 
-const BANK_DATA = {
-  bank: process.env.BANK_NAME ?? 'Banco Galicia',
-  cbu: process.env.BANK_CBU ?? '0000000000000000000000',
-  alias: process.env.BANK_ALIAS ?? 'PLENAIR.PAGOS',
-  holder: process.env.BANK_HOLDER ?? 'Asociacion Plen Air',
-  cuit: process.env.BANK_CUIT ?? '30-00000000-0',
+// --- DATOS REALES --- 
+const BANK_DATA_ARS = {
+  bank: 'Banco Ciudad',
+  holder: 'Liliana Viviana Paola Nievas',
+  cuit: '27-21473468-6',
+  cbu: '0290002511000000179412',
+  alias: 'TROTE.DAMA.FUENTE',
+}
+
+const BANK_DATA_USD = {
+  bank: 'Banco Ciudad',
+  holder: 'Liliana Viviana Paola Nievas',
+  cuit: '27-21473468-6',
+  account_number: '000000020400017941',
+  alias: 'TROTE.DAMA.FUENTE',
+  cbu: '0290002511000000179412',
 }
 
 export default async function BankTransferPage({ params }: PageProps) {
@@ -34,7 +44,6 @@ export default async function BankTransferPage({ params }: PageProps) {
 
   if (!order) notFound()
 
-  // receipt_url may not exist yet as a column
   const receiptUrl = (order as any).receipt_url ?? null
 
   return (
@@ -52,15 +61,15 @@ export default async function BankTransferPage({ params }: PageProps) {
           </p>
         </div>
 
-        {/* Bank data card */}
+        {/* --- DATOS CUENTA EN PESOS (ARS) --- */}
         <div className="bg-card rounded-xl border border-border p-6 flex flex-col gap-4">
-          <h2 className="font-semibold text-foreground">Datos bancarios</h2>
+          <h2 className="font-semibold text-foreground">Datos para transferencia en Pesos (ARS)</h2>
           <Separator />
-          <BankRow label="Banco" value={BANK_DATA.bank} />
-          <BankRow label="Titular" value={BANK_DATA.holder} />
-          <BankRow label="CUIT" value={BANK_DATA.cuit} />
-          <BankRow label="CBU" value={BANK_DATA.cbu} copyable />
-          <BankRow label="Alias" value={BANK_DATA.alias} copyable />
+          <BankRow label="Banco" value={BANK_DATA_ARS.bank} />
+          <BankRow label="Titular" value={BANK_DATA_ARS.holder} />
+          <BankRow label="CUIT" value={BANK_DATA_ARS.cuit} />
+          <BankRow label="CBU" value={BANK_DATA_ARS.cbu} copyable />
+          <BankRow label="Alias" value={BANK_DATA_ARS.alias} copyable />
           <Separator />
           <BankRow
             label="Monto exacto"
@@ -74,6 +83,22 @@ export default async function BankTransferPage({ params }: PageProps) {
             highlight
           />
         </div>
+        
+        {/* --- DATOS CUENTA EN DÓLARES (USD) --- */}
+        <div className="bg-card rounded-xl border border-border p-6 flex flex-col gap-4">
+            <h2 className="font-semibold text-foreground">Datos para transferencia en Dólares (USD)</h2>
+            <p className="text-sm text-muted-foreground -mt-2">
+                Para transferencias en USD, por favor contáctanos para confirmar el monto final.
+            </p>
+            <Separator />
+            <BankRow label="Banco" value={BANK_DATA_USD.bank} />
+            <BankRow label="Titular" value={BANK_DATA_USD.holder} />
+            <BankRow label="CUIT" value={BANK_DATA_USD.cuit} />
+            <BankRow label="Caja de Ahorro U$S" value={BANK_DATA_USD.account_number} copyable />
+            <BankRow label="CBU" value={BANK_DATA_USD.cbu} copyable />
+            <BankRow label="Alias" value={BANK_DATA_USD.alias} copyable />
+        </div>
+
 
         <div className="bg-muted rounded-xl p-4 text-sm text-muted-foreground flex flex-col gap-2">
           <p className="font-medium text-foreground">Importante</p>
@@ -97,7 +122,7 @@ export default async function BankTransferPage({ params }: PageProps) {
         </div>
 
         <Button asChild variant="outline">
-          <Link href="/">Volver al inicio</Link>
+          <Link href="/cuenta/mis-ordenes">Ir a Mis Órdenes</Link>
         </Button>
       </main>
       <Footer />
