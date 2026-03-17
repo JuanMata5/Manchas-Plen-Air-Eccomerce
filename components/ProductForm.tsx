@@ -62,30 +62,36 @@ async function uploadImagesToCloudinary(files: File[]) {
     body: JSON.stringify({ folder: 'plenair/products' }),
   })
 
-  // LOG: Verificar estado de la respuesta de la firma
   console.log('SIGN RESPONSE STATUS:', signRes.status)
-
   if (!signRes.ok) {
     const errorBody = await signRes.json().catch(() => ({}))
     console.error('[Signature Error Body]', errorBody)
-    throw new Error('Error al obtener la firma de subida de Cloudinary.')
+    throw new Error('Error al obtener la firma de subida.')
   }
 
   const signData = await signRes.json()
-  // LOG: Verificar datos de la firma
   console.log('SIGN DATA:', signData)
 
   const results = []
 
   for (const file of files) {
     const formData = new FormData()
+    // Adjuntar todos los parámetros de la firma para que coincidan
     formData.append('file', file)
     formData.append('api_key', signData.api_key)
     formData.append('timestamp', String(signData.timestamp))
     formData.append('signature', signData.signature)
     formData.append('folder', signData.folder)
+    
+    // 🔥 CORRECCIÓN: Añadir TODOS los parámetros usados en la firma
+    if (signData.eager) {
+      formData.append('eager', signData.eager)
+    }
+    if (signData.eager_async) {
+      formData.append('eager_async', String(signData.eager_async))
+    }
     if (signData.upload_preset) {
-        formData.append('upload_preset', signData.upload_preset);
+      formData.append('upload_preset', signData.upload_preset)
     }
 
     const res = await fetch(
@@ -96,7 +102,7 @@ async function uploadImagesToCloudinary(files: File[]) {
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}))
       console.error('[Cloudinary Upload Error]', errorData)
-      throw new Error(`Error al subir la imagen ${file.name} a Cloudinary.`)
+      throw new Error(`Error al subir la imagen ${file.name}.`)
     }
 
     const data = await res.json()
@@ -118,7 +124,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
   const [loadingMessage, setLoadingMessage] = useState('')
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
 
-  const { handleSubmit, control, register } = useForm<ProductFormData>({
+  const { handleSubmit, control } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       ...product,
@@ -151,12 +157,11 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
       if (!res.ok) {
           const errorBody = await res.json().catch(() => ({}))
           console.error('[Product Save Error]', errorBody)
-          throw new Error('Error al guardar el producto.')
+          throw new Error(`Error al guardar el producto: ${errorBody.error || 'Error desconocido'}`)
       }
 
       const savedProduct = await res.json()
 
-      // LOG: Verificar imágenes pendientes antes de subir
       console.log('IMAGES TO UPLOAD:', pendingImages)
 
       if (pendingImages.length > 0) {
@@ -164,14 +169,12 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
         const files = pendingImages.map(p => p.file)
         const uploaded = await uploadImagesToCloudinary(files)
 
-        // LOG: Verificar resultado de la subida a Cloudinary
         console.log('CLOUDINARY UPLOAD RESULT:', uploaded)
 
-        setLoadingMessage('Guardando imágenes en la base de datos...')
+        setLoadingMessage('Guardando imágenes...')
 
         for (let i = 0; i < uploaded.length; i++) {
           const img = uploaded[i]
-          // LOG: Verificar datos de la imagen a guardar en la DB
           console.log('SAVING IMAGE:', img)
 
           const uploadImageRes = await fetch('/api/admin/products/upload-image', {
@@ -183,18 +186,17 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
               url: img.url,
               width: img.width,
               height: img.height,
-              is_primary: i === 0, // La primera imagen es la principal
+              is_primary: i === 0,
               display_order: i,
             }),
           })
           
-          // LOG: Verificar estado de la respuesta al guardar en DB
           console.log('UPLOAD IMAGE STATUS:', uploadImageRes.status)
 
           if (!uploadImageRes.ok) {
             const errorBody = await uploadImageRes.json().catch(() => ({}))
             console.error('[DB Save Error Body]', errorBody)
-            throw new Error('Error al guardar la referencia de la imagen en la base de datos.')
+            throw new Error('Error al guardar la imagen en la base de datos.')
           }
         }
       }
@@ -203,7 +205,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
       router.push('/admin/productos')
       router.refresh()
     } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error desconocido.'
+        const errorMessage = err instanceof Error ? err.message : 'Ocurrió un error.'
         console.error('[Submit Error]', errorMessage)
         toast.error(errorMessage)
     } finally {
@@ -213,69 +215,13 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <Controller
-            control={control}
-            name="name"
-            render={({ field }) => (
-            <div>
-                <Label>Nombre</Label>
-                <Input {...field} />
-            </div>
-            )}
-        />
-        <Controller
-            control={control}
-            name="slug"
-            render={({ field }) => (
-            <div>
-                <Label>Slug</Label>
-                <Input {...field} />
-            </div>
-            )}
-        />
-        <Controller
-            control={control}
-            name="category_id"
-            render={({ field }) => (
-            <Select
-                onValueChange={(val) => field.onChange(val || null)}
-                value={field.value ?? ''}
-            >
-                <SelectTrigger>
-                <SelectValue placeholder="Categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                {categories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                    </SelectItem>
-                ))}
-                </SelectContent>
-            </Select>
-            )}
-        />
-        <Controller
-            control={control}
-            name="price_ars"
-            render={({ field }) => (
-            <div>
-                <Label>Precio ARS</Label>
-                <Input type="number" {...field} />
-            </div>
-            )}
-        />
-
-      <ImageUpload
-        pendingImages={pendingImages}
-        onPendingImagesChange={setPendingImages}
-        multiple
-        maxFiles={5}
-      />
-
-      <Button type="submit" disabled={loading}>
-        {loading && <Loader2 className="animate-spin mr-2" />}
-        Guardar
-      </Button>
+        {/* ... Resto del formulario sin cambios ... */}
+        <Controller control={control} name="name" render={({ field }) => (<div><Label>Nombre</Label><Input {...field} /></div>)} />
+        <Controller control={control} name="slug" render={({ field }) => (<div><Label>Slug</Label><Input {...field} /></div>)} />
+        <Controller control={control} name="category_id" render={({ field }) => (<Select onValueChange={(val) => field.onChange(val || null)} value={field.value ?? ''}><SelectTrigger><SelectValue placeholder="Categoría" /></SelectTrigger><SelectContent>{categories.map(cat => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}</SelectContent></Select>)} />
+        <Controller control={control} name="price_ars" render={({ field }) => (<div><Label>Precio ARS</Label><Input type="number" {...field} /></div>)} />
+        <ImageUpload pendingImages={pendingImages} onPendingImagesChange={setPendingImages} multiple maxFiles={5} />
+        <Button type="submit" disabled={loading}>{loading && <Loader2 className="animate-spin mr-2" />}Guardar</Button>
     </form>
   )
 }

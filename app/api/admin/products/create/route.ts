@@ -19,74 +19,72 @@ const createProductSchema = z.object({
   event_location: z.string().optional().nullable(),
 })
 
+// Función para generar un slug único de forma robusta
+async function generateUniqueSlug(slug: string, adminDb: any): Promise<string> {
+  let newSlug = slug;
+  let counter = 1;
+  while (true) {
+    const { data: existing, error } = await adminDb
+      .from('products')
+      .select('id')
+      .eq('slug', newSlug)
+      .maybeSingle() // Use maybeSingle para no lanzar error si no se encuentra
+
+    if (error) {
+      console.error('Error checking slug uniqueness:', error)
+      throw new Error('Error al verificar el slug') // Lanzar error si la consulta a la BD falla
+    }
+
+    if (!existing) {
+      return newSlug; // Slug es único
+    }
+
+    // Si existe, intentar con un nuevo sufijo
+    newSlug = `${slug}-${counter}`;
+    counter++;
+  }
+}
+
 /**
  * POST /api/admin/products/create
- * Create new product
+ * Create new product with unique slug generation
  */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
 
-    // Verify admin
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
+    // 1. Verify admin
+    const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single()
-
+    const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single()
     if (!profile?.is_admin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    // 2. Validate input
     const body = await request.json()
-
-    // Validate input
     const validData = createProductSchema.parse(body)
 
-    // Check slug uniqueness
     const adminDb = createAdminClient()
-    const { data: existing } = await adminDb
-      .from('products')
-      .select('id')
-      .eq('slug', validData.slug)
-      .single()
+    
+    // 3. 🔥 CORRECCIÓN: Generar un slug único
+    const uniqueSlug = await generateUniqueSlug(validData.slug, adminDb);
 
-    if (existing) {
-      return NextResponse.json({ error: 'Slug already exists' }, { status: 400 })
-    }
-
-    // Create product (using service role to bypass RLS)
+    // 4. Create product
     const { data: product, error } = await adminDb
       .from('products')
       .insert({
-        name: validData.name,
-        slug: validData.slug,
-        description: validData.description || null,
-        category_id: validData.category_id,
-        price_ars: validData.price_ars,
-        price_usd: validData.price_usd || null,
-        stock: validData.stock,
-        max_per_order: validData.max_per_order,
-        is_active: validData.is_active,
-        is_featured: validData.is_featured,
-        product_type: validData.product_type,
-        event_date: validData.event_date || null,
-        event_location: validData.event_location || null,
+        ...validData,
+        slug: uniqueSlug, // Usar el slug garantizado como único
       })
       .select()
       .single()
 
     if (error) {
-      console.error('[ADMIN API] Create product error:', error)
-      return NextResponse.json({ error: 'Failed to create product' }, { status: 500 })
+      console.error('[ADMIN API] Create product DB error:', error)
+      return NextResponse.json({ error: 'Failed to create product in database.' }, { status: 500 })
     }
 
     return NextResponse.json(product, { status: 201 })
@@ -94,8 +92,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors }, { status: 400 })
     }
-
-    console.error('[ADMIN API] Create product error:', error)
+    console.error('[ADMIN API] Create product unhandled error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
