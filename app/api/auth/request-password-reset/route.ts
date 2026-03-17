@@ -5,6 +5,47 @@ import { sendPasswordResetEmail } from '@/lib/email/actions';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+function computeBaseUrl(request: Request) {
+  const proto =
+    request.headers.get('x-forwarded-proto') ||
+    request.headers.get('x-forwarded-protocol') ||
+    'https';
+
+  const host =
+    request.headers.get('x-forwarded-host') ||
+    request.headers.get('host');
+
+  const inferred = host ? `${proto}://${host}` : undefined;
+
+  return (
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    inferred ||
+    'http://localhost:3000'
+  );
+}
+
+export async function GET(request: Request) {
+  const baseUrl = computeBaseUrl(request);
+  const redirectTo = `${baseUrl}/auth/reset-password`;
+
+  return NextResponse.json({
+    ok: true,
+    baseUrl,
+    redirectTo,
+    env: {
+      NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL ? 'set' : 'missing',
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'set' : 'missing',
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'set' : 'missing',
+      RESEND_API_KEY: process.env.RESEND_API_KEY ? 'set' : 'missing',
+    },
+    headers: {
+      host: request.headers.get('host'),
+      'x-forwarded-host': request.headers.get('x-forwarded-host'),
+      'x-forwarded-proto': request.headers.get('x-forwarded-proto'),
+    },
+  });
+}
+
 export async function POST(request: Request) {
   const { email } = await request.json();
 
@@ -19,13 +60,7 @@ export async function POST(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    (request.headers.get('x-forwarded-proto') && request.headers.get('host')
-      ? `${request.headers.get('x-forwarded-proto')}://${request.headers.get('host')}`
-      : undefined) ||
-    'http://localhost:3000';
-
+  const baseUrl = computeBaseUrl(request);
   const redirectTo = `${baseUrl}/auth/reset-password`;
 
   const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
