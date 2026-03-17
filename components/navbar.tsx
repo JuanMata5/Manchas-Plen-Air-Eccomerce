@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ShoppingCart, Menu, X, Leaf, Settings, LogOut, LogIn, UserPlus, Sun, Moon, Ticket, User } from 'lucide-react'
+import { ShoppingCart, Menu, X, Leaf, Settings, LogOut, LogIn, UserPlus, Sun, Moon, Ticket } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
@@ -11,16 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Separator } from '@/components/ui/separator' // CORRECCIÓN: Import agregado
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator, // Import específico para Dropdown
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-
+import { Separator } from '@/components/ui/separator'
 
 const navLinks = [
   { href: '/', label: 'Inicio' },
@@ -75,6 +66,43 @@ export function Navbar() {
             </Button>
           )}
 
+          {/* User auth links for desktop */}
+          <div className="hidden md:flex items-center gap-4 ml-2">
+            {user ? (
+              <>
+                <Link href="/cuenta/mis-ordenes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4" />
+                  Mis Órdenes
+                </Link>
+                <Link href="/cuenta/mis-tickets" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                  <Ticket className="h-4 w-4" />
+                  Mis Tickets
+                </Link>
+                {isAdmin && (
+                  <Link href="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Panel Admin
+                  </Link>
+                )}
+                <button onClick={handleSignOut} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                  <LogOut className="h-4 w-4" />
+                  Cerrar sesión
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                  <LogIn className="h-4 w-4" />
+                  Iniciar Sesión
+                </Link>
+                <Link href="/auth/register" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Registrarse
+                </Link>
+              </>
+            )}
+          </div>
+
           <Link href="/carrito">
             <Button variant="ghost" size="icon" className="relative" aria-label={`Carrito con ${mounted ? totalItems : 0} productos`}>
               <ShoppingCart className="h-5 w-5" />
@@ -85,32 +113,6 @@ export function Navbar() {
               )}
             </Button>
           </Link>
-
-          {/* User auth links for desktop */}
-          <div className="hidden md:flex items-center gap-2 ml-2">
-            {user ? (
-               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" size="icon" className="rounded-full">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild><Link href="/cuenta/mis-ordenes">Mis Órdenes</Link></DropdownMenuItem>
-                  <DropdownMenuItem asChild><Link href="/cuenta/mis-tickets">Mis Tickets</Link></DropdownMenuItem>
-                  {isAdmin && <DropdownMenuItem asChild><Link href="/admin">Panel Admin</Link></DropdownMenuItem>}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-red-500">Cerrar sesión</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button asChild size="sm">
-                <Link href="/auth/login">Ingresar</Link>
-              </Button>
-            )}
-          </div>
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -127,7 +129,7 @@ export function Navbar() {
                     </Link>
                   </li>
                 ))}
-                 <Separator />
+                 <Separator className="my-2"/>
                  {user ? (
                   <>
                     <li className='font-semibold text-lg'>Mi Cuenta</li>

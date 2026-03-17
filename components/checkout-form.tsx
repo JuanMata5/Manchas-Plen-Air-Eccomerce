@@ -15,7 +15,7 @@ import { useUser } from '@/components/user-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator' // ¡ERROR SOLUCIONADO!
+import { Separator } from '@/components/ui/separator'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Empty } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
@@ -70,10 +70,15 @@ export function CheckoutForm() {
     defaultValues: { payment_method: 'mercadopago' },
   })
 
+  // --- CORRECCIÓN: Autocompletar campos sin validación inmediata ---
   useEffect(() => {
     if (user) {
-      setValue('buyer_name', user.user_metadata.full_name || '', { shouldValidate: true });
-      setValue('buyer_email', user.email || '', { shouldValidate: true });
+      setValue('buyer_name', user.user_metadata.full_name || '');
+      setValue('buyer_email', user.email || '');
+      // Bonus: si el DNI existe en metadata, también lo rellena
+      if (user.user_metadata.dni) {
+        setValue('buyer_dni', user.user_metadata.dni);
+      }
     }
   }, [user, setValue]);
 
