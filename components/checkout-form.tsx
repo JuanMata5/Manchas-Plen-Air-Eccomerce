@@ -20,12 +20,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Empty } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
 
-// --- CORRECCIÓN: Validación más inteligente ---
+// --- SOLUCIÓN FINAL: Solo email es visible, el resto es automático ---
 const checkoutSchema = z.object({
-  buyer_name: z.string().trim().min(2, 'Ingresa tu nombre completo'),
-  buyer_email: z.string().email('Email invalido'),
-  buyer_dni: z.string().optional(),
-  buyer_phone: z.string().optional(),
+  buyer_email: z.string().email(),
   coupon_code: z.string().optional(),
   payment_method: z.enum(['mercadopago', 'transfer']),
 })
@@ -68,20 +65,17 @@ export function CheckoutForm() {
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
-    // --- CORRECCIÓN: Validar al instante ---
-    mode: 'onChange',
     defaultValues: {
-      buyer_name: '',
       buyer_email: '',
       coupon_code: '',
       payment_method: 'mercadopago',
     },
   })
 
+  // Rellenar email del usuario logueado
   useEffect(() => {
-    if (user) {
-      setValue('buyer_name', user.user_metadata.full_name || '')
-      setValue('buyer_email', user.email || '')
+    if (user?.email) {
+      setValue('buyer_email', user.email)
     }
   }, [user, setValue])
 
@@ -153,24 +147,34 @@ export function CheckoutForm() {
   }
 
   const onSubmit = async (data: CheckoutFormData) => {
+    if (!user) {
+      toast.error('Debes iniciar sesion para comprar.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
+      // --- DATOS AUTOMÁTICOS DE LA CUENTA ---
+      const payload = {
+        ...data,
+        buyer_name: user.user_metadata.full_name || user.email, // Usar nombre del perfil o email como fallback
+        buyer_email: user.email, // Asegurar email de la cuenta
+        buyer_dni: user.user_metadata.dni || '00000000', // Usar DNI del perfil o uno genérico
+        items: items.map((i) => ({
+          product_id: i.product.id,
+          quantity: i.quantity,
+          unit_price_ars: i.product.price_ars,
+        })),
+        coupon_code: couponApplied?.code ?? null,
+        subtotal_ars: subtotal,
+        discount_ars: discountAmount,
+        total_ars: total,
+      }
+
       const res = await fetch('/api/orders/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          buyer_dni: '00000000', // DNI genérico para el backend
-          items: items.map((i) => ({
-            product_id: i.product.id,
-            quantity: i.quantity,
-            unit_price_ars: i.product.price_ars,
-          })),
-          coupon_code: couponApplied?.code ?? null,
-          subtotal_ars: subtotal,
-          discount_ars: discountAmount,
-          total_ars: total,
-        }),
+        body: JSON.stringify(payload),
       })
 
       const result = await res.json()
@@ -197,35 +201,17 @@ export function CheckoutForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-2 flex flex-col gap-8">
         <section className="bg-card rounded-xl border border-border p-6">
-          <h2 className="font-serif font-semibold text-lg text-foreground mb-5">
-            Datos del comprador
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="buyer_name">Nombre completo *</Label>
-              <Input
-                id="buyer_name"
-                placeholder="Juan Perez"
-                {...register('buyer_name')}
-                aria-invalid={!!errors.buyer_name}
-              />
-              {errors.buyer_name && (
-                <p className="text-xs text-destructive">{errors.buyer_name.message}</p>
-              )}
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="buyer_email">Email *</Label>
-              <Input
-                id="buyer_email"
-                type="email"
-                placeholder="juan@example.com"
-                {...register('buyer_email')}
-                aria-invalid={!!errors.buyer_email}
-              />
-              {errors.buyer_email && (
-                <p className="text-xs text-destructive">{errors.buyer_email.message}</p>
-              )}
-            </div>
+          <h2 className="font-serif font-semibold text-lg text-foreground mb-5">Datos del comprador</h2>
+          {/* --- UI DEFINITIVA: Solo email (deshabilitado) -- */}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="buyer_email">Email de la cuenta</Label>
+            <Input
+              id="buyer_email"
+              type="email"
+              {...register('buyer_email')}
+              disabled // El email se toma de la sesión y no se puede cambiar
+            />
+            {isUserLoading && <p className="text-xs text-muted-foreground">Cargando tu información...</p>}
           </div>
         </section>
 
@@ -363,17 +349,13 @@ export function CheckoutForm() {
           </div>
 
           <Button type="submit" size="lg" className="w-full mt-2" disabled={isSubmitting || isUserLoading}>
-            {isSubmitting ? (
+            {isSubmitting || isUserLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Procesando...
               </>
-            ) : paymentMethod === 'mercadopago' ? (
-              'Pagar con Mercado Pago'
-            ) : paymentMethod === 'transfer' ? (
-              'Confirmar y ver datos de transferencia'
             ) : (
-              'Confirmar compra'
+              'Finalizar Compra'
             )}
           </Button>
         </div>
