@@ -17,11 +17,13 @@ function computeBaseUrl(request: Request) {
 
   const inferred = host ? `${proto}://${host}` : undefined;
 
-  return (
+  const raw =
     process.env.NEXT_PUBLIC_BASE_URL ||
     inferred ||
-    'http://localhost:3000'
-  );
+    'http://localhost:3000';
+
+  // Normaliza para evitar double slashes en redirectTo
+  return raw.replace(/\/+$/, '');
 }
 
 export async function GET(request: Request) {
