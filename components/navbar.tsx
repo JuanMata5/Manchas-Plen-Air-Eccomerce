@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { type Profile } from '@/lib/types'
 
 const navLinks = [
   { href: '/', label: 'Inicio' },
@@ -29,7 +30,7 @@ export function Navbar() {
   const totalItems = useCartStore((s) => s.totalItems())
   const [mobileOpen, setMobileOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const { theme, setTheme } = useTheme()
@@ -38,34 +39,23 @@ export function Navbar() {
     setMounted(true)
     const supabase = createClient()
 
+    const fetchProfile = async (user: any) => {
+      if (!user) {
+        setProfile(null)
+        return
+      }
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      setProfile(data)
+    }
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user)
-      if (user) {
-        supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', user.id)
-          .single()
-          .then(({ data }) => {
-            setIsAdmin(data?.is_admin ?? false)
-          })
-      }
+      fetchProfile(user)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            setIsAdmin(data?.is_admin ?? false)
-          })
-      } else {
-        setIsAdmin(false)
-      }
+      fetchProfile(session?.user)
     })
 
     return () => subscription.unsubscribe()
@@ -75,10 +65,13 @@ export function Navbar() {
     const supabase = createClient()
     await supabase.auth.signOut()
     setUser(null)
-    setIsAdmin(false)
+    setProfile(null)
     router.push('/')
     router.refresh()
   }
+  
+  const userName = profile ? [profile.first_name, profile.last_name].filter(Boolean).join(' ') : ''
+  const isAdmin = profile?.is_admin ?? false
 
   return (
     <header className="sticky top-0 z-50 bg-primary/92 text-primary-foreground shadow-md backdrop-blur-md animate-header-in">
@@ -133,11 +126,12 @@ export function Navbar() {
                 <User className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-56">
               {user ? (
                 <>
-                  <div className="px-2 py-1.5 text-sm text-muted-foreground truncate">
-                    {user.email}
+                  <div className="px-2 py-2 text-sm">
+                    <div className="font-bold truncate">{userName}</div>
+                    <div className="text-muted-foreground truncate">{user.email}</div>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
@@ -161,7 +155,7 @@ export function Navbar() {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600">
+                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600 focus:text-red-500">
                     <LogOut className="h-4 w-4 mr-2" />
                     Cerrar sesion
                   </DropdownMenuItem>

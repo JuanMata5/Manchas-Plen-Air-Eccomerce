@@ -37,12 +37,12 @@ export async function POST(request: Request) {
   if (user) {
       const { data: profile } = await supabaseAdmin
         .from('profiles')
-        .select('full_name')
+        .select('first_name, last_name')
         .eq('id', user.id)
         .single();
     
-      if (profile && profile.full_name) {
-        userName = profile.full_name;
+      if (profile) {
+        userName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
       }
   }
 
