@@ -35,7 +35,7 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const { theme, setTheme } = useTheme()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     setMounted(true)
@@ -57,13 +57,6 @@ export function Navbar() {
         }
       } else {
         setProfile(null)
-      }
-    })
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session }}) => {
-      if (session) {
-        setSession(session)
       }
     })
 
