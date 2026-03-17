@@ -19,13 +19,20 @@ export async function sendEmail({
   to,
   subject,
   html,
-  from = process.env.EMAIL_FROM || 'Plen Air <onboarding@resend.dev>',
+  from,
   replyTo,
   attachments,
 }: EmailOptions) {
   try {
+    const finalFrom =
+      from ||
+      process.env.EMAIL_FROM ||
+      'Convención Plein Air <info@manchaspleinair.com.ar>' // fallback seguro
+
+    console.log("USANDO FROM:", finalFrom)
+
     const { data, error } = await resend.emails.send({
-      from,
+      from: finalFrom,
       to,
       subject,
       html,
