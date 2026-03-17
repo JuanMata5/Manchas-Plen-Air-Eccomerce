@@ -1,24 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateUploadSignature } from '@/lib/cloudinary'
 
-/**
- * POST /api/cloudinary/sign-upload
- * Generate signed upload parameters for client-side upload
- */
 export async function POST(request: NextRequest) {
   try {
-    const { folder = 'plenair/products', maxFileSize = 10485760 } = await request.json()
+    const body = await request.json()
+    const { folder = 'plenair/products' } = body
 
-    // Validate folder starts with allowed prefix
+    // LOG: Verificar la carpeta recibida
+    console.log('[Sign API] Folder:', folder)
+
     if (!folder.startsWith('plenair/')) {
+      console.error('[Sign API] Invalid folder:', folder)
       return NextResponse.json({ error: 'Invalid folder' }, { status: 400 })
     }
 
-    const signature = generateUploadSignature(folder, maxFileSize)
+    const signature = generateUploadSignature(folder)
+    
+    // LOG: Verificar la firma generada
+    console.log('[Sign API] Generated Signature:', signature)
 
     return NextResponse.json(signature)
   } catch (error) {
-    console.error('[SIGN UPLOAD ERROR]', error)
-    return NextResponse.json({ error: 'Failed to generate signature' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('[SIGN UPLOAD ERROR]', errorMessage)
+    return NextResponse.json({ error: 'Failed to generate signature', details: errorMessage }, { status: 500 })
   }
 }
