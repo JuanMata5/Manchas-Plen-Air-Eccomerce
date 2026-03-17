@@ -1,48 +1,78 @@
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createClient } from "@/lib/supabase/server";
 import { sendEmail, EmailOptions } from "./resend";
 
-// NOTE: This file is used by CRON jobs and needs to use the admin client.
+/**
+ * Añade un email a la cola de la base de datos para ser procesado.
+ * Esta función se usa desde las acciones del servidor y usa el cliente estándar de Supabase.
+ */
+export async function enqueueEmail(
+  recipientEmail: string,
+  subject: string,
+  templateName: string,
+  templateData: Record<string, any>,
+  maxAttempts = 3,
+) {
+  try {
+    const supabase = await createClient(); // Cliente estándar de Supabase para servidor
+
+    const { error } = await supabase.from("email_queue").insert({
+      recipient_email: recipientEmail,
+      subject,
+      template_name: templateName,
+      template_data: templateData,
+      attempts: 0,
+      max_attempts: maxAttempts,
+    });
+
+    if (error) {
+      console.error("[QUEUE ERROR] No se pudo insertar el email en la cola:", error);
+      throw error;
+    }
+
+    console.log(`[QUEUE] Email para ${recipientEmail} añadido a la cola.`);
+    return true;
+  } catch (err) {
+    console.error("[QUEUE] Error fatal en enqueueEmail:", err);
+    return false;
+  }
+}
+
 
 /**
- * Process email queue (meant to be called by cron job)
+ * Procesa la cola de emails (para ser llamado por un Cron Job).
+ * Usa un cliente de administrador de Supabase para operar sin sesión de usuario.
  */
 export async function processEmailQueue() {
-  // For server-side operations without a user session (like cron jobs),
-  // we MUST use the admin client with the service role key.
-  const supabaseAdmin = createClient(
+  const supabaseAdmin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
   try {
-    // Get pending emails
     const { data: pendingEmails, error: fetchError } = await supabaseAdmin
       .from("email_queue")
       .select("*")
       .is("sent_at", null)
-      // .lt("attempts", supabase.rpc("max_attempts")) // This was complex, simplifying for now
       .order("created_at", { ascending: true })
       .limit(10);
 
     if (fetchError) {
-      console.error("[QUEUE PROCESS ERROR] Fetching emails:", fetchError.message);
-      throw fetchError; // Throw to be caught by the main try/catch
+      console.error("[CRON ERROR] Fallo al obtener emails de la cola:", fetchError.message);
+      throw fetchError;
     }
 
     if (!pendingEmails || pendingEmails.length === 0) {
-      console.log("[QUEUE] No pending emails to process.");
+      console.log("[CRON] No hay emails pendientes para procesar.");
       return;
     }
 
-    console.log(`[QUEUE] Processing ${pendingEmails.length} emails`);
+    console.log(`[CRON] Procesando ${pendingEmails.length} emails.`);
 
     for (const emailItem of pendingEmails) {
       try {
-        const html = await getTemplateHtml(
-          emailItem.template_name,
-          emailItem.template_data,
-        );
+        const html = await getTemplateHtml(emailItem.template_name, emailItem.template_data);
 
         const emailOptions: EmailOptions = {
           to: emailItem.recipient_email,
@@ -52,76 +82,42 @@ export async function processEmailQueue() {
           replyTo: "info@manchaspleinair.com.ar"
         };
 
-        // Send email via Resend
         await sendEmail(emailOptions);
 
-        // Mark as sent in the database
-        await supabaseAdmin
-          .from("email_queue")
-          .update({
+        await supabaseAdmin.from("email_queue").update({
             sent_at: new Date().toISOString(),
             attempts: emailItem.attempts + 1,
-          })
-          .eq("id", emailItem.id);
+          }).eq("id", emailItem.id);
 
-        console.log("[QUEUE] Email sent successfully to", emailItem.recipient_email);
+        console.log(`[CRON] Email enviado a ${emailItem.recipient_email}`);
       } catch (err) {
-        console.error(`[QUEUE] Failed to process email ID: ${emailItem.id}:`, err);
-
-        // Increment attempts even if sending failed
-        await supabaseAdmin
-          .from("email_queue")
-          .update({
+        console.error(`[CRON ERROR] Fallo al procesar email ID: ${emailItem.id}:`, err);
+        await supabaseAdmin.from("email_queue").update({
             attempts: emailItem.attempts + 1,
-          })
-          .eq("id", emailItem.id);
+          }).eq("id", emailItem.id);
       }
     }
   } catch (err) {
-    console.error("[QUEUE PROCESS] Fatal error during queue processing:", err);
-    // The main function in `app/api/cron/route.ts` will catch this and return a 500 error.
+    console.error("[CRON ERROR] Error fatal durante el procesamiento:", err);
     throw err; 
   }
 }
 
 /**
- * Get template HTML based on template name
+ * Obtiene el HTML de la plantilla basado en su nombre.
  */
-async function getTemplateHtml(
-  templateName: string,
-  data: Record<string, any>,
-): Promise<string> {
-  const {
-    orderConfirmationTemplate,
-    paymentConfirmedTemplate,
-  } = await import("./templates");
-
-  const {
-    welcomeEmailTemplate,
-    passwordResetEmailTemplate,
-    passwordChangedEmailTemplate,
-    orderConfirmationEmailTemplate,
-    adminNotificationEmailTemplate,
-  } = await import("./transactional_templates");
+async function getTemplateHtml(templateName: string, data: Record<string, any>): Promise<string> {
+  const { orderConfirmationTemplate, paymentConfirmedTemplate } = await import("./templates");
+  const { welcomeEmailTemplate, passwordResetEmailTemplate, passwordChangedEmailTemplate, orderConfirmationEmailTemplate, adminNotificationEmailTemplate } = await import("./transactional_templates");
 
   switch (templateName) {
-    case "order_confirmation":
-      return orderConfirmationTemplate(data);
-    case "payment_confirmed":
-      return paymentConfirmedTemplate(data);
-    case "admin_notification":
-        return adminNotificationEmailTemplate(data);
-    case "welcome":
-        return welcomeEmailTemplate(data);
-    case "password_reset":
-        return passwordResetEmailTemplate(data);
-    case "password_changed":
-        return passwordChangedEmailTemplate(data);
-    case "order_confirmation_plain":
-        return orderConfirmationEmailTemplate(data);
-    default:
-      throw new Error(`Unknown template: ${templateName}`);
+    case "order_confirmation": return orderConfirmationTemplate(data);
+    case "payment_confirmed": return paymentConfirmedTemplate(data);
+    case "admin_notification": return adminNotificationEmailTemplate(data);
+    case "welcome": return welcomeEmailTemplate(data);
+    case "password_reset": return passwordResetEmailTemplate(data);
+    case "password_changed": return passwordChangedEmailTemplate(data);
+    case "order_confirmation_plain": return orderConfirmationEmailTemplate(data);
+    default: throw new Error(`Plantilla desconocida: ${templateName}`);
   }
 }
-
-// The enqueueEmail function is no longer needed here as it's handled by transactional_templates.ts
