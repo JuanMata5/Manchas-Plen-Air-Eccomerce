@@ -20,12 +20,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Empty } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
 
-// --- CORRECCIÓN: Simplificado al extremo. Solo email es requerido. ---
+// --- VALIDACIÓN COMPLETA RESTAURADA ---
 const checkoutSchema = z.object({
+  buyer_name: z.string().min(2, 'Ingresa tu nombre completo'),
   buyer_email: z.string().email('Email invalido'),
-  buyer_name: z.string().optional(),
-  buyer_dni: z.string().optional(),
-  buyer_phone: z.string().optional(),
+  buyer_dni: z.string().min(7, 'Ingresa un DNI válido'),
+  buyer_phone: z.string().min(8, 'Ingresa tu telefono').optional().or(z.literal('')),
   coupon_code: z.string().optional(),
   payment_method: z.enum(['mercadopago', 'transfer']),
 })
@@ -68,16 +68,25 @@ export function CheckoutForm() {
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
+    // --- LA CORRECCIÓN CLAVE: INICIALIZAR TODOS LOS CAMPOS ---
     defaultValues: {
+      buyer_name: '',
       buyer_email: '',
+      buyer_dni: '',
+      buyer_phone: '',
       coupon_code: '',
       payment_method: 'mercadopago',
     },
   })
 
+  // Autocompletar con datos del usuario logueado
   useEffect(() => {
     if (user) {
+      setValue('buyer_name', user.user_metadata.full_name || '')
       setValue('buyer_email', user.email || '')
+      if (user.user_metadata.dni) {
+        setValue('buyer_dni', user.user_metadata.dni)
+      }
     }
   }, [user, setValue])
 
@@ -148,29 +157,25 @@ export function CheckoutForm() {
     }
   }
 
+  // El submit ahora usa los datos del formulario directamente
   const onSubmit = async (data: CheckoutFormData) => {
     setIsSubmitting(true)
     try {
-      const payload = {
-        ...data,
-        // --- CORRECCIÓN: Rellenar datos para el backend
-        buyer_name: data.buyer_email, // Usar email como nombre
-        buyer_dni: '00000000', // Usar DNI genérico
-        items: items.map((i) => ({
-          product_id: i.product.id,
-          quantity: i.quantity,
-          unit_price_ars: i.product.price_ars,
-        })),
-        coupon_code: couponApplied?.code ?? null,
-        subtotal_ars: subtotal,
-        discount_ars: discountAmount,
-        total_ars: total,
-      }
-
       const res = await fetch('/api/orders/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...data,
+          items: items.map((i) => ({
+            product_id: i.product.id,
+            quantity: i.quantity,
+            unit_price_ars: i.product.price_ars,
+          })),
+          coupon_code: couponApplied?.code ?? null,
+          subtotal_ars: subtotal,
+          discount_ars: discountAmount,
+          total_ars: total,
+        }),
       })
 
       const result = await res.json()
@@ -195,36 +200,69 @@ export function CheckoutForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {/* Left: buyer info + payment */}
       <div className="lg:col-span-2 flex flex-col gap-8">
-        {/* --- CORRECCIÓN: Contenedor de datos del comprador simplificado -- */}
+        {/* --- UI COMPLETA RESTAURADA -- */}
         <section className="bg-card rounded-xl border border-border p-6">
           <h2 className="font-serif font-semibold text-lg text-foreground mb-5">
             Datos del comprador
           </h2>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="buyer_email">Email *</Label>
-            <Input
-              id="buyer_email"
-              type="email"
-              placeholder="juan@example.com"
-              {...register('buyer_email')}
-              aria-invalid={!!errors.buyer_email}
-            />
-            {errors.buyer_email && (
-              <p className="text-xs text-destructive">{errors.buyer_email.message}</p>
-            )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="buyer_name">Nombre completo *</Label>
+              <Input
+                id="buyer_name"
+                placeholder="Juan Perez"
+                {...register('buyer_name')}
+                aria-invalid={!!errors.buyer_name}
+              />
+              {errors.buyer_name && (
+                <p className="text-xs text-destructive">{errors.buyer_name.message}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="buyer_email">Email *</Label>
+              <Input
+                id="buyer_email"
+                type="email"
+                placeholder="juan@example.com"
+                {...register('buyer_email')}
+                aria-invalid={!!errors.buyer_email}
+              />
+              {errors.buyer_email && (
+                <p className="text-xs text-destructive">{errors.buyer_email.message}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="buyer_dni">DNI *</Label>
+              <Input
+                id="buyer_dni"
+                placeholder="12345678"
+                {...register('buyer_dni')}
+                aria-invalid={!!errors.buyer_dni}
+              />
+              {errors.buyer_dni && (
+                <p className="text-xs text-destructive">{errors.buyer_dni.message}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="buyer_phone">Telefono (Opcional)</Label>
+              <Input
+                id="buyer_phone"
+                type="tel"
+                placeholder="+54 9 11 1234 5678"
+                {...register('buyer_phone')}
+              />
+            </div>
           </div>
         </section>
 
-        {/* Payment method */}
         <section className="bg-card rounded-xl border border-border p-6">
           <h2 className="font-serif font-semibold text-lg text-foreground mb-5">
             Metodo de pago
           </h2>
           <RadioGroup
             value={paymentMethod}
-            onValueChange={(v) => setValue('payment_method', v as 'mercadopago' | 'transfer')}
+            onValueValueChange={(v) => setValue('payment_method', v as 'mercadopago' | 'transfer')}
             className="flex flex-col gap-3"
           >
             {paymentMethods.map((method) => (
@@ -257,13 +295,11 @@ export function CheckoutForm() {
         </section>
       </div>
 
-      {/* Right: order summary */}
       <div className="lg:col-span-1">
         <div className="bg-card rounded-xl border border-border p-6 sticky top-24 flex flex-col gap-4">
           <h2 className="font-serif font-semibold text-lg text-foreground">Tu orden</h2>
           <Separator />
 
-          {/* Items */}
           <div className="flex flex-col gap-3">
             {items.map(({ product, quantity }) => (
               <div key={product.id} className="flex items-center gap-3">
@@ -295,7 +331,6 @@ export function CheckoutForm() {
 
           <Separator />
 
-          {/* Coupon */}
           <div className="flex flex-col gap-2">
             <Label htmlFor="coupon_code" className="text-sm">Cupon de descuento</Label>
             <div className="flex gap-2">
@@ -317,13 +352,10 @@ export function CheckoutForm() {
               </Button>
             </div>
             {couponApplied && (
-              <p className="text-xs text-primary">
-                Descuento: -{formatARS(discountAmount)}
-              </p>
+              <p className="text-xs text-primary">Descuento: -{formatARS(discountAmount)}</p>
             )}
           </div>
 
-          {/* First purchase discount */}
           {firstPurchaseDiscount > 0 && (
             <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-200 rounded-lg text-green-800 text-sm">
               <Gift className="h-4 w-4 shrink-0" />
@@ -333,7 +365,6 @@ export function CheckoutForm() {
 
           <Separator />
 
-          {/* Totals */}
           <div className="flex flex-col gap-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Subtotal</span>
