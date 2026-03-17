@@ -116,7 +116,7 @@ export function Navbar() {
   const isAdmin = profile?.is_admin ?? false
 
   return (
-    <header className="sticky top-0 z-50 bg-primary/92 text-primary-foreground shadow-md backdrop-blur-md animate-header-in">
+    <header className="sticky top-0 z-50 bg-primary/95 text-primary-foreground shadow-md animate-header-in">
       <nav className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-serif font-bold text-xl tracking-wide hover:opacity-90 transition-all duration-300 hover:scale-[1.02]">
           <Leaf className="h-5 w-5" />
