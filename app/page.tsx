@@ -161,7 +161,13 @@ export default async function HomePage() {
       <main>
         {/* ── 1. Featured Products (Above the Fold) ── */}
         {productsToShow.length > 0 && (
-          <section className="max-w-6xl mx-auto px-4 py-16 md:py-20">
+          <section className="max-w-6xl mx-auto px-4 pt-16 md:pt-20 pb-16 md:pb-20">
+            <div className="mb-12 bg-primary/10 border border-primary/20 rounded-2xl p-4 text-center">
+              <p className="text-sm sm:text-base text-primary-foreground/90">
+                <Ticket className="inline-block h-4 w-4 mr-1.5" />
+                <span className="font-semibold text-primary-foreground">Entrega Inmediata:</span> Recibí tus tickets con QR por email al instante después de tu compra.
+              </p>
+            </div>
             <div className="text-center mb-10">
                 <h1 className="font-serif font-bold text-3xl md:text-5xl text-foreground">
                   Entradas y Productos Destacados
