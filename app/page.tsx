@@ -159,19 +159,36 @@ export default async function HomePage() {
     <>
       <Navbar />
       <main>
-        {/* ── 1. Featured Products (Above the Fold) ── */}
-        {productsToShow.length > 0 && (
-          <section className="max-w-6xl mx-auto px-4 pt-16 md:pt-20 pb-16 md:pb-20">
-            <div className="mb-12 bg-primary/10 border border-primary/20 rounded-2xl p-4 text-center">
-              <p className="text-sm sm:text-base text-primary-foreground/90">
-                <Ticket className="inline-block h-4 w-4 mr-1.5" />
-                <span className="font-semibold text-primary-foreground">Entrega Inmediata:</span> Recibí tus tickets con QR por email al instante después de tu compra.
-              </p>
+        {/* ── 1. Hero Section ── */}
+        <section className="relative bg-primary text-primary-foreground text-center overflow-hidden">
+          {/* Aca va la imagen de fondo. Reemplazar bg-primary con: style={{backgroundImage: 'url(/path/to/your/image.jpg)'}} y agregar una clase de overlay oscuro */}
+          <div className="absolute inset-0 bg-black/40 z-0" />
+          <div className="relative z-10 max-w-4xl mx-auto px-4 py-24 md:py-36 flex flex-col items-center gap-6">
+            <h1 className="font-serif font-bold text-4xl sm:text-5xl md:text-7xl tracking-tight text-balance leading-tight">
+              Tu Próxima Obra Maestra Comienza Aquí.
+            </h1>
+            <p className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl leading-relaxed text-balance">
+              La colección más completa de eventos, productos y viajes artísticos, curada para creadores como vos.
+            </p>
+            <div className="flex flex-col items-center gap-4 mt-4">
+                <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold text-base px-8 shadow-lg">
+                    <Link href="/tienda">
+                        Explorar Colección
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                </Button>
+                <span className="text-sm text-primary-foreground/70">✨ Únete a más de 10,000 artistas y creadores.</span>
             </div>
-            <div className="text-center mb-10">
-                <h1 className="font-serif font-bold text-3xl md:text-5xl text-foreground">
-                  Entradas y Productos Destacados
-                </h1>
+          </div>
+        </section>
+
+        {/* ── 2. Featured Products (Above the Fold) ── */}
+        {productsToShow.length > 0 && (
+          <section className="max-w-6xl mx-auto px-4 py-16 md:py-20">
+             <div className="mb-10 text-center">
+                <h2 className="font-serif font-bold text-3xl md:text-5xl text-foreground">
+                  Inicia tu Próxima Creación
+                </h2>
                 <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
                   Esto es lo más buscado por nuestra comunidad. Compra ahora y asegura tu lugar o producto.
                 </p>
@@ -194,14 +211,14 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* ── 2. Promo Banner (Incentive) ── */}
+        {/* ── 3. Promo Banner (Incentive) ── */}
         <section className="max-w-6xl mx-auto px-4 pb-16 md:pb-20">
           <Reveal className="bg-linear-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-6 md:gap-10">
             <div className="h-20 w-20 rounded-2xl bg-primary-foreground/10 flex items-center justify-center shrink-0">
               <Gift className="h-10 w-10" />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h2 className="font-serif font-bold text-2xl md:text-3xl mb-2">¿Primera compra? 5% OFF</h2>
+              <h3 className="font-serif font-bold text-2xl md:text-3xl mb-2">¿Primera compra? 5% OFF</h3>
               <p className="text-primary-foreground/80">
                 Registrate y obtene un 5% de descuento automatico en tu primera compra. Sin codigos, se aplica solo.
               </p>
@@ -218,7 +235,7 @@ export default async function HomePage() {
           </Reveal>
         </section>
 
-        {/* ── 3. Main Event ── */}
+        {/* ── 4. Main Event ── */}
         <section id="evento" className="max-w-6xl mx-auto px-4 pb-16 md:pb-20 scroll-mt-20">
           <Reveal className="relative overflow-hidden rounded-3xl border border-primary/20 bg-linear-to-br from-primary/10 via-background to-amber-500/10 p-6 md:p-10">
             <div className="absolute -top-16 -right-16 h-44 w-44 rounded-full bg-primary/20 blur-3xl" />
@@ -262,7 +279,7 @@ export default async function HomePage() {
           </Reveal>
         </section>
         
-        {/* ── 4. Categories ── */}
+        {/* ── 5. Categories ── */}
         <section className="max-w-6xl mx-auto px-4 py-16 md:py-20 bg-muted rounded-3xl">
           <div className="text-center mb-10">
             <h2 className="font-serif font-bold text-3xl md:text-4xl text-foreground">Explora por Categoría</h2>
@@ -286,7 +303,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── 5. Trust Section (Benefits & Testimonials) ── */}
+        {/* ── 6. Trust Section (Benefits & Testimonials) ── */}
         <section className="max-w-6xl mx-auto px-4 py-16 md:py-20">
             <div className="text-center mb-12">
               <h2 className="font-serif font-bold text-3xl md:text-4xl text-foreground">
@@ -327,7 +344,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── 6. Final CTA ── */}
+        {/* ── 7. Final CTA ── */}
         <section className="bg-primary text-primary-foreground">
           <div className="max-w-3xl mx-auto px-4 py-20 md:py-28 text-center flex flex-col items-center gap-6">
             <h2 className="font-serif font-bold text-3xl md:text-5xl text-balance">
@@ -351,7 +368,7 @@ export default async function HomePage() {
           </div>
         </section>
         
-        {/* ── 7. FAQ ── */}
+        {/* ── 8. FAQ ── */}
         <section className="bg-muted">
           <div className="max-w-3xl mx-auto px-4 py-16 md:py-20">
             <div className="text-center mb-12">
@@ -372,7 +389,7 @@ export default async function HomePage() {
                     </div>
                   </details>
                 </Reveal>
-              ))}\
+              ))}
             </div>
           </div>
         </section>
