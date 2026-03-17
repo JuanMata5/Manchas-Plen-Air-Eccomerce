@@ -35,12 +35,12 @@ export function Navbar() {
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const { theme, setTheme } = useTheme()
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = createClient()
 
   useEffect(() => {
     setMounted(true)
-
-    const fetchUserAndProfile = async (session: Session | null) => {
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
       if (session?.user) {
         const { data, error } = await supabase
@@ -50,7 +50,7 @@ export function Navbar() {
           .single()
         
         if (error) {
-          console.error("Error fetching profile:", error)
+          console.error("Error fetching profile:", error.message)
           setProfile(null)
         } else {
           setProfile(data)
@@ -58,14 +58,13 @@ export function Navbar() {
       } else {
         setProfile(null)
       }
-    }
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      fetchUserAndProfile(session)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      fetchUserAndProfile(session)
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session }}) => {
+      if (session) {
+        setSession(session)
+      }
     })
 
     return () => {
