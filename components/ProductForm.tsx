@@ -11,100 +11,110 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
-import { Loader2, Trash2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { ImageUpload, type PendingImage } from './ImageUpload'
 import { Product, Category } from '@/lib/types'
 
 const productSchema = z.object({
-  name: z.string().min(3, 'Nombre debe tener al menos 3 caracteres'),
-  slug: z.string().min(3).regex(/^[a-z0-9-]+$/, 'Solo letras, números y guiones'),
+  name: z.string().min(3),
+  slug: z.string().min(3),
   description: z.string().optional(),
 
   category_id: z.preprocess(
     (val) => (val === '' ? null : val),
-    z.string().uuid('Selecciona una categoría').nullable()
+    z.string().nullable()
   ),
 
   price_ars: z.preprocess(
     (val) => (val === '' ? undefined : val),
-    z.coerce.number({
-      invalid_type_error: 'Precio ARS debe ser un número',
-      required_error: 'Precio ARS es requerido',
-    }).positive('Precio ARS debe ser mayor que 0')
+    z.coerce.number().positive()
   ),
 
   price_usd: z.preprocess(
     (val) => (val === '' ? undefined : val),
-    z.coerce.number({
-      invalid_type_error: 'Precio USD debe ser un número',
-    }).positive('Precio USD debe ser mayor que 0').optional().nullable()
+    z.coerce.number().optional().nullable()
   ),
 
   stock: z.preprocess(
     (val) => (val === '' ? undefined : val),
-    z.coerce.number({
-      invalid_type_error: 'Stock debe ser un número',
-      required_error: 'Stock es requerido',
-    }).int().min(0, 'Stock debe ser ≥ 0')
+    z.coerce.number().int().min(0)
   ),
 
   max_per_order: z.preprocess(
     (val) => (val === '' ? undefined : val),
-    z.coerce.number({
-      invalid_type_error: 'Máximo por orden debe ser un número',
-      required_error: 'Máximo por orden es requerido',
-    }).int().min(1, 'Máximo por orden debe ser al menos 1')
+    z.coerce.number().int().min(1)
   ),
 
-  is_active: z.boolean().default(true),
-  is_featured: z.boolean().default(false),
-  product_type: z.enum(['ticket', 'workshop', 'merchandise']).default('merchandise'),
-  event_date: z.string().nullable().optional(),
-  event_location: z.string().optional(),
+  is_active: z.boolean(),
+  is_featured: z.boolean(),
+  product_type: z.enum(['ticket', 'workshop', 'merchandise']),
 })
 
 type ProductFormData = z.infer<typeof productSchema>
 
-interface ProductFormProps {
+interface Props {
   product?: Product
   categories: Category[]
   mode: 'create' | 'edit'
 }
 
-export function ProductForm({ product, categories, mode }: ProductFormProps) {
+async function uploadImagesToCloudinary(files: File[]) {
+  const signRes = await fetch('/api/cloudinary/sign-upload', {
+    method: 'POST',
+  })
+
+  const signData = await signRes.json()
+
+  const results = []
+
+  for (const file of files) {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('api_key', signData.api_key)
+    formData.append('timestamp', String(signData.timestamp))
+    formData.append('signature', signData.signature)
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${signData.cloud_name}/image/upload`,
+      { method: 'POST', body: formData }
+    )
+
+    const data = await res.json()
+
+    results.push({
+      publicId: data.public_id,
+      url: data.secure_url,
+    })
+  }
+
+  return results
+}
+
+export function ProductForm({ product, categories, mode }: Props) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([])
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    control,
-    formState: { errors },
-  } = useForm<ProductFormData>({
+  const { handleSubmit, control } = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       ...product,
+      name: product?.name ?? '',
+      slug: product?.slug ?? '',
+      stock: product?.stock ?? 0,
+      max_per_order: product?.max_per_order ?? 1,
       is_active: product?.is_active ?? true,
       is_featured: product?.is_featured ?? false,
       product_type: product?.product_type ?? 'merchandise',
-      stock: product?.stock ?? 0,
-      max_per_order: product?.max_per_order ?? 1,
     },
   })
-
-  const productType = watch('product_type')
 
   const onSubmit = async (data: ProductFormData) => {
     try {
       setLoading(true)
 
-      const response = await fetch(
+      const res = await fetch(
         mode === 'create'
           ? '/api/admin/products/create'
           : `/api/admin/products/${product?.id}`,
@@ -115,13 +125,33 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
         }
       )
 
-      if (!response.ok) throw new Error('Error al guardar producto')
+      const savedProduct = await res.json()
+
+      // 🔥 SUBIR IMÁGENES
+      if (pendingImages.length > 0) {
+        const files = pendingImages.map(p => p.file)
+        const uploaded = await uploadImagesToCloudinary(files)
+
+        for (let i = 0; i < uploaded.length; i++) {
+          await fetch('/api/admin/products/upload-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              product_id: savedProduct.id,
+              url: uploaded[i].url,
+              cloudinary_public_id: uploaded[i].publicId,
+              is_primary: i === 0,
+              display_order: i,
+            }),
+          })
+        }
+      }
 
       toast.success('Producto guardado')
       router.push('/admin/productos')
       router.refresh()
-    } catch (error) {
-      toast.error('Error al guardar')
+    } catch (err) {
+      toast.error('Error')
     } finally {
       setLoading(false)
     }
@@ -130,23 +160,29 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Nombre</Label>
-          <Input {...register('name')} />
-          {errors.name && <p className="text-red-500">{errors.name.message}</p>}
-        </div>
+      {/* NAME */}
+      <Controller
+        control={control}
+        name="name"
+        render={({ field }) => (
+          <div>
+            <Label>Nombre</Label>
+            <Input {...field} />
+          </div>
+        )}
+      />
 
-        <div>
-          <Label>Slug</Label>
-          <Input {...register('slug')} />
-        </div>
-      </div>
-
-      <div>
-        <Label>Descripción</Label>
-        <Textarea {...register('description')} />
-      </div>
+      {/* SLUG */}
+      <Controller
+        control={control}
+        name="slug"
+        render={({ field }) => (
+          <div>
+            <Label>Slug</Label>
+            <Input {...field} />
+          </div>
+        )}
+      />
 
       {/* CATEGORY */}
       <Controller
@@ -161,7 +197,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map((cat) => (
+              {categories.map(cat => (
                 <SelectItem key={cat.id} value={cat.id}>
                   {cat.name}
                 </SelectItem>
@@ -172,53 +208,69 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
       />
 
       {/* PRECIOS */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Precio ARS</Label>
-          <Input type="number" {...register('price_ars')} />
-        </div>
+      <Controller
+        control={control}
+        name="price_ars"
+        render={({ field }) => (
+          <div>
+            <Label>Precio ARS</Label>
+            <Input type="number" {...field} />
+          </div>
+        )}
+      />
 
-        <div>
-          <Label>Precio USD</Label>
-          <Input type="number" {...register('price_usd')} />
-        </div>
-      </div>
+      <Controller
+        control={control}
+        name="stock"
+        render={({ field }) => (
+          <div>
+            <Label>Stock</Label>
+            <Input type="number" {...field} />
+          </div>
+        )}
+      />
 
-      {/* STOCK */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Stock</Label>
-          <Input type="number" {...register('stock')} />
-        </div>
-
-        <div>
-          <Label>Máx por orden</Label>
-          <Input type="number" {...register('max_per_order')} />
-        </div>
-      </div>
+      <Controller
+        control={control}
+        name="max_per_order"
+        render={({ field }) => (
+          <div>
+            <Label>Max por orden</Label>
+            <Input type="number" {...field} />
+          </div>
+        )}
+      />
 
       {/* SWITCHES */}
-      <div className="flex justify-between">
-        <Label>Activo</Label>
-        <Controller
-          control={control}
-          name="is_active"
-          render={({ field }) => (
+      <Controller
+        control={control}
+        name="is_active"
+        render={({ field }) => (
+          <div className="flex justify-between">
+            <Label>Activo</Label>
             <Switch checked={field.value} onCheckedChange={field.onChange} />
-          )}
-        />
-      </div>
+          </div>
+        )}
+      />
 
-      <div className="flex justify-between">
-        <Label>Destacado</Label>
-        <Controller
-          control={control}
-          name="is_featured"
-          render={({ field }) => (
+      <Controller
+        control={control}
+        name="is_featured"
+        render={({ field }) => (
+          <div className="flex justify-between">
+            <Label>Destacado</Label>
             <Switch checked={field.value} onCheckedChange={field.onChange} />
-          )}
-        />
-      </div>
+          </div>
+        )}
+      />
+
+      {/* IMAGES */}
+      <ImageUpload
+        pendingImages={pendingImages}
+        onPendingImagesChange={setPendingImages}
+        multiple
+        maxFiles={5}
+      />
 
       <Button type="submit" disabled={loading}>
         {loading && <Loader2 className="animate-spin mr-2" />}
