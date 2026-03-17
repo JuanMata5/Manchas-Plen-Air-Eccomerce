@@ -22,10 +22,27 @@ const productSchema = z.object({
   slug: z.string().min(3).regex(/^[a-z0-9-]+$/, 'Solo letras, números y guiones'),
   description: z.string().optional(),
   category_id: z.string().uuid('Selecciona una categoría').nullable(),
-  price_ars: z.coerce.number().positive('Precio ARS debe ser positivo'),
-  price_usd: z.coerce.number().positive('Precio USD debe ser positivo').optional(),
+  price_ars: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.coerce.number({
+      invalid_type_error: 'Precio ARS debe ser un número',
+      required_error: 'Precio ARS es requerido',
+    }).positive('Precio ARS debe ser mayor que 0')
+  ),
+  price_usd: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.coerce.number({
+      invalid_type_error: 'Precio USD debe ser un número',
+    }).positive('Precio USD debe ser mayor que 0').optional().nullable()
+  ),
   stock: z.coerce.number().int().min(0, 'Stock debe ser ≥ 0'),
-  max_per_order: z.coerce.number().int().min(1, 'Máximo por orden debe ser ≥ 1'),
+  max_per_order: z.preprocess(
+    (val) => (val === '' ? undefined : val),
+    z.coerce.number({
+      invalid_type_error: 'Máximo por orden debe ser un número',
+      required_error: 'Máximo por orden es requerido',
+    }).int().min(1, 'Máximo por orden debe ser al menos 1')
+  ),
   is_active: z.boolean().default(true),
   is_featured: z.boolean().default(false),
   product_type: z.enum(['ticket', 'workshop', 'merchandise']).default('merchandise'),
@@ -234,7 +251,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
           <Input
             id="name"
             placeholder="Ej: Entrada General 2025"
-            {...register('name')}
+            {...register('name')}'''
             disabled={loading}
           />
           {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>}
@@ -246,7 +263,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
           <Input
             id="slug"
             placeholder="entrada-general-2025"
-            {...register('slug')}
+            {...register('slug')}'''
             disabled={loading}
           />
           {errors.slug && <p className="text-red-500 text-sm mt-1">{errors.slug.message}</p>}
@@ -260,7 +277,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
           id="description"
           placeholder="Descripción detallada del producto..."
           rows={4}
-          {...register('description')}
+          {...register('description')}'''
           disabled={loading}
         />
       </div>
@@ -317,7 +334,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             type="number"
             step="100"
             placeholder="15000"
-            {...register('price_ars')}
+            {...register('price_ars')}'''
             disabled={loading}
           />
           {errors.price_ars && (
@@ -332,7 +349,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             type="number"
             step="0.01"
             placeholder="15"
-            {...register('price_usd')}
+            {...register('price_usd')}'''
             disabled={loading}
           />
         </div>
@@ -347,7 +364,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             type="number"
             min="0"
             placeholder="100"
-            {...register('stock')}
+            {...register('stock')}'''
             disabled={loading}
           />
           {errors.stock && <p className="text-red-500 text-sm mt-1">{errors.stock.message}</p>}
@@ -360,7 +377,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             type="number"
             min="1"
             placeholder="5"
-            {...register('max_per_order')}
+            {...register('max_per_order')}'''
             disabled={loading}
           />
           {errors.max_per_order && (
@@ -378,7 +395,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
               <Input
                 id="event_date"
                 type="date"
-                {...register('event_date')}
+                {...register('event_date')}'''
                 disabled={loading}
               />
             </div>
@@ -388,7 +405,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
               <Input
                 id="event_location"
                 placeholder="Ej: Parque Los Andes, Buenos Aires"
-                {...register('event_location')}
+                {...register('event_location')}'''
                 disabled={loading}
               />
             </div>
@@ -414,7 +431,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             <Label htmlFor="is_active">Producto Activo</Label>
             <p className="text-sm text-muted-foreground">Mostrar en tienda</p>
           </div>
-          <Switch {...register('is_active')} disabled={loading} />
+          <Switch {...register('is_active')}''' disabled={loading} />
         </div>
 
         <div className="flex items-center justify-between">
@@ -422,7 +439,7 @@ export function ProductForm({ product, categories, mode }: ProductFormProps) {
             <Label htmlFor="is_featured">Producto Destacado</Label>
             <p className="text-sm text-muted-foreground">Mostrar en inicio</p>
           </div>
-          <Switch {...register('is_featured')} disabled={loading} />
+          <Switch {...register('is_featured')}''' disabled={loading} />
         </div>
       </div>
 
