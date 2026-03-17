@@ -63,6 +63,8 @@ export function CheckoutForm() {
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
+    // 🔥 CORRECCIÓN: Actualizar el estado del formulario en tiempo real
+    mode: 'onChange',
     defaultValues: {
       buyer_email: '',
       coupon_code: '',
