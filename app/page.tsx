@@ -160,26 +160,39 @@ export default async function HomePage() {
       <Navbar />
       <main>
         {/* ── 1. Hero Section ── */}
-        <section className="relative bg-primary text-primary-foreground text-center overflow-hidden">
-          {/* Aca va la imagen de fondo. Reemplazar bg-primary con: style={{backgroundImage: 'url(/path/to/your/image.jpg)'}} y agregar una clase de overlay oscuro */}
-          <div className="absolute inset-0 bg-black/40 z-0" />
-          <div className="relative z-10 max-w-4xl mx-auto px-4 py-24 md:py-36 flex flex-col items-center gap-6">
-            <h1 className="font-serif font-bold text-4xl sm:text-5xl md:text-7xl tracking-tight text-balance leading-tight">
-              Tu Próxima Obra Maestra Comienza Aquí.
-            </h1>
-            <p className="text-lg md:text-xl text-primary-foreground/80 max-w-2xl leading-relaxed text-balance">
-              La colección más completa de eventos, productos y viajes artísticos, curada para creadores como vos.
-            </p>
-            <div className="flex flex-col items-center gap-4 mt-4">
-                <Button asChild size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold text-base px-8 shadow-lg">
-                    <Link href="/tienda">
-                        Explorar Colección
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                </Button>
-                <span className="text-sm text-primary-foreground/70">✨ Únete a más de 10,000 artistas y creadores.</span>
+        <section className="max-w-6xl mx-auto px-4 pt-10 md:pt-12">
+            <div className="relative rounded-2xl overflow-hidden h-[60vh] min-h-[500px] flex items-center justify-center text-center text-white">
+                {/* -- Video de fondo -- */}
+                {/* Reemplaza este src con la URL de tu video. El video debe estar en la carpeta /public/videos/ */}
+                <video 
+                    src="/videos/hero-background.mp4" 
+                    autoPlay 
+                    loop 
+                    muted 
+                    playsInline
+                    className="absolute top-0 left-0 w-full h-full object-cover z-0" 
+                />
+                {/* -- Overlay oscuro para legibilidad -- */}
+                <div className="absolute inset-0 bg-black/50 z-10" />
+
+                {/* -- Contenido de texto -- */}
+                <div className="relative z-20 max-w-4xl mx-auto px-4 flex flex-col items-center gap-6">
+                    <h1 className="font-serif font-bold text-4xl sm:text-5xl md:text-6xl tracking-tight text-balance leading-tight">
+                        Streamline Events
+                    </h1>
+                    <p className="text-lg md:text-xl text-white/80 max-w-2xl leading-relaxed text-balance">
+                        EVENTOS Y EXPERIENCIAS PREMIUM PARA ARTISTAS
+                    </p>
+                    <div className="mt-4">
+                        <Button asChild size="lg" className="bg-white text-black hover:bg-white/90 font-semibold text-base px-8 shadow-lg">
+                            <Link href="/tienda">
+                                Explorar Eventos
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
             </div>
-          </div>
         </section>
 
         {/* ── 2. Featured Products (Above the Fold) ── */}
