@@ -142,7 +142,7 @@ const faqs = [
   },
   {
     q: 'Cuales son los datos para pagar por transferencia?',
-    a: 'Para pagar por transferencia, usa los siguientes datos y luego subí tu comprobante en el detalle de tu orden. Las ordenes sin pago se cancelan tras 48hs. <br/><br/><b>CUENTA PESOS (ARS):</b><br/>Nombre: Liliana Viviana Paola Nievas<br/>CUIT/CUIL: 27214734686<br/>ALIAS: TROTE.DAMA.FUENTE<br/>CBU: 0290002511000000179412<br/><br/><b>CUENTA DÓLARES (USD):</b><br/>ALIAS: EJEMPLO.DOLAR.CUENTA<br/>CBU/CVU: 1234567890123456789012',
+    a: 'Para pagar por transferencia, usa los siguientes datos y luego subí tu comprobante en el detalle de tu orden. Las ordenes sin pago se cancelan tras 48hs. <br/><br/><b>CUENTA EN PESOS (ARS)</b><br/>Nombre: Liliana Viviana Paola Nievas<br/>CUIT/CUIL: 27214734686<br/>ALIAS: TROTE.DAMA.FUENTE<br/>CBU: 0290002511000000179412<br/><br/><b>CUENTA EN DÓLARES (USD)</b><br/>Titular: Liliana Viviana Paola Nievas<br/>CUIT/CUIL: 27214734686<br/>Caja de ahorro en U$S: 000000020400017941<br/>ALIAS: TROTE.DAMA.FUENTE<br/>CBU: 0290002511000000179412',
   },
   {
     q: 'Puedo cancelar o pedir reembolso?',
@@ -404,14 +404,14 @@ export default async function HomePage() {
                     </div>
                   </details>
                 </Reveal>
-              ))}\
-            </div>\
-          </div>\
-        </section>\
-\
-        <ContactSection />\
-      </main>\
-      <Footer />\
-    </>\
-  )\
-}\
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <ContactSection />
+      </main>
+      <Footer />
+    </>
+  )
+}
