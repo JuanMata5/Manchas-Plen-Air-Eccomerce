@@ -61,13 +61,15 @@ export async function POST(request: NextRequest) {
 
     const holderName = ownerUser.user_metadata?.full_name || 'Nombre no disponible';
     const holderEmail = ownerUser.email || 'Email no disponible';
+    const holderDni = ownerUser.user_metadata?.dni || '';
 
     // 4. Generar el PDF con los datos correctos del dueño.
     const pdfBuffer = await generateTicketPDF({
       orderReference: ticket.orders!.id.slice(0, 8).toUpperCase(),
       ticketCode: ticket.qr_code,
       holderName: holderName,
-      holderEmail: holderEmail, // <-- DATO CORREGIDO
+      holderEmail: holderEmail,
+      dni: holderDni,
       productName: ticket.products?.name || 'Entrada',
       eventName: ticket.products?.name || 'Evento',
       eventDate: ticket.products?.event_date || undefined,
