@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/orders/check-first-purchase
  * Checks if the current user has any previous orders to determine if they are eligible for a first-purchase discount.
