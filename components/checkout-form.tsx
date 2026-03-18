@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { CreditCard, Building2, ShoppingBag, Loader2, Gift, Ticket, BadgePercent } from 'lucide-react'
+import { CreditCard, Building2, ShoppingBag, Loader2, Gift } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -29,18 +29,8 @@ const checkoutSchema = z.object({
 type CheckoutFormData = z.infer<typeof checkoutSchema>
 
 const paymentMethods = [
-  {
-    id: 'mercadopago' as const,
-    label: 'Mercado Pago',
-    description: 'Tarjeta de credito, debito, dinero en cuenta',
-    icon: CreditCard,
-  },
-  {
-    id: 'transfer' as const,
-    label: 'Transferencia bancaria',
-    description: 'CBU / Alias. Te enviamos los datos por email.',
-    icon: Building2,
-  },
+  { id: 'mercadopago' as const, label: 'Mercado Pago', description: 'Tarjeta de credito, debito, dinero en cuenta', icon: CreditCard },
+  { id: 'transfer' as const, label: 'Transferencia bancaria', description: 'CBU / Alias. Te enviamos los datos por email.', icon: Building2 },
 ]
 
 const FIRST_PURCHASE_DISCOUNT_PERCENTAGE = 10
@@ -50,40 +40,32 @@ export function CheckoutForm() {
   const { user, isLoading: isUserLoading } = useUser()
   const { items, totalARS, clearCart } = useCartStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
   const [isFirstPurchase, setIsFirstPurchase] = useState(false)
-  const [isLoadingDiscount, setIsLoadingDiscount] = useState(true) // Loading state for discount check
+  const [isLoadingDiscount, setIsLoadingDiscount] = useState(true)
   const [manualCoupon, setManualCoupon] = useState<any | null>(null)
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-  } = useForm<CheckoutFormData>({
+  const { register, handleSubmit, watch, setValue } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
-    mode: 'onChange',
-    defaultValues: {
-      buyer_email: '',
-      coupon_code: '',
-      payment_method: 'mercadopago',
-    },
+    defaultValues: { payment_method: 'mercadopago' },
   })
 
   useEffect(() => {
     if (user?.email) {
       setValue('buyer_email', user.email)
       setIsLoadingDiscount(true)
-      fetch('/api/orders/check-first-purchase')
-        .then(res => res.json())
-        .then(data => {
-          if(data.is_first_purchase) {
+      fetch('/api/orders/check-first-purchase').then(res => res.json()).then(data => {
+          if (data.is_first_purchase) {
             setIsFirstPurchase(true)
           }
+        }).catch(err => {
+          console.error('Error checking first purchase status:', err)
+          setIsFirstPurchase(false)
+        }).finally(() => {
+          setIsLoadingDiscount(false)
         })
-        .catch(err => console.error('Failed to check first purchase', err))
-        .finally(() => setIsLoadingDiscount(false))
     } else {
-        setIsLoadingDiscount(false)
+      setIsLoadingDiscount(false)
     }
   }, [user, setValue])
 
@@ -91,30 +73,20 @@ export function CheckoutForm() {
   const couponCode = watch('coupon_code')
 
   if (items.length === 0 && !isSubmitting) {
-    return (
-      <Empty
-        title="Tu carrito esta vacio"
-        description="Agrega productos antes de continuar al checkout."
-        action={
-          <Button asChild><Link href="/tienda"><ShoppingBag className="mr-2 h-4 w-4" />Ir a la tienda</Link></Button>
-        }
-      />
-    )
+    return <Empty title="Tu carrito esta vacio" description="Agrega productos antes de continuar." action={<Button asChild><Link href="/tienda"><ShoppingBag className="mr-2 h-4 w-4" />Ir a la tienda</Link></Button>} />
   }
 
   const subtotal = totalARS()
   let discountAmount = 0
-  let discountLabel = 'Descuento'
+  let discountLabel = ''
   let finalCouponCode = null
 
   if (isFirstPurchase) {
     discountAmount = Math.round((subtotal * FIRST_PURCHASE_DISCOUNT_PERCENTAGE) / 100)
-    discountLabel = `Descuento Primera Compra (${FIRST_PURCHASE_DISCOUNT_PERCENTAGE}%)`
+    discountLabel = `Descuento Primera Compra (10%)`
     finalCouponCode = 'PRIMERACOMPRA'
   } else if (manualCoupon) {
-    discountAmount = manualCoupon.type === 'percentage'
-      ? Math.round((subtotal * manualCoupon.value) / 100)
-      : manualCoupon.value
+    discountAmount = manualCoupon.type === 'percentage' ? Math.round((subtotal * manualCoupon.value) / 100) : manualCoupon.value
     discountLabel = `Descuento (${manualCoupon.code})`
     finalCouponCode = manualCoupon.code
   }
@@ -127,14 +99,12 @@ export function CheckoutForm() {
       const res = await fetch('/api/coupons/validate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: couponCode, subtotal }) })
       const data = await res.json()
       if (res.ok && data.valid) {
-        setManualCoupon({ code: couponCode, discount: data.discount_amount, type: data.discount_type, value: data.discount_value })
+        setManualCoupon({ code: couponCode, ...data })
         toast.success(`Cupon aplicado: ${data.description}`)
       } else {
         toast.error(data.error ?? 'Cupon invalido')
       }
-    } catch {
-      toast.error('Error al validar el cupon')
-    }
+    } catch { toast.error('Error al validar el cupon') }
   }
 
   const onSubmit = async (data: CheckoutFormData) => {
@@ -145,95 +115,66 @@ export function CheckoutForm() {
         ...data,
         buyer_name: user.user_metadata.full_name || user.email,
         buyer_email: user.email,
-        buyer_dni: user.user_metadata.dni || '00000000',
-        items: items.map((i) => ({ product_id: i.product.id, quantity: i.quantity, unit_price_ars: i.product.price_ars })),
+        items: items.map(i => ({ product_id: i.product.id, quantity: i.quantity, unit_price_ars: i.product.price_ars })),
         coupon_code: finalCouponCode,
         subtotal_ars: subtotal,
         discount_ars: discountAmount,
         total_ars: total,
       }
-
       const res = await fetch('/api/orders/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const result = await res.json()
-
-      if (!res.ok) {
-        toast.error(result.error ?? 'Error al crear la orden')
-        setIsSubmitting(false)
-        return
-      }
-
+      if (!res.ok) { throw new Error(result.error ?? 'Error al crear la orden') }
       if (data.payment_method === 'mercadopago' && result.init_point) {
         window.location.href = result.init_point
       } else if (data.payment_method === 'transfer') {
         clearCart()
         router.push(`/checkout/transferencia/${result.order_id}`)
       }
-    } catch {
-      toast.error('Ocurrio un error. Intenta nuevamente.')
+    } catch (error: any) {
+      toast.error('Ocurrio un error', { description: error.message })
       setIsSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
       <div className="lg:col-span-2 flex flex-col gap-8">
-        <section className="bg-card rounded-xl border border-border p-6">
-          <h2 className="font-serif font-semibold text-lg text-foreground mb-5">Datos del comprador</h2>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="buyer_email">Email de la cuenta</Label>
-            <Input id="buyer_email" type="email" {...register('buyer_email')} disabled />
-            {(isUserLoading || isLoadingDiscount) && <p className="text-xs text-muted-foreground">Cargando tu información...</p>}
-          </div>
-        </section>
-        <section className="bg-card rounded-xl border border-border p-6">
-          <h2 className="font-serif font-semibold text-lg text-foreground mb-5">Metodo de pago</h2>
-          <RadioGroup value={paymentMethod} onValueChange={(v) => setValue('payment_method', v as 'mercadopago' | 'transfer')} className="flex flex-col gap-3">
-            {paymentMethods.map((method) => (
-              <label key={method.id} htmlFor={method.id} className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', paymentMethod === method.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}>
-                <RadioGroupItem value={method.id} id={method.id} />
-                <method.icon className="h-5 w-5 text-muted-foreground shrink-0" />
-                <div className="flex-1"><p className="font-medium text-foreground text-sm">{method.label}</p><p className="text-xs text-muted-foreground">{method.description}</p></div>
-              </label>
-            ))}
-          </RadioGroup>
-          {paymentMethod === 'transfer' && <div className="mt-4 p-4 bg-muted rounded-lg text-sm text-muted-foreground">Recibirás los datos bancarios por email al confirmar la compra. Tu orden quedara reservada por 48 horas.</div>}
-        </section>
+        {/* ... Datos del comprador y Metodo de pago ... */}
+        <section className="bg-card rounded-xl border p-6"><h2 className="font-serif font-semibold text-lg mb-5">Datos del comprador</h2><div className="flex flex-col gap-1.5"><Label htmlFor="buyer_email">Email de la cuenta</Label><Input id="buyer_email" type="email" {...register('buyer_email')} disabled /></div></section>
+        <section className="bg-card rounded-xl border p-6"><h2 className="font-serif font-semibold text-lg mb-5">Metodo de pago</h2><RadioGroup value={paymentMethod} onValueChange={v => setValue('payment_method', v as any)} className="flex flex-col gap-3">{paymentMethods.map(m => (<label key={m.id} htmlFor={m.id} className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', paymentMethod === m.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}><RadioGroupItem value={m.id} id={m.id} /><m.icon className="h-5 w-5 text-muted-foreground shrink-0" /><div className="flex-1"><p className="font-medium text-sm">{m.label}</p><p className="text-xs text-muted-foreground">{m.description}</p></div></label>))}</RadioGroup>{paymentMethod === 'transfer' && <div className="mt-4 p-4 bg-muted rounded-lg text-sm text-muted-foreground">Recibirás los datos por email al confirmar. Tu orden quedara reservada por 48 horas.</div>}</section>
       </div>
-      <div className="lg:col-span-1">
-        <div className="bg-card rounded-xl border border-border p-6 sticky top-24 flex flex-col gap-4">
-          <h2 className="font-serif font-semibold text-lg text-foreground">Tu orden</h2>
-          <Separator />
-          <div className="flex flex-col gap-3">
-            {items.map(({ product, quantity }) => (<div key={product.id} className="flex items-center gap-3"><div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted">{product.image_url ? <Image src={product.image_url} alt={product.name} fill className="object-cover" sizes="48px" /> : <div className="w-full h-full flex items-center justify-center text-xs font-serif text-muted-foreground">PA</div>}</div><div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{product.name}</p><p className="text-xs text-muted-foreground">x{quantity}</p></div><span className="text-sm font-medium tabular-nums shrink-0">{formatARS(product.price_ars * quantity)}</span></div>))}
-          </div>
-          <Separator />
-          
-          {/* --- Lógica de Descuento Condicional --- */}
-          {!isLoadingDiscount && !isFirstPurchase && (
-              <div className="flex flex-col gap-2">
-                  <Label htmlFor="coupon_code" className="text-sm">Cupon de descuento</Label>
-                  <div className="flex gap-2">
-                      <Input id="coupon_code" placeholder="CODIGO" className="uppercase" {...register('coupon_code')} disabled={!!manualCoupon} />
-                      <Button type="button" variant="outline" size="sm" onClick={handleApplyCoupon} disabled={!!manualCoupon || !couponCode?.trim()}>
-                          Aplicar
-                      </Button>
-                  </div>
-                   {manualCoupon && (
-                    <p className="text-xs text-primary">Cupon aplicado: {manualCoupon.code}</p>
-                  )}
-              </div>
-          )}
 
-          <Separator />
-          <div className="flex flex-col gap-2 text-sm">
-            <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{formatARS(subtotal)}</span></div>
-            {discountAmount > 0 && (<div className="flex justify-between text-primary"><span>{discountLabel}</span><span className="tabular-nums">-{formatARS(discountAmount)}</span></div>)}
-            <Separator />
-            <div className="flex justify-between font-bold text-foreground text-base"><span>Total</span><span className="tabular-nums">{formatARS(total)}</span></div>
+      <div className="lg:col-span-1"><div className="bg-card rounded-xl border p-6 sticky top-24 flex flex-col gap-4">
+        <h2 className="font-serif font-semibold text-lg">Tu orden</h2>
+        <Separator />
+        <div className="flex flex-col gap-3">{items.map(({ product, quantity }) => (<div key={product.id} className="flex items-center gap-3"><div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted"><Image src={product.image_url!} alt={product.name} fill className="object-cover" sizes="48px" /></div><div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{product.name}</p><p className="text-xs text-muted-foreground">x{quantity}</p></div><span className="text-sm font-medium tabular-nums">{formatARS(product.price_ars * quantity)}</span></div>))}</div>
+        <Separator />
+
+        {/* --- LÓGICA DE DESCUENTO DEFINITIVA --- */}
+        {isLoadingDiscount ? (
+          <div className="flex items-center justify-center text-sm text-muted-foreground py-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verificando descuentos...</div>
+        ) : isFirstPurchase ? (
+          <div className="p-3 bg-primary/10 rounded-lg text-center">
+            <p className="font-semibold text-primary text-sm flex items-center justify-center gap-2"><Gift className="h-4 w-4"/>¡Descuento por Primera Compra!</p>
+            <p className="text-xs text-primary/80 mt-1">Hemos aplicado un 10% OFF automáticamente a tu orden.</p>
           </div>
-          <Button type="submit" size="lg" className="w-full mt-2" disabled={isSubmitting || isUserLoading || isLoadingDiscount}>{isSubmitting || isUserLoading || isLoadingDiscount ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</>) : ('Finalizar Compra')}</Button>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="coupon_code" className="text-sm">Cupón de descuento</Label>
+            <div className="flex gap-2"><Input id="coupon_code" placeholder="TENGOUNCODIGO" {...register('coupon_code')} disabled={!!manualCoupon} className="uppercase" /><Button type="button" variant="outline" size="sm" onClick={handleApplyCoupon} disabled={!!manualCoupon || !couponCode?.trim()}>Aplicar</Button></div>
+            {manualCoupon && <p className="text-xs text-primary/80">Cupón "{manualCoupon.code}" aplicado.</p>}
+          </div>
+        )}
+
+        <Separator />
+        <div className="flex flex-col gap-2 text-sm">
+          <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{formatARS(subtotal)}</span></div>
+          {discountAmount > 0 && (<div className="flex justify-between text-primary"><span>{discountLabel}</span><span className="tabular-nums">-{formatARS(discountAmount)}</span></div>)}
+          <Separator />
+          <div className="flex justify-between font-bold text-base"><span>Total</span><span className="tabular-nums">{formatARS(total)}</span></div>
         </div>
-      </div>
+        <Button type="submit" size="lg" className="w-full mt-2" disabled={isSubmitting || isUserLoading || isLoadingDiscount}>{isSubmitting || isUserLoading || isLoadingDiscount ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</> : 'Finalizar Compra'}</Button>
+      </div></div>
     </form>
   )
 }
