@@ -27,19 +27,27 @@ export function TicketCard({ ticket }: TicketCardProps) {
   const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
-    // Generate QR code client-side using canvas
-    import('qrcode').then((QRCode) => {
+    let isMounted = true
+    // Dynamically import the qrcode library
+    import('qrcode').then((module) => {
+      // Handle CJS/ESM interop issues by checking for .default
+      const QRCode = module.default || module;
+      if (!isMounted || !QRCode?.toDataURL) return
+
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin
       const qrUrl = `${baseUrl}/tickets/validar/${ticket.qr_code}`
+
       QRCode.toDataURL(qrUrl, {
         errorCorrectionLevel: 'H',
         width: 200,
         margin: 1,
-      }).then(setQrSrc)
-    }).catch(() => {
-      // If qrcode not available client-side, show placeholder
-      setQrSrc(null)
-    })
+      })
+      .then(setQrSrc)
+      .catch(console.error)
+
+    }).catch(console.error)
+
+    return () => { isMounted = false }
   }, [ticket.qr_code])
 
   const handleDownload = async () => {

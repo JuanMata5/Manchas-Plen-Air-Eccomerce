@@ -1,8 +1,17 @@
 'use client'
 
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+// Import persist and createJSONStorage directly from their module files
+// This is the most robust way to avoid CJS/ESM module resolution issues in Next.js
+import { persist, createJSONStorage } from 'zustand/middleware'
 import type { CartItem, Product } from '@/lib/types'
+
+// A dummy storage implementation that does nothing, used for server-side rendering.
+const dummyStorage = {
+  getItem: () => null,
+  setItem: () => {},
+  removeItem: () => {},
+}
 
 interface CartState {
   items: CartItem[]
@@ -66,6 +75,11 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: 'plenair-cart',
+      // Use createJSONStorage to handle serialization. Conditionally provide a storage engine.
+      storage: createJSONStorage(() =>
+        // If we are in a browser environment, use sessionStorage. Otherwise, use a dummy storage.
+        typeof window !== 'undefined' ? sessionStorage : dummyStorage,
+      ),
     },
   ),
 )
