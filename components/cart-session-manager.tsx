@@ -17,11 +17,13 @@ export function CartSessionManager() {
     const currentUserId = user?.id
     const previousUserId = previousUserIdRef.current
 
+    console.log('[CartSessionManager] user changed:', { previousUserId, currentUserId })
+
     if (currentUserId && currentUserId !== previousUserId) {
-      // Login o cambio de usuario: cargar carrito desde DB
+      console.log('[CartSessionManager] Login/cambio usuario, cargar carrito desde DB')
       loadCartFromDB(user)
     } else if (!currentUserId && previousUserId) {
-      // Logout: limpiar carrito local
+      console.log('[CartSessionManager] Logout, limpiar carrito local')
       clearCart()
     }
     previousUserIdRef.current = currentUserId
