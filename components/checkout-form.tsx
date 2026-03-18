@@ -106,8 +106,7 @@ export function CheckoutForm() {
 
   const onSubmit = async (data: CheckoutFormData) => {
     if (!user) {
-      toast.error('Debes crear una cuenta para comprar. Redirigiendo...')
-      router.push('/auth/register')
+      toast.error('Debes iniciar sesión para comprar.')
       return
     }
     setIsSubmitting(true)
