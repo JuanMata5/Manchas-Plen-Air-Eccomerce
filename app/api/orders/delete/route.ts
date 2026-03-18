@@ -20,28 +20,15 @@ export async function POST(request: NextRequest) {
 
     const adminDb = createAdminClient()
 
-    // Verify the order belongs to this user
-    const { data: order } = await adminDb
-      .from('orders')
-      .select('id, user_id, status')
-      .eq('id', order_id)
+    // Solo admin puede borrar órdenes
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
       .single()
 
-    if (!order) {
-      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 })
-    }
-
-    if (order.user_id !== user.id) {
-      // Also allow admin to delete any order
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile?.is_admin) {
-        return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
-      }
+    if (!profile?.is_admin) {
+      return NextResponse.json({ error: 'Solo un administrador puede borrar órdenes.' }, { status: 403 })
     }
 
     // Delete order items first, then order
