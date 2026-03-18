@@ -86,15 +86,23 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .in('status', ['paid', 'refunded'])
       .limit(1)
+
     if (!previousOrders || previousOrders.length === 0) {
       isFirstPurchase = true
     }
 
-    // El descuento de primera compra se aplicará SOLO si el pago es exitoso (ver más abajo)
-    const finalDiscount = discount_ars ?? 0
+    // Calcular descuento de primera compra (10%) si corresponde
+    let firstPurchaseDiscount = 0
+    if (isFirstPurchase) {
+      firstPurchaseDiscount = Math.round(subtotal_ars * 0.10)
+    }
+
+    // El descuento final es la suma de cupones manuales + descuento de primera compra
+    const manualDiscount = discount_ars ?? 0
+    const finalDiscount = manualDiscount + firstPurchaseDiscount
     const finalTotal = subtotal_ars - finalDiscount
 
-    // Crear orden SIN descuento de primera compra aún
+    // Crear orden con TODOS los descuentos aplicados
     const { data: order, error: orderError } = await adminDb
       .from('orders')
       .insert({
@@ -102,12 +110,13 @@ export async function POST(request: NextRequest) {
         status: payment_method === 'transfer' ? 'payment_pending' : 'pending',
         payment_method,
         subtotal_ars,
-        discount_ars: finalDiscount, // solo cupones manuales
+        discount_ars: finalDiscount, 
         total_ars: finalTotal,
         buyer_name,
         buyer_email,
         buyer_phone: buyer_phone || null,
         buyer_dni: buyer_dni || null,
+        is_first_purchase: isFirstPurchase, // Guardamos si fue detectada como primera compra
       })
       .select()
       .single()
@@ -189,13 +198,24 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const mpItems = orderItemsData.map((item) => ({
-        id: item.product_id,
-        title: (item.product_snapshot as any)?.name || 'Producto',
-        quantity: item.quantity,
-        unit_price: Number(item.unit_price),
-        currency_id: 'ARS',
-      }))
+      const mpItems = orderItemsData.map((item) => {
+        const product = (item.product_snapshot as any)
+        const unitPrice = Number(item.unit_price)
+        
+        // Aplicar descuento proporcional si existe
+        // discount_ars es el total de descuento de la orden
+        // subtotal_ars es el total sin descuento de la orden
+        const ratio = subtotal_ars > 0 ? (subtotal_ars - finalDiscount) / subtotal_ars : 1
+        const adjustedPrice = Math.round(unitPrice * ratio)
+
+        return {
+          id: item.product_id,
+          title: product?.name || 'Producto',
+          quantity: item.quantity,
+          unit_price: adjustedPrice,
+          currency_id: 'ARS',
+        }
+      })
 
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
       const isHttps = baseUrl.startsWith('https')

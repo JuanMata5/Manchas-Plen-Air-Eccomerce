@@ -18,12 +18,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ is_first_purchase: false })
     }
 
-    // Check if any order exists for this user.
-    // We use { count: 'exact', head: true } for performance, as it only counts without returning data.
+    // Check if any order exists for this user that is paid or refunded.
     const { count, error } = await supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
+      .in('status', ['paid', 'refunded'])
 
     if (error) {
       console.error('[API Check First Purchase] Error querying orders:', error)

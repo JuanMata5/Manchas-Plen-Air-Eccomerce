@@ -41,6 +41,21 @@ export function CheckoutForm() {
   const { items, totalARS, clearCart } = useCartStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [manualCoupon, setManualCoupon] = useState<any | null>(null)
+  const [isFirstPurchase, setIsFirstPurchase] = useState(false)
+
+  useEffect(() => {
+    async function checkFirstPurchase() {
+      if (!user) return
+      try {
+        const res = await fetch('/api/orders/check-first-purchase')
+        const data = await res.json()
+        setIsFirstPurchase(data.is_first_purchase)
+      } catch (err) {
+        console.error('Error checking first purchase:', err)
+      }
+    }
+    checkFirstPurchase()
+  }, [user])
 
   const { register, handleSubmit, watch, setValue } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -61,17 +76,19 @@ export function CheckoutForm() {
   }
 
   const subtotal = totalARS()
-  let discountAmount = 0
+  let manualDiscountAmount = 0
   let discountLabel = ''
   let finalCouponCode = null
 
   if (manualCoupon) {
-    discountAmount = manualCoupon.type === 'percentage' ? Math.round((subtotal * manualCoupon.value) / 100) : manualCoupon.value
-    discountLabel = `Descuento (${manualCoupon.code})`
+    manualDiscountAmount = manualCoupon.type === 'percentage' ? Math.round((subtotal * manualCoupon.value) / 100) : manualCoupon.value
+    discountLabel = `Cupón (${manualCoupon.code})`
     finalCouponCode = manualCoupon.code
   }
 
-  const total = subtotal - discountAmount
+  const firstPurchaseDiscountAmount = isFirstPurchase ? Math.round(subtotal * 0.10) : 0
+  const totalDiscount = manualDiscountAmount + firstPurchaseDiscountAmount
+  const total = subtotal - totalDiscount
 
   const handleApplyCoupon = async () => {
     if (!couponCode?.trim()) return
@@ -98,7 +115,7 @@ export function CheckoutForm() {
         items: items.map(i => ({ product_id: i.product.id, quantity: i.quantity, unit_price_ars: i.product.price_ars })),
         coupon_code: finalCouponCode,
         subtotal_ars: subtotal,
-        discount_ars: discountAmount,
+        discount_ars: manualDiscountAmount, // Enviamos solo el manual, el backend calculará el de primera compra si corresponde
         total_ars: total,
       }
       const res = await fetch('/api/orders/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -137,7 +154,18 @@ export function CheckoutForm() {
         <Separator />
         <div className="flex flex-col gap-2 text-sm">
           <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{formatARS(subtotal)}</span></div>
-          {discountAmount > 0 && (<div className="flex justify-between text-primary"><span>{discountLabel}</span><span className="tabular-nums">-{formatARS(discountAmount)}</span></div>)}
+          {manualDiscountAmount > 0 && (
+            <div className="flex justify-between text-primary">
+              <span>{discountLabel}</span>
+              <span className="tabular-nums">-{formatARS(manualDiscountAmount)}</span>
+            </div>
+          )}
+          {isFirstPurchase && (
+            <div className="flex justify-between text-primary">
+              <span className="flex items-center gap-1.5"><Gift className="h-3.5 w-3.5" /> Desc. Primera Compra (10%)</span>
+              <span className="tabular-nums">-{formatARS(firstPurchaseDiscountAmount)}</span>
+            </div>
+          )}
           <Separator />
           <div className="flex justify-between font-bold text-base"><span>Total</span><span className="tabular-nums">{formatARS(total)}</span></div>
         </div>
