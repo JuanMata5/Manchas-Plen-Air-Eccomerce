@@ -3,7 +3,8 @@ import { Lato, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
-import { UserProvider } from '@/components/user-provider' // Importado
+import { UserProvider } from '@/components/user-provider'
+import { CartSessionManager } from '@/components/cart-session-manager' // 🔥 Importado
 import './globals.css'
 
 const _lato = Lato({ subsets: ['latin'], weight: ['300', '400', '700', '900'] })
@@ -53,10 +54,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <UserProvider> {/* Añadido */}
+          <UserProvider>
+            <CartSessionManager /> {/* 🔥 Añadido el guardián */}
             {children}
             <Toaster richColors position="top-right" />
-          </UserProvider> {/* Añadido */}
+          </UserProvider>
         </ThemeProvider>
         <Analytics />
       </body>
