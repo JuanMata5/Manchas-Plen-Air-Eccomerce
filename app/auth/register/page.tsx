@@ -12,18 +12,23 @@ import { Label } from '@/components/ui/label'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', password: '' })
+  const [form, setForm] = useState({ first_name: '', last_name: '', dni: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Validar DNI: solo números, 7-10 dígitos
+    if (!/^\d{7,10}$/.test(form.dni)) {
+      toast.error('DNI inválido. Debe tener entre 7 y 10 dígitos numéricos.')
+      return
+    }
     setLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
       options: {
-        data: { first_name: form.first_name, last_name: form.last_name },
+        data: { first_name: form.first_name, last_name: form.last_name, dni: form.dni },
       },
     })
     if (error) {
@@ -66,8 +71,23 @@ export default function RegisterPage() {
                 value={form.last_name}
                 onChange={(e) => setForm({ ...form, last_name: e.target.value })}
                 placeholder="Perez"
+                required
               />
             </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="dni">DNI</Label>
+            <Input
+              id="dni"
+              value={form.dni}
+              onChange={(e) => setForm({ ...form, dni: e.target.value })}
+              placeholder="Ej: 12345678"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              minLength={7}
+              maxLength={10}
+              required
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="email">Email</Label>

@@ -36,7 +36,7 @@ export function Navbar() {
   const isAdmin = profile?.role === 'admin';
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <nav className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-serif font-bold text-xl tracking-wide hover:opacity-90 transition-all duration-300 hover:scale-[1.02]">
           <Leaf className="h-5 w-5" />
@@ -64,6 +64,7 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-4 ml-2">
             {user ? (
               <>
+                <Link href="/cuenta" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><UserPlus className="h-4 w-4" />Mi perfil</Link>
                 <Link href="/cuenta/mis-ordenes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><ShoppingCart className="h-4 w-4" />Mis Órdenes</Link>
                 <Link href="/cuenta/mis-tickets" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><Ticket className="h-4 w-4" />Mis Tickets</Link>
                 {isAdmin && <Link href="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><Settings className="h-4 w-4" />Admin</Link>}
@@ -93,6 +94,7 @@ export function Navbar() {
                  {user ? (
                   <>
                     <li className='font-semibold text-lg'>Mi Cuenta</li>
+                    <li><Link href="/cuenta" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Mi perfil</Link></li>
                     <li><Link href="/cuenta/mis-ordenes" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Mis ordenes</Link></li>
                     <li><Link href="/cuenta/mis-tickets" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Mis tickets</Link></li>
                     {isAdmin && <li><Link href="/admin" className="hover:text-foreground" onClick={() => setMobileOpen(false)}>Panel Admin</Link></li>}
