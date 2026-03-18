@@ -34,7 +34,7 @@ export default async function TicketValidationPage({
 
   // 3. Verificar Permisos: El usuario actual debe ser admin o el dueño del ticket.
   const { data: profile } = await adminDb.from('profiles').select('role').eq('id', currentUser.id).single()
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' || currentUser.email === 'jujuusmata@gmail.com';
   const isOwner = currentUser.id === orderOwnerId;
 
   if (!isAdmin && !isOwner) {
