@@ -108,10 +108,11 @@ function drawTicketPage(
   cursorY = writeLabelValue(doc, 'Titular', ticket.holderName, detailsX, cursorY, detailsW)
   cursorY = writeLabelValue(doc, 'Tipo de entrada', ticket.productName || 'General', detailsX, cursorY, detailsW)
   cursorY = writeLabelValue(doc, 'Fecha', formatEventDate(ticket.eventDate), detailsX, cursorY, detailsW)
+  const defaultLocation = 'Círculo de Oficiales de Mar — Sarmiento 1867, CABA';
   cursorY = writeLabelValue(
     doc,
     'Ubicacion',
-    ticket.eventLocation || 'A confirmar por la organizacion',
+    ticket.eventLocation || defaultLocation,
     detailsX,
     cursorY,
     detailsW,
