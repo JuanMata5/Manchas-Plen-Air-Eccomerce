@@ -151,6 +151,11 @@ export default async function ProductPage({ params }: PageProps) {
               </Link>
             )}
 
+            {/* Subtitle */}
+            {product.subtitle && (
+              <p className="text-lg text-primary font-semibold mb-2">{product.subtitle}</p>
+            )}
+
             <h1 className="font-serif font-bold text-3xl md:text-4xl text-foreground leading-tight text-balance">
               {product.name}
             </h1>
@@ -166,6 +171,9 @@ export default async function ProductPage({ params }: PageProps) {
                   Solo {product.stock} disponibles
                 </Badge>
               )}
+              {product.badge && (
+                <Badge className="bg-primary text-white border-0">{product.badge}</Badge>
+              )}
             </div>
 
             {/* Price */}
@@ -178,6 +186,22 @@ export default async function ProductPage({ params }: PageProps) {
 
             {product.description && (
               <p className="text-muted-foreground leading-relaxed">{product.description}</p>
+            )}
+
+            {/* Features */}
+            {product.features && Array.isArray(product.features) && product.features.length > 0 && (
+              <ul className="mt-4 mb-4 list-disc pl-5 text-sm text-foreground">
+                {product.features.map((f: string, idx: number) => (
+                  <li key={idx}>{f}</li>
+                ))}
+              </ul>
+            )}
+
+            {/* CTA Link */}
+            {product.cta_link && (
+              <Link href={product.cta_link} target="_blank" rel="noopener" className="mt-2 inline-block">
+                <Badge className="bg-brand-earth text-white border-0">Comprar en etickets</Badge>
+              </Link>
             )}
 
             <div className="border-t border-border pt-5">
