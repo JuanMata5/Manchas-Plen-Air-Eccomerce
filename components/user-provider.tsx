@@ -20,14 +20,24 @@ export const UserProvider = (props: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    // The listener is fired immediately with the current session, so we don't need a separate getSession() call.
+    // Listener para cambios locales de sesión
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-      setIsLoading(false) // Stop loading once we have the auth state.
+      setIsLoading(false)
     })
 
-    // Cleanup the subscription when the component unmounts.
+    // Chequeo activo en Supabase: si la cuenta fue borrada, cerrar sesión local
+    async function verifyUserStillExists() {
+      const { data, error } = await supabase.auth.getUser()
+      if (error || !data?.user) {
+        await supabase.auth.signOut()
+        setSession(null)
+        setUser(null)
+      }
+    }
+    verifyUserStillExists()
+
     return () => {
       subscription?.unsubscribe()
     }
