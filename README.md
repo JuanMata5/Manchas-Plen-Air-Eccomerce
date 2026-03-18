@@ -246,5 +246,3 @@ MIT (o tu licencia preferida)
 ---
 
 **Hecho con ❤️ para Plen Air**
-
-<!-- Gemini was here -->
