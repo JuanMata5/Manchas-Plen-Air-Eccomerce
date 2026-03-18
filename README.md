@@ -176,7 +176,7 @@ POST   /api/admin/products/upload-image # Guardar imagen
 - `profiles`: Usuario ve solo su perfil
 - `orders`: Usuario ve sus órdenes
 - `products`: Público (activos), admin escribe
-- `email_queue`: Solo service_role
+- `email_queue`: Solo service_roleee
 
 ---
 
