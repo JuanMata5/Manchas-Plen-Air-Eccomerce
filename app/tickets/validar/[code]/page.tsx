@@ -50,6 +50,7 @@ export default async function TicketValidationPage({
 
   const realBuyerName = ownerUser.user_metadata?.full_name || 'Nombre no disponible';
   const realBuyerEmail = ownerUser.email || 'Email no disponible';
+  const realBuyerDni = ownerUser.user_metadata?.dni || 'No disponible';
 
   // 5. Renderizar la vista con los datos correctos y verificados.
   return (
@@ -67,6 +68,7 @@ export default async function TicketValidationPage({
           order_id: ticket.orders.id,
           buyer_name: realBuyerName, // Dato corregido
           buyer_email: realBuyerEmail, // Dato corregido
+          buyer_dni: realBuyerDni,
         }}
         isAdmin={isAdmin}
       />

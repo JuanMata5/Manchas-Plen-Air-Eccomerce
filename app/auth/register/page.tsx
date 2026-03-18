@@ -28,7 +28,12 @@ export default function RegisterPage() {
       email: form.email,
       password: form.password,
       options: {
-        data: { first_name: form.first_name, last_name: form.last_name, dni: form.dni },
+        data: {
+          first_name: form.first_name,
+          last_name: form.last_name,
+          dni: form.dni,
+          full_name: `${form.first_name} ${form.last_name}`.trim(),
+        },
       },
     })
     if (error) {

@@ -17,6 +17,7 @@ interface TicketInfo {
   order_id: string
   buyer_name: string
   buyer_email: string
+  buyer_dni?: string
 }
 
 interface Props {
@@ -181,6 +182,8 @@ export function TicketValidationView({ ticket, isAdmin }: Props) {
             <div>
               <p className="text-xs text-muted-foreground">Titular</p>
               <p className="text-sm font-medium">{ticket.holder_name || ticket.buyer_name}</p>
+              <p className="text-xs text-muted-foreground mt-1">DNI: <span className="font-mono">{ticket.buyer_dni || 'No disponible'}</span></p>
+              <p className="text-xs text-muted-foreground mt-1">Email: <span className="font-mono">{ticket.buyer_email}</span></p>
             </div>
           </div>
 
