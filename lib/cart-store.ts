@@ -132,39 +132,11 @@ export const useCartStore = create<CartState>()(
           }
 
           const dbItems: CartItem[] = data?.items || []
-          const localItems = get().items
 
-          const merged: Record<string, CartItem> = {}
+          // Reemplazar el carrito local por el de la base de datos
+          set({ items: dbItems })
 
-          // Local primero
-          for (const item of localItems) {
-            if (!item?.product?.id) continue
-            merged[item.product.id] = { ...item }
-          }
-
-          // DB después
-          for (const item of dbItems) {
-            if (!item?.product?.id) continue
-
-            const id = item.product.id
-
-            if (merged[id]) {
-              merged[id].quantity = Math.min(
-                merged[id].quantity + item.quantity,
-                item.product.max_per_order
-              )
-            } else {
-              merged[id] = { ...item }
-            }
-          }
-
-          const mergedItems = Object.values(merged)
-
-          set({ items: mergedItems })
-
-          if (localItems.length > 0) {
-            await get().saveCartToDB(user)
-          }
+          await get().saveCartToDB(user)
         } catch (err) {
           console.error('[CartStore] Unexpected load error:', err)
         }
