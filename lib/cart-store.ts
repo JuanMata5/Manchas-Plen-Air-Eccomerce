@@ -35,7 +35,10 @@ export const useCartStore = create<CartState>()(
 
       addItem: async (product, quantity = 1) => {
         set((state) => {
-          const existingItem = state.items.find((i) => i.product.id === product.id)
+          const existingItem = state.items.find(
+            (i) => i.product.id === product.id
+          )
+
           if (existingItem) {
             return {
               items: state.items.map((i) =>
@@ -51,8 +54,15 @@ export const useCartStore = create<CartState>()(
               ),
             }
           }
+
           return {
-            items: [...state.items, { product, quantity: Math.min(quantity, product.max_per_order) }],
+            items: [
+              ...state.items,
+              {
+                product,
+                quantity: Math.min(quantity, product.max_per_order),
+              },
+            ],
           }
         })
 
@@ -102,13 +112,14 @@ export const useCartStore = create<CartState>()(
 
       totalARS: () =>
         get().items.reduce(
-          (sum, i) => sum + i.product.price_ars * i.quantity,
+          (sum, i) => sum + (i.product?.price_ars || 0) * i.quantity,
           0
         ),
 
       loadCartFromDB: async (user) => {
         try {
           const supabase = createClient()
+
           const { data, error } = await supabase
             .from('carts')
             .select('items')
@@ -116,24 +127,27 @@ export const useCartStore = create<CartState>()(
             .maybeSingle()
 
           if (error) {
-            console.error('[CartStore] Error loading from DB:', error)
+            console.error('[CartStore] Load error:', error)
             return
           }
 
           const dbItems: CartItem[] = data?.items || []
           const localItems = get().items
 
-          // Merge: DB items take precedence, but we combine quantities
           const merged: Record<string, CartItem> = {}
-          
-          // First add local items
+
+          // Local primero
           for (const item of localItems) {
+            if (!item?.product?.id) continue
             merged[item.product.id] = { ...item }
           }
-          
-          // Then add DB items (overwrite if conflict, or combine)
+
+          // DB después
           for (const item of dbItems) {
+            if (!item?.product?.id) continue
+
             const id = item.product.id
+
             if (merged[id]) {
               merged[id].quantity = Math.min(
                 merged[id].quantity + item.quantity,
@@ -145,14 +159,14 @@ export const useCartStore = create<CartState>()(
           }
 
           const mergedItems = Object.values(merged)
+
           set({ items: mergedItems })
-          
-          // Sync back to DB if merged something new
+
           if (localItems.length > 0) {
             await get().saveCartToDB(user)
           }
         } catch (err) {
-          console.error('[CartStore] Unexpected error loading cart:', err)
+          console.error('[CartStore] Unexpected load error:', err)
         }
       },
 
@@ -161,16 +175,22 @@ export const useCartStore = create<CartState>()(
           const supabase = createClient()
           const items = get().items
 
-          await supabase.from('carts').upsert(
+          const { error } = await supabase.from('carts').upsert(
             {
               user_id: user.id,
               items,
               updated_at: new Date().toISOString(),
             },
-            { onConflict: 'user_id' }
+            {
+              onConflict: 'user_id',
+            }
           )
+
+          if (error) {
+            console.error('[CartStore] UPSERT ERROR:', error)
+          }
         } catch (err) {
-          console.error('[CartStore] Error saving to DB:', err)
+          console.error('[CartStore] Save error:', err)
         }
       },
     }),
@@ -183,7 +203,7 @@ export const useCartStore = create<CartState>()(
   )
 )
 
-// Helper to get current user
+// Obtener usuario actual
 async function getCurrentUser(): Promise<User | null> {
   try {
     const supabase = createClient()
