@@ -20,27 +20,16 @@ export const UserProvider = (props: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data, error } = await supabase.auth.getSession()
-      if (error) {
-        console.error('Error fetching session:', error)
-      }
-      setSession(data.session)
-      setUser(data.session?.user ?? null)
-      setIsLoading(false)
-    }
-
-    // Get initial session
-    getSession()
-
-    // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    // The listener is fired immediately with the current session, so we don't need a separate getSession() call.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+      setIsLoading(false) // Stop loading once we have the auth state.
     })
 
+    // Cleanup the subscription when the component unmounts.
     return () => {
-      authListener?.unsubscribe()
+      subscription?.unsubscribe()
     }
   }, [])
 
