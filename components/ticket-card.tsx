@@ -12,6 +12,7 @@ interface TicketCardProps {
     qr_code: string
     holder_name: string
     holder_email: string
+    holder_dni?: string
     is_used: boolean
     used_at: string | null
     created_at: string
@@ -175,11 +176,29 @@ export function TicketCard({ ticket }: TicketCardProps) {
               {ticket.holder_name}
             </span>
           </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">DNI</span>
+            <span className="text-foreground font-mono">
+              {ticket.holder_dni || 'No disponible'}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Fecha del evento</span>
+            <span className="text-foreground font-medium">1 de mayo</span>
+          </div>
 
           <div className="flex justify-between">
             <span className="text-muted-foreground">Fecha compra</span>
             <span className="text-foreground">
-              {new Date(ticket.created_at).toLocaleDateString('es-AR')}
+              {new Date(ticket.created_at).toLocaleString('es-AR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              })}
             </span>
           </div>
         </div>
