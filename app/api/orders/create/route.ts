@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     if (rateLimited) return rateLimited
 
     const body = await request.json()
+    console.log('[ORDER API] Payload recibido:', body)
     const {
       buyer_name,
       buyer_email,
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
     } = body
 
     if (!buyer_name || !buyer_email || !payment_method || !items?.length) {
+      console.error('[ORDER API] Faltan datos requeridos:', { buyer_name, buyer_email, payment_method, items })
       return NextResponse.json(
         { error: 'Datos requeridos faltantes' },
         { status: 400 }
@@ -48,6 +50,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
+      console.error('[ORDER API] Usuario no autenticado')
       return NextResponse.json(
         { error: 'Debes iniciar sesión para comprar.' },
         { status: 401 }
