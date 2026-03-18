@@ -17,6 +17,7 @@ const navLinks = [
   { href: '/tienda', label: 'Tienda' },
   { href: '/tienda?categoria=entradas', label: 'Entradas' },
   { href: '/tienda?categoria=merchandising', label: 'Merch' },
+  { href: '/#contacto', label: 'Contacto' },
 ]
 console.log();
 
