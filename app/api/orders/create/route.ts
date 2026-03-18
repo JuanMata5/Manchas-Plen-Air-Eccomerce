@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     const isFirstPurchase = !previousOrders?.length
 
     const firstDiscount = isFirstPurchase
-      ? Math.round(subtotal_ars * 0.1)
+      ? Math.round(subtotal_ars * 0.05)
       : 0
 
     const manualDiscount = discount_ars ?? 0

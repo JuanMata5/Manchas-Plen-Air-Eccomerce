@@ -95,6 +95,9 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
                   Ultimas {product.stock} unidades
                 </Badge>
               )}
+              {product.badge && (
+                <Badge className="bg-primary text-white text-xs border-0">{product.badge}</Badge>
+              )}
             </div>
           </div>
 
@@ -105,6 +108,10 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
                 <span className="text-xs text-muted-foreground uppercase tracking-wider">
                   {product.categories.name}
                 </span>
+              )}
+              {/* Subtitle */}
+              {product.subtitle && (
+                <p className="text-base text-primary font-semibold mb-1">{product.subtitle}</p>
               )}
               <DialogTitle className="font-serif font-bold text-xl leading-tight">
                 {product.name}
@@ -124,18 +131,36 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
               )}
             </div>
 
-            {/* Includes */}
-            <div className="border-t border-border pt-3">
-              <p className="text-sm font-semibold text-foreground mb-2">Incluye:</p>
-              <ul className="space-y-1.5">
-                {includes.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-                    {item}
-                  </li>
+            {/* Features */}
+            {product.features && Array.isArray(product.features) && product.features.length > 0 && (
+              <ul className="mt-2 mb-2 list-disc pl-5 text-sm text-foreground">
+                {product.features.map((f: string, idx: number) => (
+                  <li key={idx}>{f}</li>
                 ))}
               </ul>
-            </div>
+            )}
+
+            {/* CTA Link */}
+            {product.cta_link && (
+              <a href={product.cta_link} target="_blank" rel="noopener" className="mt-2 inline-block">
+                <Badge className="bg-brand-earth text-white border-0">Comprar en etickets</Badge>
+              </a>
+            )}
+
+            {/* Includes (fallback) */}
+            {!product.features && (
+              <div className="border-t border-border pt-3">
+                <p className="text-sm font-semibold text-foreground mb-2">Incluye:</p>
+                <ul className="space-y-1.5">
+                  {includes.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Info badges */}
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">

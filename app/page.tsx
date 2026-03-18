@@ -138,7 +138,7 @@ const faqs = [
   },
   {
     q: 'Que metodos de pago aceptan?',
-    a: 'Aceptamos Mercado Pago (tarjetas de credito, debito, dinero en cuenta) y transferencia bancaria. En tu primera compra tienes un 10% de descuento automático.',
+    a: 'Aceptamos Mercado Pago (tarjetas de credito, debito, dinero en cuenta) y transferencia bancaria. En tu primera compra tienes un 5% de descuento automático.',
   },
   {
     q: 'Cuales son los datos para pagar por transferencia?',
@@ -168,7 +168,7 @@ export default async function HomePage() {
           {/* -- Video de fondo -- */}
           {/* Reemplaza este src con la URL de tu video. El video debe estar en la carpeta /public/videos/ */}
           <video 
-            src="/videos/hero-background.mp4" 
+            src="/2c26b202-351c-4323-817e-1f033c78b3b8.mp4" 
             autoPlay 
             loop 
             muted 
@@ -233,9 +233,9 @@ export default async function HomePage() {
               <Gift className="h-10 w-10" />
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h3 className="font-serif font-bold text-2xl md:text-3xl mb-2">¿Primera compra? 10% OFF</h3>
+              <h3 className="font-serif font-bold text-2xl md:text-3xl mb-2">¿Primera compra? 5% OFF</h3>
               <p className="text-primary-foreground/80">
-                Registrate y obtene un 10% de descuento automatico en tu primera compra. Sin codigos, se aplica solo.
+                Registrate y obtene un 5% de descuento automatico en tu primera compra. Sin codigos, se aplica solo.
               </p>
             </div>
             <Button
@@ -244,7 +244,7 @@ export default async function HomePage() {
               className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold shrink-0"
             >
               <Link href="/auth/register">
-                Crear cuenta y recibir 10% OFF
+                Crear cuenta y recibir 5% OFF
               </Link>
             </Button>
           </Reveal>

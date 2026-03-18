@@ -33,7 +33,7 @@ const paymentMethods = [
   { id: 'transfer' as const, label: 'Transferencia bancaria', description: 'CBU / Alias. Te enviamos los datos por email.', icon: Building2 },
 ]
 
-const FIRST_PURCHASE_DISCOUNT_PERCENTAGE = 10
+const FIRST_PURCHASE_DISCOUNT_PERCENTAGE = 5
 
 export function CheckoutForm() {
   const router = useRouter()
@@ -86,7 +86,7 @@ export function CheckoutForm() {
     finalCouponCode = manualCoupon.code
   }
 
-  const firstPurchaseDiscountAmount = isFirstPurchase ? Math.round(subtotal * 0.10) : 0
+  const firstPurchaseDiscountAmount = isFirstPurchase ? Math.round(subtotal * 0.05) : 0
   const totalDiscount = manualDiscountAmount + firstPurchaseDiscountAmount
   const total = subtotal - totalDiscount
 
@@ -162,7 +162,7 @@ export function CheckoutForm() {
           )}
           {isFirstPurchase && (
             <div className="flex justify-between text-primary">
-              <span className="flex items-center gap-1.5"><Gift className="h-3.5 w-3.5" /> Desc. Primera Compra (10%)</span>
+              <span className="flex items-center gap-1.5"><Gift className="h-3.5 w-3.5" /> Desc. Primera Compra (5%)</span>
               <span className="tabular-nums">-{formatARS(firstPurchaseDiscountAmount)}</span>
             </div>
           )}
