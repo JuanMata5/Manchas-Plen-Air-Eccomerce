@@ -23,8 +23,9 @@ import { cn } from '@/lib/utils'
 const checkoutSchema = z.object({
   buyer_email: z.string().email(),
   buyer_dni: z.string()
-    .optional()
-    .or(z.literal('')),
+    .refine((val) => /^\d{7,10}$/.test(val), {
+      message: 'DNI obligatorio (7-10 dígitos numéricos)',
+    }),
   coupon_code: z.string().optional(),
   payment_method: z.enum(['mercadopago', 'transfer']),
 })
@@ -153,7 +154,7 @@ export function CheckoutForm() {
             <Label htmlFor="buyer_email">Email de la cuenta</Label>
             <Input id="buyer_email" type="email" {...register('buyer_email')} disabled />
             <Label htmlFor="buyer_dni" className="mt-3">DNI</Label>
-            <Input id="buyer_dni" type="text" placeholder="Ej: 12345678" {...register('buyer_dni')} inputMode="numeric" pattern="[0-9]*" maxLength={10} minLength={7} />
+            <Input id="buyer_dni" type="text" placeholder="Ej: 12345678" {...register('buyer_dni', { required: true })} inputMode="numeric" pattern="[0-9]*" maxLength={10} minLength={7} />
             {errors.buyer_dni && <span className="text-red-600 text-xs mt-1">{errors.buyer_dni.message}</span>}
           </div>
         </section>
