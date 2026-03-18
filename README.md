@@ -170,7 +170,7 @@ POST   /api/admin/products/upload-image # Guardar imagen
 - `profiles` - Usuarios extendido
 - `coupons` - Descuentos
 - `email_queue` - Cola de emails
-- `webhook_logs` - Logs de MP
+- `webhook_logs` - Logs de MP aaaaaa
 
 ### Row Level Security (RLS)
 - `profiles`: Usuario ve solo su perfil
