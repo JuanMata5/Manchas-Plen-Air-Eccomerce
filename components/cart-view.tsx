@@ -122,7 +122,7 @@ export function CartView() {
           <div className="flex flex-col gap-2">
             {items.map(({ product, quantity }) => (
               <div key={product.id} className="flex justify-between text-sm">
-                <span className="text-muted-foreground truncate max-w-[150px]">
+                <span className="text-muted-foreground truncate max-w-40">
                   {product.name} x{quantity}
                 </span>
                 <span className="font-medium tabular-nums">
