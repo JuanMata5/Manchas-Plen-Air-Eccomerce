@@ -17,16 +17,7 @@ const dummyStorage = {
 
 
 export interface CartState {
-  items: CartItem[]
-  addItem: (product: Product, quantity?: number) => Promise<void>
-  removeItem: (productId: string) => Promise<void>
-  updateQuantity: (productId: string, quantity: number) => Promise<void>
-  clearCart: () => Promise<void>
-  totalItems: () => number
-  totalARS: () => number
-  loadCartFromDB: (user: User) => Promise<void>
-  saveCartToDB: (user: User) => Promise<void>
-}
+
 
   persist(
     (set, get) => ({
