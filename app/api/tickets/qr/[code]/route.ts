@@ -17,21 +17,29 @@ export async function GET(
 
     const { data: ticket } = await adminDb
       .from('tickets')
-      .select('*, products(name, event_date, event_location), orders(id, buyer_name)')
+      .select('*, products(name, event_date, event_location), orders(id, user_id)')
       .eq('qr_code', code)
       .single()
 
-    if (!ticket) {
+    if (!ticket || !ticket.orders) {
       return new NextResponse(
         '<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h1>Ticket no encontrado</h1><p>El codigo QR no es valido.</p></div></body></html>',
         { status: 404, headers: { 'Content-Type': 'text/html' } },
       )
     }
 
+    // Obtener datos reales del dueño
+    const { data: { user: ownerUser } } = await adminDb.auth.admin.getUserById(ticket.orders.user_id)
+    const holderName = ownerUser?.user_metadata?.full_name || 'Nombre no disponible';
+    const holderEmail = ownerUser?.email || 'Email no disponible';
+    const holderDni = ownerUser?.user_metadata?.dni || '';
+
     const pdfBuffer = await generateTicketPDF({
-      orderReference: ticket.orders?.id?.slice(0, 8).toUpperCase() ?? '',
+      orderReference: ticket.orders.id.slice(0, 8).toUpperCase(),
       ticketCode: ticket.qr_code,
-      holderName: ticket.holder_name,
+      holderName,
+      holderEmail,
+      dni: holderDni,
       productName: ticket.products?.name || 'Entrada',
       eventName: ticket.products?.name || 'Evento',
       eventDate: ticket.products?.event_date || undefined,
