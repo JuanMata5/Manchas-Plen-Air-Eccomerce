@@ -11,8 +11,10 @@ import { Separator } from '@/components/ui/separator'
 
 export function CartView() {
   const { items, removeItem, updateQuantity, totalARS } = useCartStore()
+  console.log('[CartView] items:', items)
 
   if (items.length === 0) {
+    console.log('[CartView] Carrito vacío')
     return (
       <Empty
         title="Tu carrito esta vacio"
@@ -29,6 +31,9 @@ export function CartView() {
     )
   }
 
+  items.forEach(({ product, quantity }) => {
+    console.log('[CartView] Render item:', product.name, 'qty:', quantity)
+  })
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Items list */}
@@ -63,7 +68,10 @@ export function CartView() {
                 {/* Qty control */}
                 <div className="flex items-center border border-border rounded-lg overflow-hidden">
                   <button
-                    onClick={() => updateQuantity(product.id, quantity - 1)}
+                    onClick={() => {
+                      console.log('[CartView] Disminuir', product.name, 'qty:', quantity)
+                      updateQuantity(product.id, quantity - 1)
+                    }}
                     disabled={quantity <= 1}
                     className="h-7 w-7 flex items-center justify-center hover:bg-muted disabled:opacity-40 transition-colors"
                     aria-label="Disminuir"
@@ -72,7 +80,10 @@ export function CartView() {
                   </button>
                   <span className="w-8 text-center text-xs font-medium tabular-nums">{quantity}</span>
                   <button
-                    onClick={() => updateQuantity(product.id, quantity + 1)}
+                    onClick={() => {
+                      console.log('[CartView] Aumentar', product.name, 'qty:', quantity)
+                      updateQuantity(product.id, quantity + 1)
+                    }}
                     disabled={quantity >= product.max_per_order || quantity >= product.stock}
                     className="h-7 w-7 flex items-center justify-center hover:bg-muted disabled:opacity-40 transition-colors"
                     aria-label="Aumentar"
@@ -81,7 +92,10 @@ export function CartView() {
                   </button>
                 </div>
                 <button
-                  onClick={() => removeItem(product.id)}
+                  onClick={() => {
+                    console.log('[CartView] Eliminar', product.name)
+                    removeItem(product.id)
+                  }}
                   className="text-muted-foreground hover:text-destructive transition-colors ml-1"
                   aria-label="Eliminar del carrito"
                 >
@@ -123,7 +137,9 @@ export function CartView() {
             <span className="tabular-nums">{formatARS(totalARS())}</span>
           </div>
           <Button asChild size="lg" className="w-full mt-2">
-            <Link href="/checkout">
+            <Link href="/checkout" onClick={() => {
+              console.log('[CartView] Click en Continuar', items)
+            }}>
               Continuar
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
