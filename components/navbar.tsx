@@ -18,6 +18,7 @@ const navLinks = [
   { href: '/tienda?categoria=entradas', label: 'Entradas' },
   { href: '/tienda?categoria=merchandising', label: 'Merch' },
 ]
+console.log();
 
 export function Navbar() {
   const totalItems = useCartStore((s) => s.totalItems())
