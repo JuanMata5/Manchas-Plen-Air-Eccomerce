@@ -8,6 +8,7 @@ import { useCartStore } from '@/lib/cart-store'
  * A client component that manages the cart session in response to user auth changes.
  * This component is crucial for multi-user security on a shared device.
  */
+export function CartSessionManager() {
   const { user } = useUser()
   const { clearCart, loadCartFromDB } = useCartStore()
   const previousUserIdRef = useRef<string | undefined>(user?.id)
