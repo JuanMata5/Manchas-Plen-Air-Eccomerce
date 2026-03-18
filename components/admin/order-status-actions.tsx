@@ -3,13 +3,8 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { ChevronDown, Loader2 } from 'lucide-react'
+
+import { Loader2 } from 'lucide-react'
 
 interface OrderStatusActionsProps {
   orderId: string
@@ -34,8 +29,8 @@ const transitions: Record<string, { value: string; label: string }[]> = {
 
 export function OrderStatusActions({ orderId, currentStatus }: OrderStatusActionsProps) {
   const [loading, setLoading] = useState(false)
-  const options = transitions[currentStatus] ?? []
 
+  const options = transitions[currentStatus] ?? []
   if (options.length === 0) return null
 
   const handleUpdate = async (newStatus: string) => {
@@ -69,20 +64,20 @@ export function OrderStatusActions({ orderId, currentStatus }: OrderStatusAction
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={loading} className="gap-1">
-          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Acciones'}
-          <ChevronDown className="h-3 w-3" />
+    <div className="flex flex-col gap-1">
+      {options.map((opt) => (
+        <Button
+          key={opt.value}
+          variant="outline"
+          size="sm"
+          disabled={loading}
+          className="w-full justify-start"
+          onClick={() => handleUpdate(opt.value)}
+        >
+          {loading ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+          {opt.label}
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {options.map((opt) => (
-          <DropdownMenuItem key={opt.value} onClick={() => handleUpdate(opt.value)}>
-            {opt.label}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      ))}
+    </div>
   )
 }
