@@ -22,7 +22,6 @@ import { cn } from '@/lib/utils'
 
 const checkoutSchema = z.object({
   buyer_email: z.string().email(),
-  buyer_dni: z.string().min(7, 'DNI obligatorio').max(10, 'DNI inválido'),
   coupon_code: z.string().optional(),
   payment_method: z.enum(['mercadopago', 'transfer']),
 })
@@ -60,7 +59,7 @@ export function CheckoutForm() {
 
   const { register, handleSubmit, watch, setValue } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
-    defaultValues: { payment_method: 'mercadopago', buyer_dni: '' },
+    defaultValues: { payment_method: 'mercadopago' },
   })
 
   useEffect(() => {
@@ -116,7 +115,6 @@ export function CheckoutForm() {
         ...data,
         buyer_name: user.user_metadata.full_name || user.email,
         buyer_email: user.email,
-        buyer_dni: data.buyer_dni,
         items: items.map(i => ({ product_id: i.product.id, quantity: i.quantity, unit_price_ars: i.product.price_ars })),
         coupon_code: finalCouponCode,
         subtotal_ars: subtotal,
@@ -147,8 +145,7 @@ export function CheckoutForm() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="buyer_email">Email de la cuenta</Label>
             <Input id="buyer_email" type="email" {...register('buyer_email')} disabled />
-            <Label htmlFor="buyer_dni" className="mt-3">DNI</Label>
-            <Input id="buyer_dni" type="text" placeholder="Ej: 12345678" {...register('buyer_dni')} required />
+
           </div>
         </section>
         <section className="bg-card rounded-xl border p-6"><h2 className="font-serif font-semibold text-lg mb-5">Metodo de pago</h2><RadioGroup value={paymentMethod} onValueChange={v => setValue('payment_method', v as any)} className="flex flex-col gap-3">{paymentMethods.map(m => (<label key={m.id} htmlFor={m.id} className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', paymentMethod === m.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}><RadioGroupItem value={m.id} id={m.id} /><m.icon className="h-5 w-5 text-muted-foreground shrink-0" /><div className="flex-1"><p className="font-medium text-sm">{m.label}</p><p className="text-xs text-muted-foreground">{m.description}</p></div></label>))}</RadioGroup>{paymentMethod === 'transfer' && <div className="mt-4 p-4 bg-muted rounded-lg text-sm text-muted-foreground">Recibirás los datos por email al confirmar. Tu orden quedara reservada por 48 horas.</div>}</section>
