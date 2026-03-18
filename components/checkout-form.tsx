@@ -151,7 +151,7 @@ export function CheckoutForm() {
             <Label htmlFor="buyer_email">Email de la cuenta</Label>
             <Input id="buyer_email" type="email" {...register('buyer_email')} disabled />
             <Label htmlFor="buyer_dni" className="mt-3">DNI</Label>
-            <Input id="buyer_dni" type="text" placeholder="Ej: 12345678" {...register('buyer_dni')} required inputMode="numeric" pattern="[0-9]*" maxLength={10} minLength={7} />
+            <Input id="buyer_dni" type="text" placeholder="Ej: 12345678" {...register('buyer_dni')} inputMode="numeric" pattern="[0-9]*" maxLength={10} minLength={7} />
             {errors.buyer_dni && <span className="text-red-600 text-xs mt-1">{errors.buyer_dni.message}</span>}
           </div>
         </section>
