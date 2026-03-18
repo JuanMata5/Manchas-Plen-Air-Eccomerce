@@ -23,9 +23,8 @@ import { cn } from '@/lib/utils'
 const checkoutSchema = z.object({
   buyer_email: z.string().email(),
   buyer_dni: z.string()
-    .refine((val) => /^\d{7,10}$/.test(val), {
-      message: 'DNI inválido, solo números (7-10 dígitos)',
-    }),
+    .optional()
+    .or(z.literal('')),
   coupon_code: z.string().optional(),
   payment_method: z.enum(['mercadopago', 'transfer']),
 })
