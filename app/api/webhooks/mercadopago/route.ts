@@ -121,6 +121,7 @@ export async function POST(request: NextRequest) {
                   orderReference: orderId,
                   ticketCode: t.qr_code,
                   holderName: t.holder_name,
+                  dni: t.holder_dni || order.buyer_dni || '-',
                   productName: product?.name || 'Entrada',
                   eventDate: product?.event_date,
                   eventLocation: product?.event_location,

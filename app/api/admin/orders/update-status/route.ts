@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
             orderReference: order_id.slice(0, 8).toUpperCase(),
             ticketCode: t.qr_code,
             holderName: t.holder_name,
+            dni: t.holder_dni || order.buyer_dni || '-',
             productName: productMap.get(t.product_id) || 'Entrada',
           }))
 
