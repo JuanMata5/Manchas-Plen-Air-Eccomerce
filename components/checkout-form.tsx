@@ -50,15 +50,15 @@ export function CheckoutForm() {
   const { user, isLoading: isUserLoading } = useUser()
   const { items, totalARS, clearCart } = useCartStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isFirstPurchase, setIsFirstPurchase] = useState(false)
+  const [isLoadingDiscount, setIsLoadingDiscount] = useState(true) // Loading state for discount check
   const [manualCoupon, setManualCoupon] = useState<any | null>(null)
-  const [firstPurchaseDiscount, setFirstPurchaseDiscount] = useState(false)
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
-    formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     mode: 'onChange',
@@ -69,32 +69,26 @@ export function CheckoutForm() {
     },
   })
 
-  // Rellenar email y comprobar si es la primera compra
   useEffect(() => {
     if (user?.email) {
       setValue('buyer_email', user.email)
-      const checkFirstPurchase = async () => {
-        try {
-          const res = await fetch('/api/orders/check-first-purchase')
-          if (res.ok) {
-            const { is_first_purchase } = await res.json()
-            setFirstPurchaseDiscount(is_first_purchase)
+      setIsLoadingDiscount(true)
+      fetch('/api/orders/check-first-purchase')
+        .then(res => res.json())
+        .then(data => {
+          if(data.is_first_purchase) {
+            setIsFirstPurchase(true)
           }
-        } catch (error) {
-          console.error('Error checking first purchase status:', error)
-        }
-      }
-      checkFirstPurchase()
+        })
+        .catch(err => console.error('Failed to check first purchase', err))
+        .finally(() => setIsLoadingDiscount(false))
+    } else {
+        setIsLoadingDiscount(false)
     }
   }, [user, setValue])
 
   const paymentMethod = watch('payment_method')
   const couponCode = watch('coupon_code')
-  
-  // Un descuento puede ser aplicado: automático por primera compra, o un cupón manual.
-  const hasAutomaticDiscount = firstPurchaseDiscount && !manualCoupon
-  const hasManualDiscount = !!manualCoupon
-  const canApplyManualCoupon = !firstPurchaseDiscount
 
   if (items.length === 0 && !isSubmitting) {
     return (
@@ -111,15 +105,18 @@ export function CheckoutForm() {
   const subtotal = totalARS()
   let discountAmount = 0
   let discountLabel = 'Descuento'
+  let finalCouponCode = null
 
-  if (hasAutomaticDiscount) {
+  if (isFirstPurchase) {
     discountAmount = Math.round((subtotal * FIRST_PURCHASE_DISCOUNT_PERCENTAGE) / 100)
     discountLabel = `Descuento Primera Compra (${FIRST_PURCHASE_DISCOUNT_PERCENTAGE}%)`
-  } else if (hasManualDiscount) {
+    finalCouponCode = 'PRIMERACOMPRA'
+  } else if (manualCoupon) {
     discountAmount = manualCoupon.type === 'percentage'
       ? Math.round((subtotal * manualCoupon.value) / 100)
       : manualCoupon.value
     discountLabel = `Descuento (${manualCoupon.code})`
+    finalCouponCode = manualCoupon.code
   }
 
   const total = subtotal - discountAmount
@@ -144,17 +141,13 @@ export function CheckoutForm() {
     if (!user) { toast.error('Debes iniciar sesion para comprar.'); return }
     setIsSubmitting(true)
     try {
-        const couponPayload = hasAutomaticDiscount 
-            ? { code: 'PRIMERACOMPRA', value: discountAmount, type: 'fixed_ars' } 
-            : manualCoupon;
-
       const payload = {
         ...data,
         buyer_name: user.user_metadata.full_name || user.email,
         buyer_email: user.email,
         buyer_dni: user.user_metadata.dni || '00000000',
         items: items.map((i) => ({ product_id: i.product.id, quantity: i.quantity, unit_price_ars: i.product.price_ars })),
-        coupon_code: couponPayload?.code ?? null,
+        coupon_code: finalCouponCode,
         subtotal_ars: subtotal,
         discount_ars: discountAmount,
         total_ars: total,
@@ -189,7 +182,7 @@ export function CheckoutForm() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="buyer_email">Email de la cuenta</Label>
             <Input id="buyer_email" type="email" {...register('buyer_email')} disabled />
-            {isUserLoading && <p className="text-xs text-muted-foreground">Cargando tu información...</p>}
+            {(isUserLoading || isLoadingDiscount) && <p className="text-xs text-muted-foreground">Cargando tu información...</p>}
           </div>
         </section>
         <section className="bg-card rounded-xl border border-border p-6">
@@ -215,16 +208,19 @@ export function CheckoutForm() {
           </div>
           <Separator />
           
-          {/* --- SECCIÓN DE DESCUENTOS --- */}
-          {!hasAutomaticDiscount && canApplyManualCoupon && (
+          {/* --- Lógica de Descuento Condicional --- */}
+          {!isLoadingDiscount && !isFirstPurchase && (
               <div className="flex flex-col gap-2">
                   <Label htmlFor="coupon_code" className="text-sm">Cupon de descuento</Label>
                   <div className="flex gap-2">
-                      <Input id="coupon_code" placeholder="SUMMER24" className="uppercase" {...register('coupon_code')} disabled={hasManualDiscount} />
-                      <Button type="button" variant="outline" size="sm" onClick={handleApplyCoupon} disabled={hasManualDiscount || !couponCode?.trim()}>
+                      <Input id="coupon_code" placeholder="CODIGO" className="uppercase" {...register('coupon_code')} disabled={!!manualCoupon} />
+                      <Button type="button" variant="outline" size="sm" onClick={handleApplyCoupon} disabled={!!manualCoupon || !couponCode?.trim()}>
                           Aplicar
                       </Button>
                   </div>
+                   {manualCoupon && (
+                    <p className="text-xs text-primary">Cupon aplicado: {manualCoupon.code}</p>
+                  )}
               </div>
           )}
 
@@ -235,7 +231,7 @@ export function CheckoutForm() {
             <Separator />
             <div className="flex justify-between font-bold text-foreground text-base"><span>Total</span><span className="tabular-nums">{formatARS(total)}</span></div>
           </div>
-          <Button type="submit" size="lg" className="w-full mt-2" disabled={isSubmitting || isUserLoading}>{isSubmitting || isUserLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</>) : ('Finalizar Compra')}</Button>
+          <Button type="submit" size="lg" className="w-full mt-2" disabled={isSubmitting || isUserLoading || isLoadingDiscount}>{isSubmitting || isUserLoading || isLoadingDiscount ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</>) : ('Finalizar Compra')}</Button>
         </div>
       </div>
     </form>
