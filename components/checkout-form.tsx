@@ -114,6 +114,8 @@ export function CheckoutForm() {
     }
     setIsSubmitting(true)
     try {
+      // LOG: Verificar valor de buyer_dni y payload
+      console.log('[CHECKOUT] Valor buyer_dni:', data.buyer_dni)
       const payload = {
         ...data,
         buyer_name: user.user_metadata.full_name || user.email,
@@ -125,6 +127,7 @@ export function CheckoutForm() {
         discount_ars: manualDiscountAmount, // Enviamos solo el manual, el backend calculará el de primera compra si corresponde
         total_ars: total,
       }
+      console.log('[CHECKOUT] Payload enviado:', payload)
       const res = await fetch('/api/orders/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const result = await res.json()
       if (!res.ok) { throw new Error(result.error ?? 'Error al crear la orden') }
