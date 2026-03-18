@@ -1,7 +1,5 @@
 'use client'
-
-import { create } from 'zustand'
-// Import persist and createJSONStorage directly from their module files
+export interface CartState {
 // This is the most robust way to avoid CJS/ESM module resolution issues in Next.js
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { createClient } from '@/lib/supabase/client'
