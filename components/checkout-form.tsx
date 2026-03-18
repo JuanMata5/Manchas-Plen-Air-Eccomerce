@@ -40,9 +40,6 @@ export function CheckoutForm() {
   const { user, isLoading: isUserLoading } = useUser()
   const { items, totalARS, clearCart } = useCartStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
-  const [isFirstPurchase, setIsFirstPurchase] = useState(false)
-  const [isLoadingDiscount, setIsLoadingDiscount] = useState(true)
   const [manualCoupon, setManualCoupon] = useState<any | null>(null)
 
   const { register, handleSubmit, watch, setValue } = useForm<CheckoutFormData>({
@@ -53,19 +50,6 @@ export function CheckoutForm() {
   useEffect(() => {
     if (user?.email) {
       setValue('buyer_email', user.email)
-      setIsLoadingDiscount(true)
-      fetch('/api/orders/check-first-purchase').then(res => res.json()).then(data => {
-          if (data.is_first_purchase) {
-            setIsFirstPurchase(true)
-          }
-        }).catch(err => {
-          console.error('Error checking first purchase status:', err)
-          setIsFirstPurchase(false)
-        }).finally(() => {
-          setIsLoadingDiscount(false)
-        })
-    } else {
-      setIsLoadingDiscount(false)
     }
   }, [user, setValue])
 
@@ -81,11 +65,7 @@ export function CheckoutForm() {
   let discountLabel = ''
   let finalCouponCode = null
 
-  if (isFirstPurchase) {
-    discountAmount = Math.round((subtotal * FIRST_PURCHASE_DISCOUNT_PERCENTAGE) / 100)
-    discountLabel = `Descuento Primera Compra (10%)`
-    finalCouponCode = 'PRIMERACOMPRA'
-  } else if (manualCoupon) {
+  if (manualCoupon) {
     discountAmount = manualCoupon.type === 'percentage' ? Math.round((subtotal * manualCoupon.value) / 100) : manualCoupon.value
     discountLabel = `Descuento (${manualCoupon.code})`
     finalCouponCode = manualCoupon.code
@@ -149,23 +129,11 @@ export function CheckoutForm() {
         <Separator />
         <div className="flex flex-col gap-3">{items.map(({ product, quantity }) => (<div key={product.id} className="flex items-center gap-3"><div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted"><Image src={product.image_url!} alt={product.name} fill className="object-cover" sizes="48px" /></div><div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{product.name}</p><p className="text-xs text-muted-foreground">x{quantity}</p></div><span className="text-sm font-medium tabular-nums">{formatARS(product.price_ars * quantity)}</span></div>))}</div>
         <Separator />
-
-        {/* --- LÓGICA DE DESCUENTO DEFINITIVA --- */}
-        {isLoadingDiscount ? (
-          <div className="flex items-center justify-center text-sm text-muted-foreground py-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verificando descuentos...</div>
-        ) : isFirstPurchase ? (
-          <div className="p-3 bg-primary/10 rounded-lg text-center">
-            <p className="font-semibold text-primary text-sm flex items-center justify-center gap-2"><Gift className="h-4 w-4"/>¡Descuento por Primera Compra!</p>
-            <p className="text-xs text-primary/80 mt-1">Hemos aplicado un 10% OFF automáticamente a tu orden.</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="coupon_code" className="text-sm">Cupón de descuento</Label>
-            <div className="flex gap-2"><Input id="coupon_code" placeholder="TENGOUNCODIGO" {...register('coupon_code')} disabled={!!manualCoupon} className="uppercase" /><Button type="button" variant="outline" size="sm" onClick={handleApplyCoupon} disabled={!!manualCoupon || !couponCode?.trim()}>Aplicar</Button></div>
-            {manualCoupon && <p className="text-xs text-primary/80">Cupón "{manualCoupon.code}" aplicado.</p>}
-          </div>
-        )}
-
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="coupon_code" className="text-sm">Cupón de descuento</Label>
+          <div className="flex gap-2"><Input id="coupon_code" placeholder="TENGOUNCODIGO" {...register('coupon_code')} disabled={!!manualCoupon} className="uppercase" /><Button type="button" variant="outline" size="sm" onClick={handleApplyCoupon} disabled={!!manualCoupon || !couponCode?.trim()}>Aplicar</Button></div>
+          {manualCoupon && <p className="text-xs text-primary/80">Cupón "{manualCoupon.code}" aplicado.</p>}
+        </div>
         <Separator />
         <div className="flex flex-col gap-2 text-sm">
           <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{formatARS(subtotal)}</span></div>
@@ -173,7 +141,7 @@ export function CheckoutForm() {
           <Separator />
           <div className="flex justify-between font-bold text-base"><span>Total</span><span className="tabular-nums">{formatARS(total)}</span></div>
         </div>
-        <Button type="submit" size="lg" className="w-full mt-2" disabled={isSubmitting || isUserLoading || isLoadingDiscount}>{isSubmitting || isUserLoading || isLoadingDiscount ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</> : 'Finalizar Compra'}</Button>
+        <Button type="submit" size="lg" className="w-full mt-2" disabled={isSubmitting || isUserLoading}>{isSubmitting || isUserLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</> : 'Finalizar Compra'}</Button>
       </div></div>
     </form>
   )

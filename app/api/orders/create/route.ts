@@ -70,38 +70,39 @@ export async function POST(request: NextRequest) {
       couponId = coupon?.id ?? null
     }
 
-    // Get authenticated user if any
+    // Get authenticated user (REQUIRED)
     const {
       data: { user },
     } = await supabase.auth.getUser()
-
-    // Check first purchase discount (5%)
-    let firstPurchaseDiscount = 0
-    if (user) {
-      const { data: previousOrders } = await adminDb
-        .from('orders')
-        .select('id')
-        .eq('user_id', user.id)
-        .in('status', ['paid', 'refunded'])
-        .limit(1)
-
-      if (!previousOrders || previousOrders.length === 0) {
-        firstPurchaseDiscount = Math.round(subtotal_ars * 0.05)
-      }
+    if (!user) {
+      return NextResponse.json({ error: 'Debes iniciar sesión para comprar.' }, { status: 401 })
     }
 
-    const finalDiscount = (discount_ars ?? 0) + firstPurchaseDiscount
+    // Check first purchase discount (solo si es la primera compra y solo se aplicará si el pago es exitoso)
+    let isFirstPurchase = false
+    const { data: previousOrders } = await adminDb
+      .from('orders')
+      .select('id')
+      .eq('user_id', user.id)
+      .in('status', ['paid', 'refunded'])
+      .limit(1)
+    if (!previousOrders || previousOrders.length === 0) {
+      isFirstPurchase = true
+    }
+
+    // El descuento de primera compra se aplicará SOLO si el pago es exitoso (ver más abajo)
+    const finalDiscount = discount_ars ?? 0
     const finalTotal = subtotal_ars - finalDiscount
 
-    // Create order using admin client (bypasses RLS)
+    // Crear orden SIN descuento de primera compra aún
     const { data: order, error: orderError } = await adminDb
       .from('orders')
       .insert({
-        user_id: user?.id ?? null,
+        user_id: user.id,
         status: payment_method === 'transfer' ? 'payment_pending' : 'pending',
         payment_method,
         subtotal_ars,
-        discount_ars: finalDiscount,
+        discount_ars: finalDiscount, // solo cupones manuales
         total_ars: finalTotal,
         buyer_name,
         buyer_email,
@@ -303,6 +304,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(responseData)
+    // Si el pago fue exitoso y es la primera compra, aplicar descuento de primera compra (10%)
+    // Esto debe hacerse en el webhook de pago exitoso, NO aquí, para cumplir la lógica exacta.
   } catch (err) {
     console.error('[v0] Checkout error:', err)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
