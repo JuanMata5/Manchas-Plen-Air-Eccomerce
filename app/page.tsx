@@ -275,6 +275,14 @@ export default async function HomePage() {
                     </Link>
                   </Button>
                 </div>
+                <div className="mt-6 space-y-2 text-base text-muted-foreground">
+                  <div>
+                    <b>Entradas generales:</b> <a href="mailto:mpadsas@gmail.com" className="underline">mpadsas@gmail.com</a> / <a href="tel:1139430021" className="underline">1139430021</a>
+                  </div>
+                  <div>
+                    <b>Stands:</b> <a href="mailto:manchastribu70@gmail.com" className="underline">manchastribu70@gmail.com</a> / <a href="tel:1167546892" className="underline">1167546892</a>
+                  </div>
+                </div>
               </div>
               <div className="lg:col-span-2 space-y-3">
                 <EventCountdown

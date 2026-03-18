@@ -150,24 +150,26 @@ export function ContactSection() {
           <div className="bg-card rounded-xl border border-border p-6 flex flex-col gap-5">
             <h3 className="font-serif font-semibold text-lg text-foreground">Informacion de contacto</h3>
             <div className="flex flex-col gap-4">
-              <a href="tel:+5491112345678" className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <Phone className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">Telefono</p>
-                  <p>+54 9 11 1234-5678</p>
+                  <p className="font-medium text-foreground">Teléfonos</p>
+                  <p>General: <a href="tel:1139430021" className="underline">1139430021</a></p>
+                  <p>Stands: <a href="tel:1167546892" className="underline">1167546892</a></p>
                 </div>
-              </a>
-              <a href="mailto:contacto@manchasplenair.com" className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <Mail className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="font-medium text-foreground">Email</p>
-                  <p>contacto@manchasplenair.com</p>
+                  <p className="font-medium text-foreground">Emails</p>
+                  <p>General: <a href="mailto:mpadsas@gmail.com" className="underline">mpadsas@gmail.com</a></p>
+                  <p>Stands: <a href="mailto:manchastribu70@gmail.com" className="underline">manchastribu70@gmail.com</a></p>
                 </div>
-              </a>
+              </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <MapPin className="h-5 w-5 text-primary" />
