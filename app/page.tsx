@@ -202,7 +202,7 @@ export default async function HomePage() {
           <section className="max-w-6xl mx-auto px-4 py-16 md:py-20">
              <div className="mb-10 text-center">
                 <h2 className="font-serif font-bold text-3xl md:text-5xl text-foreground">
-                  Inicia tu Próxima Creación
+                  Inicia tu próxima experiencia
                 </h2>
                 <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
                   Esto es lo más buscado por nuestra comunidad. Compra ahora y asegura tu lugar o producto.
