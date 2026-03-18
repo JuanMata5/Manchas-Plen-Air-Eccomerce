@@ -5,6 +5,7 @@ export interface TicketData {
   orderReference: string
   ticketCode: string
   holderName: string
+  dni?: string
   productName: string
   eventDate?: string
   eventLocation?: string
@@ -106,6 +107,7 @@ function drawTicketPage(
 
   let cursorY = detailsY
   cursorY = writeLabelValue(doc, 'Titular', ticket.holderName, detailsX, cursorY, detailsW)
+  cursorY = writeLabelValue(doc, 'DNI', ticket.dni || '-', detailsX, cursorY, detailsW)
   cursorY = writeLabelValue(doc, 'Tipo de entrada', ticket.productName || 'General', detailsX, cursorY, detailsW)
   cursorY = writeLabelValue(doc, 'Fecha', formatEventDate(ticket.eventDate), detailsX, cursorY, detailsW)
   const defaultLocation = 'Círculo de Oficiales de Mar — Sarmiento 1867, CABA';
