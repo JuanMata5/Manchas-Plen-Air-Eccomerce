@@ -15,6 +15,8 @@ const dummyStorage = {
   removeItem: () => {},
 }
 
+
+export interface CartState {
   items: CartItem[]
   addItem: (product: Product, quantity?: number) => Promise<void>
   removeItem: (productId: string) => Promise<void>
