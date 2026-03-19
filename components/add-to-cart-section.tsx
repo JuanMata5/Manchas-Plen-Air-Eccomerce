@@ -13,6 +13,7 @@ interface AddToCartSectionProps {
   product: Product
 }
 
+export function AddToCartSection({ product }: AddToCartSectionProps) {
   const [quantity, setQuantity] = useState(1)
   const addItem = useCartStore((s) => s.addItem)
   const { user } = useUser()
