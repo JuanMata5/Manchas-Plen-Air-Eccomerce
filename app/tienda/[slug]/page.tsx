@@ -12,7 +12,7 @@ import type { Product } from '@/lib/types'
 import type { Metadata } from 'next'
 
 interface PageProps {
-  params: Promise<{ slug: string }>
+  params: { slug: string }
 }
 
 async function getProduct(slug: string): Promise<Product | null> {
@@ -27,7 +27,7 @@ async function getProduct(slug: string): Promise<Product | null> {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params
+  const { slug } = params
   const product = await getProduct(slug)
   if (!product) return { title: 'Producto no encontrado' }
   return {
@@ -88,7 +88,7 @@ function ProductJsonLd({ product }: { product: Product }) {
 }
 
 export default async function ProductPage({ params }: PageProps) {
-  const { slug } = await params
+  const { slug } = params
   const product = await getProduct(slug)
   if (!product) notFound()
 
@@ -151,11 +151,6 @@ export default async function ProductPage({ params }: PageProps) {
               </Link>
             )}
 
-            {/* Subtitle */}
-            {product.subtitle && (
-              <p className="text-lg text-primary font-semibold mb-2">{product.subtitle}</p>
-            )}
-
             <h1 className="font-serif font-bold text-3xl md:text-4xl text-foreground leading-tight text-balance">
               {product.name}
             </h1>
@@ -170,9 +165,6 @@ export default async function ProductPage({ params }: PageProps) {
                 <Badge className="bg-amber-500 text-white border-0">
                   Solo {product.stock} disponibles
                 </Badge>
-              )}
-              {product.badge && (
-                <Badge className="bg-primary text-white border-0">{product.badge}</Badge>
               )}
             </div>
 
@@ -189,16 +181,13 @@ export default async function ProductPage({ params }: PageProps) {
             )}
 
             {/* Features */}
-            {product.features && Array.isArray(product.features) && product.features.length > 0 && (
-              <ul className="mt-4 mb-4 list-disc pl-5 text-sm text-foreground">
+            {/* {product.features && Array.isArray(product.features) && product.features.length > 0 && (
+              <ul className="list-disc pl-5 text-muted-foreground text-sm space-y-1 mt-2">
                 {product.features.map((f: string, idx: number) => (
                   <li key={idx}>{f}</li>
                 ))}
               </ul>
-            )}
-
-            {/* CTA Link */}
-            {/* Quitar CTA externo, solo página individual */}
+            )} */}
 
             <div className="border-t border-border pt-5">
               <AddToCartSection product={product} />
