@@ -166,7 +166,6 @@ export default async function HomePage() {
         {/* ── 1. Hero Section ── */}
         <section className="relative w-full h-[60vh] min-h-125 flex items-center justify-center text-center text-white overflow-hidden">
           {/* -- Video de fondo -- */}
-          {/* Reemplaza este src con la URL de tu video. El video debe estar en la carpeta /public/videos/ */}
           <video 
             src="/2c26b202-351c-4323-817e-1f033c78b3b8.mp4" 
             autoPlay 
@@ -177,7 +176,6 @@ export default async function HomePage() {
           />
           {/* -- Overlay oscuro para legibilidad -- */}
           <div className="absolute inset-0 bg-black/50 z-10" />
-
           {/* -- Contenido de texto -- */}
           <div className="relative z-20 max-w-4xl mx-auto px-4 flex flex-col items-center gap-6">
             <h1 className="font-serif font-bold text-4xl sm:text-5xl md:text-6xl tracking-tight text-balance leading-tight">
@@ -192,82 +190,9 @@ export default async function HomePage() {
                   Explorar Eventos
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
-              return (
-                <>
-                  <Navbar />
-                  <main>
-                    {/* ── 1. Hero Section (solo desktop) ── */}
-                    <section className="hidden md:flex relative w-full h-[60vh] min-h-125 items-center justify-center text-center text-white overflow-hidden">
-                      {/* -- Video de fondo -- */}
-                      <video 
-                        src="/2c26b202-351c-4323-817e-1f033c78b3b8.mp4" 
-                        autoPlay 
-                        loop 
-                        muted 
-                        playsInline
-                        className="absolute top-0 left-0 w-full h-full object-cover z-0" 
-                      />
-                      {/* -- Overlay oscuro para legibilidad -- */}
-                      <div className="absolute inset-0 bg-black/50 z-10" />
-                      {/* -- Contenido de texto -- */}
-                      <div className="relative z-20 max-w-4xl mx-auto px-4 flex flex-col items-center gap-6">
-                        <h1 className="font-serif font-bold text-4xl sm:text-5xl md:text-6xl tracking-tight text-balance leading-tight">
-                          Manchas Eventos
-                        </h1>
-                        <p className="text-lg md:text-xl text-white/80 max-w-2xl leading-relaxed text-balance">
-                          EVENTOS Y EXPERIENCIAS PREMIUM PARA ARTISTAS
-                        </p>
-                        <div className="mt-4">
-                          <Button asChild size="lg" className="bg-white text-black hover:bg-white/90 font-semibold text-base px-8 shadow-lg">
-                            <Link href="/tienda?categoria=entradas">
-                              Explorar Eventos
-                              <ArrowRight className="ml-2 h-4 w-4" />
-                            // ...existing code...
-                            return (
-                              <>
-                                <Navbar />
-                                <main>
-                                  {/* ── 1. Hero Section (solo desktop) ── */}
-                                  <section className="hidden md:flex relative w-full h-[60vh] min-h-125 items-center justify-center text-center text-white overflow-hidden">
-                                    {/* -- Video de fondo -- */}
-                                    <video 
-                                      src="/2c26b202-351c-4323-817e-1f033c78b3b8.mp4" 
-                                      autoPlay 
-                                      loop 
-                                      muted 
-                                      playsInline
-                                      className="absolute top-0 left-0 w-full h-full object-cover z-0" 
-                                    />
-                                    {/* -- Overlay oscuro para legibilidad -- */}
-                                    <div className="absolute inset-0 bg-black/50 z-10" />
-                                    {/* -- Contenido de texto -- */}
-                                    <div className="relative z-20 max-w-4xl mx-auto px-4 flex flex-col items-center gap-6">
-                                      <h1 className="font-serif font-bold text-4xl sm:text-5xl md:text-6xl tracking-tight text-balance leading-tight">
-                                        Manchas Eventos
-                                      </h1>
-                                      <p className="text-lg md:text-xl text-white/80 max-w-2xl leading-relaxed text-balance">
-                                        EVENTOS Y EXPERIENCIAS PREMIUM PARA ARTISTAS
-                                      </p>
-                                      <div className="mt-4">
-                                        <Button asChild size="lg" className="bg-white text-black hover:bg-white/90 font-semibold text-base px-8 shadow-lg">
-                                          <Link href="/tienda?categoria=entradas">
-                                            Explorar Eventos
-                                            <ArrowRight className="ml-2 h-4 w-4" />
-                                          </Link>
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </section>
-                  <p className="text-xs uppercase tracking-widest font-semibold text-amber-700 animate-pulse">
-                    Cupos limitados
-                  </p>
-                  <p className="text-sm text-amber-800 mt-1 leading-relaxed">
-                    72% de capacidad reservada. ¡Reserva ahora y asegura tu lugar!
-                  </p>
-                </div>
-              </div>
+              </Button>
             </div>
-          </Reveal>
+          </div>
         </section>
         
         {/* ── 5. Categories ── */}
