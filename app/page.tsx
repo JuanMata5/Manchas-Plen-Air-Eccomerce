@@ -222,73 +222,42 @@ export default async function HomePage() {
                             <Link href="/tienda?categoria=entradas">
                               Explorar Eventos
                               <ArrowRight className="ml-2 h-4 w-4" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    </section>
-          <Reveal className="bg-linear-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-6 md:gap-10">
-            <div className="h-20 w-20 rounded-2xl bg-primary-foreground/10 flex items-center justify-center shrink-0">
-              <Gift className="h-10 w-10" />
-            </div>
-            <div className="flex-1 text-center md:text-left">
-              <h3 className="font-serif font-bold text-2xl md:text-3xl mb-2">¿Primera compra? 5% OFF</h3>
-              <p className="text-primary-foreground/80">
-                Registrate y obtene un 5% de descuento automatico en tu primera compra. Sin codigos, se aplica solo.
-              </p>
-            </div>
-            <Button
-              asChild
-              size="lg"
-              className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 font-semibold shrink-0"
-            >
-              <Link href="/auth/register">
-                Crear cuenta y recibir 5% OFF
-              </Link>
-            </Button>
-          </Reveal>
-        </section>
-
-        {/* ── 4. Main Event ── */}
-        <section id="evento" className="max-w-6xl mx-auto px-4 pb-16 md:pb-20 scroll-mt-20">
-          <Reveal className="relative overflow-hidden rounded-3xl border border-primary/20 bg-linear-to-br from-primary/10 via-background to-amber-500/10 p-6 md:p-10">
-            <div className="absolute -top-16 -right-16 h-44 w-44 rounded-full bg-primary/20 blur-3xl" />
-            <div className="absolute -bottom-16 -left-16 h-44 w-44 rounded-full bg-amber-500/20 blur-3xl" />
-            <div className="relative grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-              <div className="lg:col-span-3">
-                <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] font-semibold text-primary mb-3">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Evento destacado 2026
-                </p>
-                <h3 className="font-serif font-bold text-3xl md:text-5xl text-foreground leading-tight">
-                  Convencion Plein Air Bs.As
-                </h3>
-                <p className="text-muted-foreground mt-3 max-w-2xl leading-relaxed">
-                  1° Convencion plein air en Bs.As + ARG y Expo talleres. Es un evento de primer nivel dedicado a la pintura al aire libre, del 1° al 3 de mayo en Av. Sarmiento 1875, C.O.M.
-                </p>
-                <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                  <Button asChild size="lg" className="font-semibold">
-                    <Link href="/tienda?categoria=entradas">
-                      Conseguir mis entradas
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                </div>
-                <div className="mt-6 space-y-2 text-base text-muted-foreground">
-                  <div>
-                    <b>Entradas generales:</b> <a href="mailto:mpadsas@gmail.com" className="underline">mpadsas@gmail.com</a> / <a href="tel:1139430021" className="underline">1139430021</a>
-                  </div>
-                  <div>
-                    <b>Stands:</b> <a href="mailto:manchastribu70@gmail.com" className="underline">manchastribu70@gmail.com</a> / <a href="tel:1167546892" className="underline">1167546892</a>
-                  </div>
-                </div>
-              </div>
-              <div className="lg:col-span-2 space-y-3">
-                <EventCountdown
-                  targetIso="2026-05-01T12:00:00-03:00"
-                  title="Cuenta regresiva al evento"
-                />
-                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+                            // ...existing code...
+                            return (
+                              <>
+                                <Navbar />
+                                <main>
+                                  {/* ── 1. Hero Section (solo desktop) ── */}
+                                  <section className="hidden md:flex relative w-full h-[60vh] min-h-125 items-center justify-center text-center text-white overflow-hidden">
+                                    {/* -- Video de fondo -- */}
+                                    <video 
+                                      src="/2c26b202-351c-4323-817e-1f033c78b3b8.mp4" 
+                                      autoPlay 
+                                      loop 
+                                      muted 
+                                      playsInline
+                                      className="absolute top-0 left-0 w-full h-full object-cover z-0" 
+                                    />
+                                    {/* -- Overlay oscuro para legibilidad -- */}
+                                    <div className="absolute inset-0 bg-black/50 z-10" />
+                                    {/* -- Contenido de texto -- */}
+                                    <div className="relative z-20 max-w-4xl mx-auto px-4 flex flex-col items-center gap-6">
+                                      <h1 className="font-serif font-bold text-4xl sm:text-5xl md:text-6xl tracking-tight text-balance leading-tight">
+                                        Manchas Eventos
+                                      </h1>
+                                      <p className="text-lg md:text-xl text-white/80 max-w-2xl leading-relaxed text-balance">
+                                        EVENTOS Y EXPERIENCIAS PREMIUM PARA ARTISTAS
+                                      </p>
+                                      <div className="mt-4">
+                                        <Button asChild size="lg" className="bg-white text-black hover:bg-white/90 font-semibold text-base px-8 shadow-lg">
+                                          <Link href="/tienda?categoria=entradas">
+                                            Explorar Eventos
+                                            <ArrowRight className="ml-2 h-4 w-4" />
+                                          </Link>
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </section>
                   <p className="text-xs uppercase tracking-widest font-semibold text-amber-700 animate-pulse">
                     Cupos limitados
                   </p>
