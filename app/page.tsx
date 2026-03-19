@@ -164,8 +164,9 @@ export default async function HomePage() {
       <Navbar />
       <main>
         {/* ── 1. Hero Section ── */}
-        <section className="relative w-full h-[60vh] min-h-125 flex items-center justify-center text-center text-white overflow-hidden">
-          {/* -- Video de fondo -- */}
+        {/* Hero eliminado en mobile/tablet, solo visible en desktop */}
+        <section className="relative w-full h-[60vh] min-h-125 items-center justify-center text-center text-white overflow-hidden hidden md:flex">
+          {/* Hero desktop aquí, mobile/tablet no renderiza nada */}
           <video 
             src="/2c26b202-351c-4323-817e-1f033c78b3b8.mp4" 
             autoPlay 
@@ -174,9 +175,7 @@ export default async function HomePage() {
             playsInline
             className="absolute top-0 left-0 w-full h-full object-cover z-0" 
           />
-          {/* -- Overlay oscuro para legibilidad -- */}
           <div className="absolute inset-0 bg-black/50 z-10" />
-          {/* -- Contenido de texto -- */}
           <div className="relative z-20 max-w-4xl mx-auto px-4 flex flex-col items-center gap-6">
             <h1 className="font-serif font-bold text-4xl sm:text-5xl md:text-6xl tracking-tight text-balance leading-tight">
               Manchas Eventos
