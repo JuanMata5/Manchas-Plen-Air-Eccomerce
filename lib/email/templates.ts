@@ -9,13 +9,15 @@ export interface OrderConfirmationTemplate {
   }>
   total: number
   paymentMethod: 'mercadopago' | 'transfer'
-  bankData?: {
+  bankData?: Array<{
     bankName: string
     cbu: string
     alias: string
     holder: string
     cuit: string
-  }
+    account_number?: string
+    currency: string
+  }>
   orderDate: string
   estimatedDelivery?: string
 }
@@ -67,21 +69,21 @@ export function orderConfirmationTemplate(data: OrderConfirmationTemplate): stri
     .join('')
 
   const bankInfo =
-    data.paymentMethod === 'transfer' && data.bankData
-      ? `
-    <div style="background: #f0f0f0; padding: 20px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #ff6b35;">
-      <h3 style="margin-top: 0; color: #333;">📋 Datos para transferencia</h3>
-      <p><strong>Banco:</strong> ${sanitize(data.bankData.bankName)}</p>
-      <p><strong>CBU:</strong> <code>${sanitize(data.bankData.cbu)}</code></p>
-      <p><strong>Alias:</strong> <code>${sanitize(data.bankData.alias)}</code></p>
-      <p><strong>Titular:</strong> ${sanitize(data.bankData.holder)}</p>
-      <p><strong>CUIT:</strong> ${sanitize(data.bankData.cuit)}</p>
+    data.paymentMethod === 'transfer' && Array.isArray(data.bankData)
+      ? data.bankData.map((bank) => `
+    <div style="background: #f0f0f0; padding: 20px; border-radius: 8px; margin-top: 20px; border-left: 4px solid #ff6b35; margin-bottom: 16px;">
+      <h3 style="margin-top: 0; color: #333;">📋 Datos para transferencia en ${bank.currency === 'USD' ? 'Dólares (USD)' : 'Pesos (ARS)'}</h3>
+      <p><strong>Banco:</strong> ${sanitize(bank.bankName)}</p>
+      ${bank.account_number ? `<p><strong>Caja de ahorro U$S:</strong> <code>${sanitize(bank.account_number)}</code></p>` : ''}
+      <p><strong>CBU:</strong> <code>${sanitize(bank.cbu)}</code></p>
+      <p><strong>Alias:</strong> <code>${sanitize(bank.alias)}</code></p>
+      <p><strong>Titular:</strong> ${sanitize(bank.holder)}</p>
+      <p><strong>CUIT:</strong> ${sanitize(bank.cuit)}</p>
       <p style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-top: 15px; font-size: 14px;">
         <strong>⏰ Importante:</strong> Tenés 48 horas para realizar la transferencia. Incluí la referencia <code>${sanitize(data.orderReference)}</code> como concepto.
       </p>
     </div>
-  `
-      : ''
+  `).join('') : ''
 
   return `
 <!DOCTYPE html>
