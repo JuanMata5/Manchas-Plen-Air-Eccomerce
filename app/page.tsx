@@ -142,7 +142,7 @@ const faqs = [
   },
   {
     q: 'Cuales son los datos para pagar por transferencia?',
-    a: 'Para pagar por transferencia, usa los siguientes datos y luego subí tu comprobante en el detalle de tu orden. Las ordenes sin pago se cancelan tras 48hs. <br/><br/><b>CUENTA EN PESOS (ARS)</b><br/>Nombre: Liliana Viviana Paola Nievas<br/>CUIT/CUIL: 27214734686<br/>ALIAS: TROTE.DAMA.FUENTE<br/>CBU: 0290002511000000179412<br/><br/><b>CUENTA EN DÓLARES (USD)</b><br/>Titular: Liliana Viviana Paola Nievas<br/>CUIT/CUIL: 27214734686<br/>Caja de ahorro en U$S: 000000020400017941<br/>ALIAS: TROTE.DAMA.FUENTE',
+    a: 'Para pagar por transferencia, usa los siguientes datos y luego subí tu comprobante en el detalle de tu orden. Las ordenes sin pago se cancelan tras 48hs. <br/><br/><b>CUENTA EN PESOS (ARS)</b><br/>Nombre: Liliana Viviana Paola Nievas<br/>CUIT/CUIL: 27214734686<br/>ALIAS: VOLCAN.JAGUAR.CLIMA<br/>CBU: 0140009003400951112934<br/><br/><b>CUENTA EN DÓLARES (USD)</b><br/>Titular: Liliana Viviana Paola Nievas<br/>CUIT/CUIL: 27214734686<br/>Caja de ahorro en U$S: 000000020400017941<br/>ALIAS: TROTE.DAMA.FUENTE<br/><br/>Revisá tu carpeta de spam/promociones para ver los mails. Si tenés dudas o no recibís el mail, escribinos a <a href="mailto:mpadsas@gmail.com" class="underline">mpadsas@gmail.com</a>.',
   },
   {
     q: 'Puedo cancelar o pedir reembolso?',
