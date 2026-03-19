@@ -195,6 +195,19 @@ export default async function HomePage() {
           </div>
         </section>
         
+        {/* ── 2. Productos Destacados ── */}
+        <section className="max-w-6xl mx-auto px-4 py-12 md:py-16">
+          <div className="text-center mb-10">
+            <h2 className="font-serif font-bold text-3xl md:text-4xl text-foreground">Destacados</h2>
+            <p className="text-muted-foreground mt-2">Entradas y productos recomendados para vos.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {productsToShow.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </section>
+
         {/* ── 5. Categories ── */}
         <section className="max-w-6xl mx-auto px-4 py-16 md:py-20 bg-muted rounded-3xl">
           <div className="text-center mb-10">
