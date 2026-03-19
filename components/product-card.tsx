@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/cart-store'
 import { useState } from 'react'
+import { useUser } from '@/components/user-provider'
+import { useRouter } from 'next/navigation'
 
 interface ProductCardProps {
   product: Product
@@ -16,11 +18,17 @@ export function ProductCard({ product }: ProductCardProps) {
   const isLowStock = product.stock > 0 && product.stock <= 10
   const addItem = useCartStore((s) => s.addItem)
   const [added, setAdded] = useState(false)
+  const { user } = useUser()
+  const router = useRouter()
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     if (product.stock <= 0) return
+    if (!user) {
+      router.push('/auth/login')
+      return
+    }
     await addItem(product, 1)
     setAdded(true)
     setTimeout(() => setAdded(false), 1500)
