@@ -192,42 +192,41 @@ export default async function HomePage() {
                   Explorar Eventos
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        {/* ── 2. Featured Products (Above the Fold) ── */}
-        {productsToShow.length > 0 && (
-          <section className="max-w-6xl mx-auto px-4 py-16 md:py-20">
-             <div className="mb-10 text-center">
-                <h2 className="font-serif font-bold text-3xl md:text-5xl text-foreground">
-                  Inicia tu próxima experiencia
-                </h2>
-                <p className="text-muted-foreground mt-2 max-w-2xl mx-auto">
-                  Esto es lo más buscado por nuestra comunidad. Compra ahora y asegura tu lugar o producto.
-                </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {productsToShow.map((product, index) => (
-                <Reveal key={product.id} delay={index * 80}>
-                  <ProductCard product={product} />
-                </Reveal>
-              ))}
-            </div>
-            <div className="mt-10 text-center">
-              <Button asChild variant="outline" size="lg">
-                <Link href="/tienda">
-                  Ver todos los productos
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          </section>
-        )}
-
-        {/* ── 3. Promo Banner (Incentive) ── */}
-        <section className="max-w-6xl mx-auto px-4 pb-16 md:pb-20">
+              return (
+                <>
+                  <Navbar />
+                  <main>
+                    {/* ── 1. Hero Section (solo desktop) ── */}
+                    <section className="hidden md:flex relative w-full h-[60vh] min-h-[500px] items-center justify-center text-center text-white overflow-hidden">
+                      {/* -- Video de fondo -- */}
+                      <video 
+                        src="/2c26b202-351c-4323-817e-1f033c78b3b8.mp4" 
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline
+                        className="absolute top-0 left-0 w-full h-full object-cover z-0" 
+                      />
+                      {/* -- Overlay oscuro para legibilidad -- */}
+                      <div className="absolute inset-0 bg-black/50 z-10" />
+                      {/* -- Contenido de texto -- */}
+                      <div className="relative z-20 max-w-4xl mx-auto px-4 flex flex-col items-center gap-6">
+                        <h1 className="font-serif font-bold text-4xl sm:text-5xl md:text-6xl tracking-tight text-balance leading-tight">
+                          Manchas Eventos
+                        </h1>
+                        <p className="text-lg md:text-xl text-white/80 max-w-2xl leading-relaxed text-balance">
+                          EVENTOS Y EXPERIENCIAS PREMIUM PARA ARTISTAS
+                        </p>
+                        <div className="mt-4">
+                          <Button asChild size="lg" className="bg-white text-black hover:bg-white/90 font-semibold text-base px-8 shadow-lg">
+                            <Link href="/tienda?categoria=entradas">
+                              Explorar Eventos
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </section>
           <Reveal className="bg-linear-to-r from-primary to-primary/80 text-primary-foreground rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-6 md:gap-10">
             <div className="h-20 w-20 rounded-2xl bg-primary-foreground/10 flex items-center justify-center shrink-0">
               <Gift className="h-10 w-10" />

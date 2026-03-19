@@ -118,7 +118,7 @@ export default async function ProductPage({ params }: PageProps) {
             </>
           )}
           <span>/</span>
-          <span className="text-foreground truncate max-w-[200px]">{product.name}</span>
+          <span className="text-foreground truncate max-w-50">{product.name}</span>
         </nav>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
@@ -198,11 +198,7 @@ export default async function ProductPage({ params }: PageProps) {
             )}
 
             {/* CTA Link */}
-            {product.cta_link && (
-              <Link href={product.cta_link} target="_blank" rel="noopener" className="mt-2 inline-block">
-                <Badge className="bg-brand-earth text-white border-0">Comprar en etickets</Badge>
-              </Link>
-            )}
+            {/* Quitar CTA externo, solo página individual */}
 
             <div className="border-t border-border pt-5">
               <AddToCartSection product={product} />
