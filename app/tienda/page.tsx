@@ -54,7 +54,7 @@ async function ProductGrid({
   categorySlug?: string
   q?: string
 }) {
-  const products = await getProducts(categorySlug, q)
+  let products = await getProducts(categorySlug, q)
 
   if (products.length === 0) {
     return (
@@ -65,9 +65,16 @@ async function ProductGrid({
     )
   }
 
+  // Ordenar destacados por precio mayor a menor
+  const destacados = products.filter(p => p.is_featured)
+    .sort((a, b) => (b.price_ars || 0) - (a.price_ars || 0))
+  const normales = products.filter(p => !p.is_featured)
+
+  const productosOrdenados = [...destacados, ...normales]
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {products.map((product) => (
+      {productosOrdenados.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
     </div>

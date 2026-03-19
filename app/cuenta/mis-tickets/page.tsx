@@ -41,6 +41,9 @@ export default async function MisTicketsPage() {
     return t.orders !== null
   })
 
+  // Inyectar el DNI del usuario si el ticket no lo tiene
+  const userDni = user.user_metadata?.dni || null;
+
   return (
     <>
       <Navbar />
@@ -65,7 +68,13 @@ export default async function MisTicketsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {userTickets.map((ticket: any) => (
-              <TicketCard key={ticket.id} ticket={ticket} />
+              <TicketCard
+                key={ticket.id}
+                ticket={{
+                  ...ticket,
+                  holder_dni: ticket.holder_dni || userDni,
+                }}
+              />
             ))}
           </div>
         )}
