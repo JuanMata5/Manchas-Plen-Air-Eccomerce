@@ -164,7 +164,7 @@ export default async function HomePage() {
       <Navbar />
       <main>
         {/* ── 1. Hero Section ── */}
-        <section className="relative w-full h-[60vh] min-h-[500px] flex items-center justify-center text-center text-white overflow-hidden">
+        <section className="relative w-full h-[60vh] min-h-125 flex items-center justify-center text-center text-white overflow-hidden">
           {/* -- Video de fondo -- */}
           {/* Reemplaza este src con la URL de tu video. El video debe estar en la carpeta /public/videos/ */}
           <video 
@@ -197,7 +197,7 @@ export default async function HomePage() {
                   <Navbar />
                   <main>
                     {/* ── 1. Hero Section (solo desktop) ── */}
-                    <section className="hidden md:flex relative w-full h-[60vh] min-h-[500px] items-center justify-center text-center text-white overflow-hidden">
+                    <section className="hidden md:flex relative w-full h-[60vh] min-h-125 items-center justify-center text-center text-white overflow-hidden">
                       {/* -- Video de fondo -- */}
                       <video 
                         src="/2c26b202-351c-4323-817e-1f033c78b3b8.mp4" 
