@@ -274,6 +274,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 📧 EMAIL (no bloqueante)
+    // Enviar email al usuario
     sendEmail({
       to: buyer_email,
       subject: `Orden ${order.id}`,
@@ -291,6 +292,27 @@ export async function POST(request: NextRequest) {
         orderDate: new Date().toLocaleDateString('es-AR'),
       }),
     }).catch(console.error)
+
+    // Si es transferencia bancaria, enviar email al admin
+    if (payment_method === 'transfer') {
+      sendEmail({
+        to: ['soporte@plenair.com.ar', 'jujuusmata@gmail.com'],
+        subject: `Nueva orden por transferencia #${order.id}`,
+        html: adminNotificationTemplate({
+          orderReference: order.id,
+          buyerName: buyer_name,
+          buyerEmail: buyer_email,
+          items: orderItemsData.map((i) => ({
+            name: i.product_snapshot.name,
+            quantity: i.quantity,
+            price: i.unit_price,
+          })),
+          total: finalTotal,
+          paymentMethod: payment_method,
+          orderDate: new Date().toLocaleDateString('es-AR'),
+        }),
+      }).catch(console.error)
+    }
 
     return NextResponse.json(responseData)
   } catch (err) {
