@@ -35,8 +35,23 @@ async function getProduct(slug: string): Promise<Product | null> {
   return data ?? null
 }
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+async function getAllProductsForStatic(): Promise<{ slug: string }[]> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/products?is_active=eq.true&select=slug`, {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    next: { revalidate: 60 }, // ISR opcional
+  })
+  if (!res.ok) return []
+  return await res.json()
+}
+
 export async function generateStaticParams() {
-  const products = await getAllProducts()
+  const products = await getAllProductsForStatic()
   return products.map((p) => ({ slug: p.slug }))
 }
 
