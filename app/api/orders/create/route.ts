@@ -290,13 +290,25 @@ export async function POST(request: NextRequest) {
         total: finalTotal,
         paymentMethod: payment_method,
         orderDate: new Date().toLocaleDateString('es-AR'),
-        bankData: payment_method === 'transfer' ? {
-          bankName: 'Banco Santander',
-          cbu: '0140009003400951112934',
-          alias: 'VOLCAN.JAGUAR.CLIMA',
-          holder: 'Liliana Viviana Paola Nievas',
-          cuit: '27-21473468-6',
-        } : undefined,
+        bankData: payment_method === 'transfer' ? [
+          {
+            bankName: 'Banco Provincia',
+            cbu: '0140009003400951112934',
+            alias: 'VOLCAN.JAGUAR.CLIMA',
+            holder: 'Liliana Viviana Paola Nievas',
+            cuit: '27-21473468-6',
+            currency: 'ARS',
+          },
+          {
+            bankName: 'Banco Provincia',
+            cbu: '0290002511000000179412',
+            alias: 'TROTE.DAMA.FUENTE',
+            holder: 'Liliana Viviana Paola Nievas',
+            cuit: '27-21473468-6',
+            account_number: '000000020400017941',
+            currency: 'USD',
+          },
+        ] : undefined,
       }),
     }).catch(console.error)
 
