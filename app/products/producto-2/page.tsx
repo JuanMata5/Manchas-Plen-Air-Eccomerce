@@ -1,0 +1,9 @@
+export default function Page() {
+  return (
+    <main className="max-w-2xl mx-auto py-10 px-4">
+      <h1 className="text-3xl font-bold mb-4">Producto 2</h1>
+      <p className="mb-2">Descripción 2</p>
+      <p className="mb-2 font-semibold">Precio: $2000</p>
+    </main>
+  );
+}
