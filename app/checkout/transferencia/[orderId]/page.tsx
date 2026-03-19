@@ -16,15 +16,15 @@ interface PageProps {
 
 // --- DATOS REALES --- 
 const BANK_DATA_ARS = {
-  bank: 'Banco Ciudad',
+  bank: 'Banco Provincia',
   holder: 'Liliana Viviana Paola Nievas',
   cuit: '27-21473468-6',
-  cbu: '0290002511000000179412',
-  alias: 'TROTE.DAMA.FUENTE',
+  cbu: '0140009003400951112934',
+  alias: 'VOLCAN.JAGUAR.CLIMA',
 }
 
 const BANK_DATA_USD = {
-  bank: 'Banco Ciudad',
+  bank: 'Banco Provincia',
   holder: 'Liliana Viviana Paola Nievas',
   cuit: '27-21473468-6',
   account_number: '000000020400017941',
@@ -103,12 +103,13 @@ export default async function BankTransferPage({ params }: PageProps) {
         <div className="bg-muted rounded-xl p-4 text-sm text-muted-foreground flex flex-col gap-2">
           <p className="font-medium text-foreground">Importante</p>
           <ul className="list-disc list-inside space-y-1">
-            <li>Incluye la referencia en el concepto/descripcion de la transferencia.</li>
+            <li>Incluí la referencia en el concepto/descripcion de la transferencia.</li>
             <li>Una vez acreditado el pago recibirás tus entradas por email.</li>
+            <li>Revisá tu carpeta de spam/promociones para ver los mails.</li>
             <li>
-              Si tenes dudas escribinos a{' '}
-              <a href="mailto:hola@plenair.com.ar" className="text-primary underline">
-                hola@plenair.com.ar
+              Si tenés dudas o no recibís el mail, escribinos a{' '}
+              <a href="mailto:mpadsas@gmail.com" className="text-primary underline">
+                mpadsas@gmail.com
               </a>
             </li>
           </ul>

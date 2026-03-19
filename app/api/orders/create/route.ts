@@ -290,6 +290,13 @@ export async function POST(request: NextRequest) {
         total: finalTotal,
         paymentMethod: payment_method,
         orderDate: new Date().toLocaleDateString('es-AR'),
+        bankData: payment_method === 'transfer' ? {
+          bankName: 'Banco Santander',
+          cbu: '0140009003400951112934',
+          alias: 'VOLCAN.JAGUAR.CLIMA',
+          holder: 'Liliana Viviana Paola Nievas',
+          cuit: '27-21473468-6',
+        } : undefined,
       }),
     }).catch(console.error)
 
