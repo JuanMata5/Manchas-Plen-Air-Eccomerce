@@ -1,3 +1,6 @@
+// LOG: Renderizando página producto-1
+console.log('Renderizando producto-1');
+
 export default function Page() {
   return (
     <main className="max-w-2xl mx-auto py-10 px-4">
