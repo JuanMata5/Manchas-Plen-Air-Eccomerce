@@ -5,15 +5,18 @@ import { Minus, Plus, ShoppingCart } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Product } from '@/lib/types'
 import { useCartStore } from '@/lib/cart-store'
+import { useUser } from '@/components/user-provider'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 
 interface AddToCartSectionProps {
   product: Product
 }
 
-export function AddToCartSection({ product }: AddToCartSectionProps) {
   const [quantity, setQuantity] = useState(1)
   const addItem = useCartStore((s) => s.addItem)
+  const { user } = useUser()
+  const router = useRouter()
 
   const isSoldOut = product.stock <= 0
   const max = Math.min(product.max_per_order, product.stock)
@@ -22,6 +25,11 @@ export function AddToCartSection({ product }: AddToCartSectionProps) {
   const increment = () => setQuantity((q) => Math.min(max, q + 1))
 
   const handleAdd = () => {
+    if (!user) {
+      toast.error('Debes iniciar sesión para agregar productos al carrito')
+      router.push('/auth/login')
+      return
+    }
     addItem(product, quantity)
     toast.success(`${quantity}x ${product.name} agregado al carrito`)
   }
