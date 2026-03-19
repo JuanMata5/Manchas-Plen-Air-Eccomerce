@@ -3,6 +3,8 @@ import type { Product } from '@/lib/types'
 import { formatARS } from '@/lib/format'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
+import { useCartStore } from '@/lib/cart-store'
+import { useState } from 'react'
 
 interface ProductCardProps {
   product: Product
@@ -11,6 +13,17 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const isSoldOut = product.stock <= 0
   const isLowStock = product.stock > 0 && product.stock <= 10
+  const addItem = useCartStore((s) => s.addItem)
+  const [added, setAdded] = useState(false)
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (product.stock <= 0) return
+    await addItem(product, 1)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 1500)
+  }
 
   return (
     <Link href={`/tienda/${product.slug}`} className="group bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1.5 flex flex-col h-full hover-lift surface-sheen">
@@ -61,6 +74,13 @@ export function ProductCard({ product }: ProductCardProps) {
             {formatARS(product.price_ars)}
           </p>
         </div>
+        <button
+          onClick={handleAddToCart}
+          disabled={isSoldOut || added}
+          className={`w-full mt-2 py-2 rounded-lg font-semibold transition-colors ${isSoldOut ? 'bg-muted text-muted-foreground cursor-not-allowed' : added ? 'bg-green-600 text-white' : 'bg-primary text-primary-foreground hover:bg-primary/90'}`}
+        >
+          {isSoldOut ? 'Agotado' : added ? '¡Agregado!' : 'Agregar al carrito'}
+        </button>
       </div>
     </Link>
   )
