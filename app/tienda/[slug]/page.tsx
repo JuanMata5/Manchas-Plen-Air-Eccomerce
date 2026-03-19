@@ -15,6 +15,15 @@ interface PageProps {
   params: { slug: string }
 }
 
+async function getAllProducts(): Promise<Product[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('products')
+    .select('*, categories(id, name, slug, description)')
+    .eq('is_active', true)
+  return data ?? []
+}
+
 async function getProduct(slug: string): Promise<Product | null> {
   const supabase = await createClient()
   const { data } = await supabase
@@ -26,70 +35,22 @@ async function getProduct(slug: string): Promise<Product | null> {
   return data ?? null
 }
 
+export async function generateStaticParams() {
+  const products = await getAllProducts()
+  return products.map((p) => ({ slug: p.slug }))
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = params
-  const product = await getProduct(slug)
+  const product = await getProduct(params.slug)
   if (!product) return { title: 'Producto no encontrado' }
   return {
     title: product.name,
-    description: product.description || `${product.name} — Disponible en Manchas Plen Air`,
-    openGraph: {
-      title: product.name,
-      description: product.description || `${product.name} — Manchas Plen Air`,
-      type: 'website',
-      ...(product.image_url && { images: [{ url: product.image_url, width: 1200, height: 630, alt: product.name }] }),
-    },
-  }
-}
-
-function ProductJsonLd({ product }: { product: Product }) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://manchas-plen-air-eccomerce.vercel.app'
-  const jsonLd: Record<string, any> = {
-    '@context': 'https://schema.org',
-    '@type': product.product_type === 'ticket' ? 'Event' : 'Product',
-    name: product.name,
     description: product.description || product.name,
-    url: `${baseUrl}/tienda/${product.slug}`,
-    ...(product.image_url && { image: product.image_url }),
   }
-
-  if (product.product_type === 'ticket') {
-    jsonLd.eventStatus = 'https://schema.org/EventScheduled'
-    jsonLd.eventAttendanceMode = 'https://schema.org/OfflineEventAttendanceMode'
-    if (product.event_date) jsonLd.startDate = product.event_date
-    if (product.event_location) {
-      jsonLd.location = { '@type': 'Place', name: product.event_location }
-    }
-    jsonLd.offers = {
-      '@type': 'Offer',
-      price: product.price_ars,
-      priceCurrency: 'ARS',
-      availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
-      url: `${baseUrl}/tienda/${product.slug}`,
-    }
-    jsonLd.organizer = { '@type': 'Organization', name: 'Manchas Plen Air' }
-  } else {
-    jsonLd.offers = {
-      '@type': 'Offer',
-      price: product.price_ars,
-      priceCurrency: 'ARS',
-      availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
-      url: `${baseUrl}/tienda/${product.slug}`,
-    }
-    jsonLd.brand = { '@type': 'Brand', name: 'Manchas Plen Air' }
-  }
-
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-    />
-  )
 }
 
 export default async function ProductPage({ params }: PageProps) {
-  const { slug } = params
-  const product = await getProduct(slug)
+  const product = await getProduct(params.slug)
   if (!product) notFound()
 
   const isSoldOut = product.stock <= 0
@@ -97,7 +58,6 @@ export default async function ProductPage({ params }: PageProps) {
 
   return (
     <>
-      <ProductJsonLd product={product} />
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 py-10">
         {/* Breadcrumb */}
@@ -170,35 +130,11 @@ export default async function ProductPage({ params }: PageProps) {
 
             {/* Price */}
             <div>
-              <p className="font-bold text-3xl text-foreground">{formatARS(product.price_ars)}</p>
-              {product.price_usd && (
-                <p className="text-sm text-muted-foreground mt-1">USD {product.price_usd} aprox.</p>
-              )}
+              <span className="text-2xl font-bold text-foreground">{formatARS(product.price_ars)}</span>
             </div>
 
-            {product.description && (
-              <p className="text-muted-foreground leading-relaxed">{product.description}</p>
-            )}
-
-            {/* Features */}
-            {/* {product.features && Array.isArray(product.features) && product.features.length > 0 && (
-              <ul className="list-disc pl-5 text-muted-foreground text-sm space-y-1 mt-2">
-                {product.features.map((f: string, idx: number) => (
-                  <li key={idx}>{f}</li>
-                ))}
-              </ul>
-            )} */}
-
-            <div className="border-t border-border pt-5">
-              <AddToCartSection product={product} />
-            </div>
-
-            <div className="text-xs text-muted-foreground flex flex-col gap-1">
-              {product.stock > 0 && (
-                <span>{product.stock} unidades disponibles</span>
-              )}
-              <span>Maximo {product.max_per_order} por orden</span>
-            </div>
+            {/* Add to cart */}
+            <AddToCartSection product={product} />
           </div>
         </div>
       </main>
