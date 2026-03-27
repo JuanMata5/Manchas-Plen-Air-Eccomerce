@@ -64,7 +64,7 @@ export default function Page() {
             </div>
             {/* Precio y métodos de pago */}
             <div className="mt-8 border-t border-border pt-4 flex flex-col gap-2">
-              <p className="font-bold text-2xl text-foreground">$75000 ARS</p>
+              <p className="font-bold text-2xl text-foreground">$145000 ARS</p>
               
               <div className="flex gap-3 mt-2">
                 <Badge className="bg-[#00B686] text-white border-0">Mercado Pago</Badge>
