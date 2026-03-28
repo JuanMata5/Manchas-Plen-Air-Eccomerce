@@ -62,28 +62,31 @@ export default function Page() {
               VIP · 3 Días
             </h1>
 
-            {/* Descripción */}
+            {/* Descripción LITERAL */}
             <p className="text-base text-muted-foreground leading-relaxed">
-              Experiencia 3 días | Incluye 12 demostraciones en vivo, ejercicios de dibujo, introducción a la pintura plein air, 2 jornadas en Plaza Congreso y Lagos de Palermo, coffee breaks y acceso completo a la experiencia. Además: asientos en primeras filas, workshop Cristina Ishikawa incluido, materiales incluidos y beneficios exclusivos.
+              Pase vip<br/>
+              1,2,3 de mayo<br/>
+              Demostración introducción de pintura plein air por artista experto<br/>
+              2 salidas de estudio de campo en plaza 2 congresos y lagos de Palermo
             </p>
 
-            {/* Features */}
+            {/* Features LITERAL */}
             <ul className="mt-2 mb-2 list-disc pl-5 text-sm text-foreground">
-              <li className="mb-1">12 demostraciones en vivo en auditorio</li>
-              <li className="mb-1">Ejercicio en demos de dibujo</li>
-              <li className="mb-1">Introducción a pintura plein air por artista experto</li>
-              <li className="mb-1">2 días plein air en Plaza Congreso y Lagos de Palermo</li>
-              <li className="mb-1">Coffee breaks</li>
-              <li className="mb-1">Asientos en primeras filas</li>
-              <li className="mb-1">Workshop Cristina Ishikawa incluido</li>
-              <li className="mb-1">Materiales incluidos (papel de arroz + tinta o workshop elegido)</li>
-              <li className="mb-1">Acceso a workshops del foyer</li>
-              <li className="mb-1">Regalos exclusivos</li>
-              <li className="mb-1">Certificado</li>
-              <li className="mb-1">Sorteo de cierre</li>
+              <li>12 demostraciones de los artistas instructores en vivo, en auditorio</li>
+              <li>En las demos de dibujo harás un ejercicio</li>
+              <li>2 días plein air con artista instructor favorito en plaza 2 congresos y lagos de Palermo</li>
+              <li>Coffee breaks</li>
+              <li>además, podrás visitar e inscribirte a los workshops del foyer</li>
+              <li>Asientos en primeras filas</li>
+              <li>Workshop Cristina Ishikawa incluido</li>
+              <li>Papel de arroz + tinta incluidos o</li>
+              <li>Workshops con el profe que elijas materiales incluidos</li>
+              <li>Regalos exclusivos</li>
+              <li>Certificado</li>
+              <li>Sorteo de cierre</li>
             </ul>
 
-            {/* CTA externo */}
+            {/* CTA */}
             <a
               href="https://etickets.com.ar/convencion-plein-air-bs-as/"
               target="_blank"
@@ -103,8 +106,7 @@ export default function Page() {
                   slug: "vip-3dias",
                   name: "VIP · 3 Días",
                   subtitle: "Experiencia 3 días",
-                  description:
-                    "Experiencia 3 días | Incluye 12 demostraciones en vivo, ejercicios de dibujo, introducción a la pintura plein air, 2 jornadas en Plaza Congreso y Lagos de Palermo, coffee breaks. Incluye además: asientos en primeras filas, workshop Cristina Ishikawa incluido, materiales incluidos, regalos exclusivos y certificado.",
+                  description: "Pase vip 1,2,3 de mayo Demostración introducción de pintura plein air por artista experto 2 salidas de estudio de campo en plaza 2 congresos y lagos de Palermo",
                   price_ars: 135000,
                   price_usd: null,
                   stock: 39,
@@ -116,18 +118,18 @@ export default function Page() {
                   product_type: "ticket",
                   badge: "Solo 50 lugares",
                   features: [
-                    "12 demostraciones en vivo en auditorio",
-                    "Ejercicio en demos de dibujo",
-                    "Introducción a pintura plein air por artista experto",
-                    "2 días plein air en Plaza Congreso y Lagos de Palermo",
+                    "12 demostraciones de los artistas instructores en vivo, en auditorio",
+                    "En las demos de dibujo harás un ejercicio",
+                    "2 días plein air con artista instructor favorito en plaza 2 congresos y lagos de Palermo",
                     "Coffee breaks",
+                    "además, podrás visitar e inscribirte a los workshops del foyer",
                     "Asientos en primeras filas",
                     "Workshop Cristina Ishikawa incluido",
-                    "Materiales incluidos (papel de arroz + tinta o workshop elegido)",
-                    "Acceso a workshops del foyer",
+                    "Papel de arroz + tinta incluidos o",
+                    "Workshops con el profe que elijas materiales incluidos",
                     "Regalos exclusivos",
                     "Certificado",
-                    "Sorteo de cierre",
+                    "Sorteo de cierre"
                   ],
                   cta_link:
                     "https://etickets.com.ar/convencion-plein-air-bs-as/",

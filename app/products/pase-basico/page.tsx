@@ -58,25 +58,27 @@ export default function Page() {
               Pase Básico
             </h1>
 
-            {/* Descripción */}
+            {/* Descripción LITERAL */}
             <p className="text-base text-muted-foreground leading-relaxed">
-              Experiencia 3 días | Incluye 12 demostraciones en vivo, ejercicios de dibujo, introducción a la pintura plein air, 2 jornadas en Plaza Congreso y Lagos de Palermo, coffee breaks y acceso a la experiencia completa. Posibilidad de sumar workshops con 50% OFF.
+              Pase Básico<br/>
+              1,2,3 de mayo<br/>
+              Demostración introducción de pintura plein air por artista experto<br/>
+              2 salidas de estudio de campo en plaza 2 congresos y lagos de Palermo
             </p>
 
-            {/* Features */}
+            {/* Features LITERAL */}
             <ul className="mt-2 mb-2 list-disc pl-5 text-sm text-foreground">
-              <li className="mb-1">12 demostraciones en vivo en auditorio</li>
-              <li className="mb-1">Ejercicio en demos de dibujo</li>
-              <li className="mb-1">Introducción a pintura plein air por artista experto</li>
-              <li className="mb-1">2 días plein air en Plaza Congreso y Lagos de Palermo</li>
-              <li className="mb-1">Coffee breaks</li>
-              <li className="mb-1">Acceso a workshops del foyer</li>
-              <li className="mb-1">Workshops opcionales al 50% ($45.000)</li>
-              <li className="mb-1">Certificado</li>
-              <li className="mb-1">Sorteo de materiales</li>
+              <li>12 demostraciones de los artistas instructores en vivo, en auditorio</li>
+              <li>En las demos de dibujo harás un ejercicio</li>
+              <li>2 días plein air con artista instructor favorito en plaza 2 congresos y Lagos de palermo</li>
+              <li>Coffee breaks</li>
+              <li>Workshops opcionales con el profesor que elijas al 50% de lo que saldría en su taller $45000.- son a contraturno de las salidas de pintura al aire libre, se desarrollan en el C.O.M Circulo oficiales del mar</li>
+              <li>Certificado</li>
+              <li>Sorteo de cierre de materiales</li>
+              <li>podrás visitar e inscribirte a los workshops del foyer</li>
             </ul>
 
-            {/* CTA externo */}
+            {/* CTA */}
             <a
               href="https://etickets.com.ar/convencion-plein-air-bs-as/"
               target="_blank"
@@ -96,8 +98,7 @@ export default function Page() {
                   slug: "pase-basico",
                   name: "Pase Básico",
                   subtitle: "Experiencia 3 días",
-                  description:
-                    "Experiencia 3 días | Incluye 12 demostraciones en vivo, ejercicios de dibujo, introducción a la pintura plein air, 2 jornadas en Plaza Congreso y Lagos de Palermo, coffee breaks. Posibilidad de sumar workshops con 50% OFF.",
+                  description: "Pase Básico 1,2,3 de mayo Demostración introducción de pintura plein air por artista experto 2 salidas de estudio de campo en plaza 2 congresos y lagos de Palermo",
                   price_ars: 95000,
                   price_usd: null,
                   stock: 97,
@@ -109,15 +110,14 @@ export default function Page() {
                   product_type: "ticket",
                   badge: null,
                   features: [
-                    "12 demostraciones en vivo en auditorio",
-                    "Ejercicio en demos de dibujo",
-                    "Introducción a pintura plein air por artista experto",
-                    "2 días plein air en Plaza Congreso y Lagos de Palermo",
+                    "12 demostraciones de los artistas instructores en vivo, en auditorio",
+                    "En las demos de dibujo harás un ejercicio",
+                    "2 días plein air con artista instructor favorito en plaza 2 congresos y Lagos de palermo",
                     "Coffee breaks",
-                    "Acceso a workshops del foyer",
-                    "Workshops opcionales al 50% ($45.000)",
+                    "Workshops opcionales con el profesor que elijas al 50% de lo que saldría en su taller $45000.- son a contraturno de las salidas de pintura al aire libre, se desarrollan en el C.O.M Circulo oficiales del mar",
                     "Certificado",
-                    "Sorteo de materiales"
+                    "Sorteo de cierre de materiales",
+                    "podrás visitar e inscribirte a los workshops del foyer"
                   ],
                   cta_link:
                     "https://etickets.com.ar/convencion-plein-air-bs-as/",
