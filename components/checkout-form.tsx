@@ -34,7 +34,7 @@ const paymentMethods = [
   { id: 'transfer' as const, label: 'Transferencia bancaria', description: 'CBU / Alias. Te enviamos los datos por email.', icon: Building2 },
 ]
 
-const FIRST_PURCHASE_DISCOUNT_PERCENTAGE = 5
+
 
 export function CheckoutForm() {
   const router = useRouter()
@@ -42,21 +42,9 @@ export function CheckoutForm() {
   const { items, totalARS, clearCart } = useCartStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [manualCoupon, setManualCoupon] = useState<any | null>(null)
-  const [isFirstPurchase, setIsFirstPurchase] = useState(false)
 
-  useEffect(() => {
-    async function checkFirstPurchase() {
-      if (!user) return
-      try {
-        const res = await fetch('/api/orders/check-first-purchase')
-        const data = await res.json()
-        setIsFirstPurchase(data.is_first_purchase)
-      } catch (err) {
-        console.error('Error checking first purchase:', err)
-      }
-    }
-    checkFirstPurchase()
-  }, [user])
+
+
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -87,8 +75,7 @@ export function CheckoutForm() {
     finalCouponCode = manualCoupon.code
   }
 
-  const firstPurchaseDiscountAmount = isFirstPurchase ? Math.round(subtotal * 0.05) : 0
-  const totalDiscount = manualDiscountAmount + firstPurchaseDiscountAmount
+  const totalDiscount = manualDiscountAmount
   const total = subtotal - totalDiscount
 
   const handleApplyCoupon = async () => {
@@ -173,12 +160,7 @@ export function CheckoutForm() {
               <span className="tabular-nums">-{formatARS(manualDiscountAmount)}</span>
             </div>
           )}
-          {isFirstPurchase && (
-            <div className="flex justify-between text-primary">
-              <span className="flex items-center gap-1.5"><Gift className="h-3.5 w-3.5" /> Desc. Primera Compra (5%)</span>
-              <span className="tabular-nums">-{formatARS(firstPurchaseDiscountAmount)}</span>
-            </div>
-          )}
+
           <Separator />
           <div className="flex justify-between font-bold text-base"><span>Total</span><span className="tabular-nums">{formatARS(total)}</span></div>
         </div>
