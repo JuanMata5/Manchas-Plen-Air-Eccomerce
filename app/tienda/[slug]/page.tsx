@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from 'next/cache'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -7,6 +8,7 @@ import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { AddToCartSection } from '@/components/add-to-cart-section'
 import { formatARS } from '@/lib/format'
+import { getProductAvailabilityBadge } from '@/lib/product-badges'
 import { Badge } from '@/components/ui/badge'
 import type { Product } from '@/lib/types'
 import type { Metadata } from 'next'
@@ -25,6 +27,7 @@ async function getAllProducts(): Promise<Product[]> {
 }
 
 async function getProduct(slug: string): Promise<Product | null> {
+  noStore()
   const supabase = await createClient()
   const { data } = await supabase
     .from('products')
@@ -69,7 +72,8 @@ export default async function ProductPage({ params }: PageProps) {
   if (!product) notFound()
 
   const isSoldOut = product.stock <= 0
-  const isLowStock = product.stock > 0 && product.stock <= 5
+  const stockBadge = getProductAvailabilityBadge(product)
+  const usesDynamicStockBadge = !!stockBadge && /^Última/i.test(stockBadge)
 
   return (
     <>
@@ -136,9 +140,9 @@ export default async function ProductPage({ params }: PageProps) {
                 <Badge className="bg-brand-earth text-white border-0">Destacado</Badge>
               )}
               {isSoldOut && <Badge variant="secondary">Agotado</Badge>}
-              {isLowStock && (
-                <Badge className="bg-amber-500 text-white border-0">
-                  Solo {product.stock} disponibles
+              {!isSoldOut && stockBadge && (
+                <Badge className={usesDynamicStockBadge ? 'bg-amber-500 text-white border-0' : 'bg-primary text-white border-0'}>
+                  {stockBadge}
                 </Badge>
               )}
             </div>

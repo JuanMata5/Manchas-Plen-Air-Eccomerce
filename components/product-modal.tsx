@@ -6,6 +6,7 @@ import { Minus, Plus, ShoppingCart, Check, Truck, Shield, Clock } from 'lucide-r
 import { toast } from 'sonner'
 import type { Product } from '@/lib/types'
 import { formatARS } from '@/lib/format'
+import { getProductAvailabilityBadge } from '@/lib/product-badges'
 import { useCartStore } from '@/lib/cart-store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -51,6 +52,8 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
 
   const isSoldOut = product.stock <= 0
   const isLowStock = product.stock > 0 && product.stock <= 5
+  const stockBadge = getProductAvailabilityBadge(product)
+  const usesDynamicStockBadge = !!stockBadge && /^Última/i.test(stockBadge)
   const max = Math.min(product.max_per_order, product.stock)
   const productType = product.product_type || 'merchandise'
   const includes = includesMap[productType] || includesMap.merchandise
@@ -90,14 +93,15 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
                 <Badge className="bg-brand-earth text-white text-xs border-0">Destacado</Badge>
               )}
               {isSoldOut && <Badge variant="secondary" className="text-xs">Agotado</Badge>}
-              {isLowStock && !isSoldOut && (
+              {!isSoldOut && stockBadge ? (
+                <Badge className={usesDynamicStockBadge ? 'bg-amber-500 text-white text-xs border-0' : 'bg-primary text-white text-xs border-0'}>
+                  {stockBadge}
+                </Badge>
+              ) : isLowStock && !isSoldOut ? (
                 <Badge className="bg-amber-500 text-white text-xs border-0">
                   Ultimas {product.stock} unidades
                 </Badge>
-              )}
-              {product.badge && (
-                <Badge className="bg-primary text-white text-xs border-0">{product.badge}</Badge>
-              )}
+              ) : null}
             </div>
           </div>
 

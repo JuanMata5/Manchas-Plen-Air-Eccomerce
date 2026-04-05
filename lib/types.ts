@@ -24,6 +24,10 @@ export type Product = {
   name: string
   slug: string
   description: string | null
+  subtitle?: string | null
+  badge?: string | null
+  features?: string[] | null
+  cta_link?: string | null
   price_ars: number
   price_usd: number | null
   stock: number

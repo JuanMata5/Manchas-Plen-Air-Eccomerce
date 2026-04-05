@@ -2,6 +2,7 @@
 import Image from 'next/image'
 import type { Product } from '@/lib/types'
 import { formatARS } from '@/lib/format'
+import { getProductAvailabilityBadge } from '@/lib/product-badges'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/cart-store'
@@ -16,6 +17,8 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const isSoldOut = product.stock <= 0
   const isLowStock = product.stock > 0 && product.stock <= 10
+  const stockBadge = getProductAvailabilityBadge(product)
+  const usesDynamicStockBadge = !!stockBadge && /^Última/i.test(stockBadge)
   const addItem = useCartStore((s) => s.addItem)
   const [added, setAdded] = useState(false)
   const { user } = useUser()
@@ -53,11 +56,15 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
         {/* --- Badges de Estado --- */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-          {isLowStock && !isSoldOut && (
+          {!isSoldOut && stockBadge ? (
+            <Badge className={usesDynamicStockBadge ? 'bg-amber-500 text-white text-xs font-semibold border-0 animate-pulse' : 'bg-primary text-white text-xs border-0'}>
+              {stockBadge}
+            </Badge>
+          ) : isLowStock && !isSoldOut ? (
             <Badge className="bg-amber-500 text-white text-xs font-semibold border-0 animate-pulse">
               ¡Poco Stock!
             </Badge>
-          )}
+          ) : null}
           {isSoldOut && (
             <Badge variant="secondary" className="text-xs font-semibold">
               Agotado
