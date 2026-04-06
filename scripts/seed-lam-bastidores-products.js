@@ -325,6 +325,32 @@ const products = [
     badge: 'Últimas 12 entradas',
     features: ['Retrato expresivo en óleo', 'Pintar más allá de la foto'],
   },
+  {
+    categorySlug: 'tickets',
+    product_type: 'ticket',
+    name: 'Pase Básico Plus',
+    slug: 'pase-basico-plus',
+    subtitle: 'Experiencia 3 días',
+    description: 'Pase Básico Plus para vivir la experiencia completa durante 3 días.',
+    price_ars: 118000,
+    stock: 40,
+    max_per_order: 10,
+    badge: 'Destacado',
+    is_featured: true,
+    features: [
+      '12 demostraciones de los artistas instructores en vivo, en auditorio',
+      'Cuarta y quinta fila de asiento en el auditorio',
+      'En las demos de dibujo harás un ejercicio',
+      '2 días plein air con artista instructor favorito en Plaza 2 Congresos y Lagos de Palermo',
+      'Coffee breaks',
+      'Además, podrás visitar e inscribirte a los workshops del foyer',
+      'Papel de arroz + tinta incluidos',
+      'Workshops con el profe que elijas, materiales incluidos',
+      'Regalos exclusivos',
+      'Certificado',
+      'Sorteo de cierre'
+    ],
+  },
 ];
 
 async function main() {
@@ -350,7 +376,7 @@ async function main() {
     max_per_order: product.max_per_order,
     image_url: null,
     is_active: true,
-    is_featured: false,
+    is_featured: product.is_featured ?? false,
     product_type: product.product_type,
     event_date: null,
     event_location: COMMON_LOCATION,
