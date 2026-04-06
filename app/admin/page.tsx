@@ -1,39 +1,62 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { formatARS } from '@/lib/format'
-import { ShoppingBag, DollarSign, Users, Ticket } from 'lucide-react'
+import { ShoppingBag, DollarSign, Package, Ticket } from 'lucide-react'
+
+type RecentOrder = {
+  id: string
+  buyer_name: string | null
+  buyer_email: string | null
+  total_ars: number | null
+  status: string
+  payment_method: string | null
+  created_at: string
+  order_items?: Array<{
+    id: string
+    quantity: number
+    products: { name: string } | null
+  }>
+}
 
 async function getStats() {
-  const supabase = await createClient()
+  const adminDb = createAdminClient()
 
-  const [ordersRes, revenueRes, ticketsRes, productsRes] = await Promise.all([
-    // Total orders
-    supabase.from('orders').select('id', { count: 'exact', head: true }),
-    // Revenue from paid orders
-    supabase.from('orders').select('total_ars').eq('status', 'paid'),
-    // Total tickets issued
-    supabase.from('tickets').select('id', { count: 'exact', head: true }),
-    // Active products
-    supabase.from('products').select('id', { count: 'exact', head: true }).eq('is_active', true),
+  const [ordersRes, ticketsRes, orderItemsRes] = await Promise.all([
+    adminDb.from('orders').select('id, total_ars, status'),
+    adminDb.from('tickets').select('id', { count: 'exact', head: true }),
+    adminDb.from('order_items').select('order_id, quantity'),
   ])
 
-  const totalRevenue = (revenueRes.data ?? []).reduce((sum, o) => sum + (o.total_ars ?? 0), 0)
+  const orders = ordersRes.data ?? []
+  const validOrderIds = new Set(
+    orders.filter((order) => !['cancelled', 'refunded'].includes(order.status)).map((order) => order.id),
+  )
+
+  const totalRevenue = orders
+    .filter((order) => validOrderIds.has(order.id))
+    .reduce((sum, order) => sum + Number(order.total_ars ?? 0), 0)
+
+  const soldProducts = (orderItemsRes.data ?? []).reduce((sum, item) => {
+    if (!validOrderIds.has(item.order_id)) return sum
+    return sum + Number(item.quantity ?? 0)
+  }, 0)
 
   return {
-    totalOrders: ordersRes.count ?? 0,
+    totalOrders: orders.length,
     totalRevenue,
     totalTickets: ticketsRes.count ?? 0,
-    activeProducts: productsRes.count ?? 0,
+    soldProducts,
   }
 }
 
-async function getRecentOrders() {
-  const supabase = await createClient()
-  const { data } = await supabase
+async function getRecentOrders(): Promise<RecentOrder[]> {
+  const adminDb = createAdminClient()
+  const { data } = await adminDb
     .from('orders')
-    .select('id, buyer_name, buyer_email, total_ars, status, payment_method, created_at')
+    .select('id, buyer_name, buyer_email, total_ars, status, payment_method, created_at, order_items(id, quantity, products(name))')
     .order('created_at', { ascending: false })
     .limit(10)
-  return data ?? []
+
+  return (data ?? []) as RecentOrder[]
 }
 
 const statusLabels: Record<string, { label: string; className: string }> = {
@@ -49,9 +72,9 @@ export default async function AdminDashboard() {
 
   const statCards = [
     { label: 'Ordenes totales', value: stats.totalOrders.toString(), icon: ShoppingBag },
-    { label: 'Ingresos (pagado)', value: formatARS(stats.totalRevenue), icon: DollarSign },
+    { label: 'Facturacion total', value: formatARS(stats.totalRevenue), icon: DollarSign },
     { label: 'Tickets emitidos', value: stats.totalTickets.toString(), icon: Ticket },
-    { label: 'Productos activos', value: stats.activeProducts.toString(), icon: Users },
+    { label: 'Productos vendidos', value: stats.soldProducts.toString(), icon: Package },
   ]
 
   return (
@@ -61,7 +84,6 @@ export default async function AdminDashboard() {
         <p className="text-muted-foreground text-sm mt-1">Resumen general de Plen Air</p>
       </div>
 
-      {/* Stats grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {statCards.map((stat) => (
           <div key={stat.label} className="bg-card border border-border rounded-xl p-5 flex items-center gap-4">
@@ -76,7 +98,6 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      {/* Recent orders */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h2 className="font-semibold text-foreground">Ultimas ordenes</h2>
@@ -86,6 +107,7 @@ export default async function AdminDashboard() {
             <thead>
               <tr className="border-b border-border bg-muted/40">
                 <th className="text-left px-5 py-3 font-medium text-muted-foreground">Comprador</th>
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground">Productos</th>
                 <th className="text-left px-5 py-3 font-medium text-muted-foreground">Total</th>
                 <th className="text-left px-5 py-3 font-medium text-muted-foreground">Estado</th>
                 <th className="text-left px-5 py-3 font-medium text-muted-foreground">Metodo</th>
@@ -101,7 +123,18 @@ export default async function AdminDashboard() {
                       <p className="font-medium text-foreground">{order.buyer_name}</p>
                       <p className="text-xs text-muted-foreground">{order.buyer_email}</p>
                     </td>
-                    <td className="px-5 py-3 font-medium tabular-nums">{formatARS(order.total_ars)}</td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {(order.order_items ?? []).length > 0 ? (
+                        (order.order_items ?? []).map((item, idx) => (
+                          <p key={item.id ?? idx} className="text-xs">
+                            {item.quantity}x {item.products?.name ?? '—'}
+                          </p>
+                        ))
+                      ) : (
+                        <span className="text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3 font-medium tabular-nums">{formatARS(order.total_ars ?? 0)}</td>
                     <td className="px-5 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${st.className}`}>
                         {st.label}
@@ -118,7 +151,7 @@ export default async function AdminDashboard() {
               })}
               {recentOrders.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">
                     No hay ordenes todavia.
                   </td>
                 </tr>
