@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ first_name: '', last_name: '', dni: '', email: '', password: '' })
+  const [form, setForm] = useState({ first_name: '', last_name: '', dni: '', phone: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -22,6 +22,13 @@ export default function RegisterPage() {
       toast.error('DNI inválido. Debe tener entre 7 y 10 dígitos numéricos.')
       return
     }
+
+    const phoneDigits = form.phone.replace(/\D/g, '')
+    if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+      toast.error('Número telefónico inválido. Ingresá un celular válido.')
+      return
+    }
+
     setLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.signUp({
@@ -32,6 +39,7 @@ export default function RegisterPage() {
           first_name: form.first_name,
           last_name: form.last_name,
           dni: form.dni,
+          phone: form.phone.trim(),
           full_name: `${form.first_name} ${form.last_name}`.trim(),
         },
       },
@@ -91,6 +99,19 @@ export default function RegisterPage() {
               pattern="[0-9]*"
               minLength={7}
               maxLength={10}
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="phone">Teléfono</Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder="Ej: 11 1234 5678"
+              autoComplete="tel"
+              inputMode="tel"
               required
             />
           </div>

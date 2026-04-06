@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils'
 
 const checkoutSchema = z.object({
   buyer_email: z.string().email(),
+  buyer_phone: z.string().min(8, 'Ingresá un teléfono válido'),
   // buyer_dni eliminado, ahora solo se pide al crear cuenta
   coupon_code: z.string().optional(),
   payment_method: z.enum(['mercadopago', 'transfer']),
@@ -48,12 +49,15 @@ export function CheckoutForm() {
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
-    defaultValues: { payment_method: 'mercadopago', buyer_dni: '' },
+    defaultValues: { payment_method: 'mercadopago', buyer_email: '', buyer_phone: '' },
   })
 
   useEffect(() => {
     if (user?.email) {
       setValue('buyer_email', user.email)
+    }
+    if (user?.user_metadata?.phone) {
+      setValue('buyer_phone', user.user_metadata.phone)
     }
   }, [user, setValue])
 
@@ -105,6 +109,7 @@ export function CheckoutForm() {
         ...data,
         buyer_name: user.user_metadata.full_name || user.email,
         buyer_email: user.email,
+        buyer_phone: data.buyer_phone?.trim() || user.user_metadata.phone || null,
         items: items.map(i => ({ product_id: i.product.id, quantity: i.quantity, unit_price_ars: i.product.price_ars })),
         coupon_code: finalCouponCode,
         subtotal_ars: subtotal,
@@ -133,9 +138,23 @@ export function CheckoutForm() {
         {/* ... Datos del comprador y Metodo de pago ... */}
         <section className="bg-card rounded-xl border p-6">
           <h2 className="font-serif font-semibold text-lg mb-5">Datos del comprador</h2>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="buyer_email">Email de la cuenta</Label>
-            <Input id="buyer_email" type="email" {...register('buyer_email')} disabled />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="buyer_email">Email de la cuenta</Label>
+              <Input id="buyer_email" type="email" {...register('buyer_email')} disabled />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="buyer_phone">Teléfono</Label>
+              <Input
+                id="buyer_phone"
+                type="tel"
+                placeholder="Ej: 11 1234 5678"
+                autoComplete="tel"
+                inputMode="tel"
+                {...register('buyer_phone')}
+              />
+              {errors.buyer_phone && <p className="text-xs text-destructive">{errors.buyer_phone.message}</p>}
+            </div>
           </div>
         </section>
         <section className="bg-card rounded-xl border p-6"><h2 className="font-serif font-semibold text-lg mb-5">Metodo de pago</h2><RadioGroup value={paymentMethod} onValueChange={v => setValue('payment_method', v as any)} className="flex flex-col gap-3">{paymentMethods.map(m => (<label key={m.id} htmlFor={m.id} className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', paymentMethod === m.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}><RadioGroupItem value={m.id} id={m.id} /><m.icon className="h-5 w-5 text-muted-foreground shrink-0" /><div className="flex-1"><p className="font-medium text-sm">{m.label}</p><p className="text-xs text-muted-foreground">{m.description}</p></div></label>))}</RadioGroup>{paymentMethod === 'transfer' && <div className="mt-4 p-4 bg-muted rounded-lg text-sm text-muted-foreground">Recibirás los datos por email al confirmar. Tu orden quedara reservada por 48 horas.</div>}</section>

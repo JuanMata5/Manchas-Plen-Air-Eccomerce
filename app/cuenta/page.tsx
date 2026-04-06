@@ -10,12 +10,14 @@ import { toast } from "sonner";
 export default function PerfilPage() {
   const { user, isLoading } = useUser();
   const [dni, setDni] = useState("");
+  const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user?.user_metadata?.dni) setDni(user.user_metadata.dni);
+    if (user?.user_metadata?.phone) setPhone(user.user_metadata.phone);
     if (user?.user_metadata?.first_name) setFirstName(user.user_metadata.first_name);
     if (user?.user_metadata?.last_name) setLastName(user.user_metadata.last_name);
   }, [user]);
@@ -26,11 +28,19 @@ export default function PerfilPage() {
       toast.error("DNI inválido. Debe tener entre 7 y 10 dígitos numéricos.");
       return;
     }
+
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phone.trim() && (phoneDigits.length < 8 || phoneDigits.length > 15)) {
+      toast.error("Número telefónico inválido. Ingresá un celular válido.");
+      return;
+    }
+
     setLoading(true);
     const supabase = createClient();
     const { error } = await supabase.auth.updateUser({
       data: {
         dni,
+        phone: phone.trim(),
         first_name: firstName,
         last_name: lastName,
         full_name: `${firstName} ${lastName}`.trim(),
@@ -86,10 +96,22 @@ export default function PerfilPage() {
             required
           />
         </div>
+        <div>
+          <label htmlFor="phone" className="block mb-1 font-medium">Teléfono</label>
+          <Input
+            id="phone"
+            type="tel"
+            value={phone}
+            onChange={e => setPhone(e.target.value)}
+            placeholder="Ej: 11 1234 5678"
+            autoComplete="tel"
+            inputMode="tel"
+          />
+        </div>
         <Button type="submit" disabled={loading}>{loading ? "Guardando..." : "Guardar"}</Button>
       </form>
       <div className="mt-6 text-sm text-muted-foreground">
-        Si tu cuenta fue creada antes del 2026, por favor completa tu DNI para poder comprar y recibir tus tickets correctamente.
+        Si tu cuenta fue creada antes del 2026, por favor completá tu DNI y teléfono para poder comprar y recibir tus tickets correctamente.
       </div>
     </div>
   );
