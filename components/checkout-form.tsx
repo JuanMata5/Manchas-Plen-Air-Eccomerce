@@ -108,7 +108,7 @@ export function CheckoutForm() {
         items: items.map(i => ({ product_id: i.product.id, quantity: i.quantity, unit_price_ars: i.product.price_ars })),
         coupon_code: finalCouponCode,
         subtotal_ars: subtotal,
-        discount_ars: manualDiscountAmount, // Enviamos solo el manual, el backend calculará el de primera compra si corresponde
+        discount_ars: manualDiscountAmount, // Enviamos solo descuentos manuales/cupones
         total_ars: total,
       }
       console.log('[CHECKOUT] Payload enviado:', payload)

@@ -112,22 +112,8 @@ export async function POST(request: NextRequest) {
       couponId = coupon?.id ?? null
     }
 
-    // 🧠 PRIMERA COMPRA
-    const { data: previousOrders } = await adminDb
-      .from('orders')
-      .select('id')
-      .eq('user_id', user.id)
-      .in('status', ['paid', 'refunded'])
-      .limit(1)
-
-    const isFirstPurchase = !previousOrders?.length
-
-    const firstDiscount = isFirstPurchase
-      ? Math.round(subtotal_ars * 0.05)
-      : 0
-
     const manualDiscount = discount_ars ?? 0
-    const finalDiscount = manualDiscount + firstDiscount
+    const finalDiscount = manualDiscount
     const finalTotal = Math.max(0, subtotal_ars - finalDiscount)
 
     // 🧾 CREAR ORDEN
@@ -147,7 +133,7 @@ export async function POST(request: NextRequest) {
         buyer_email,
         buyer_phone: buyer_phone || null,
         buyer_dni: buyer_dni || null,
-        is_first_purchase: isFirstPurchase,
+        is_first_purchase: false,
       })
       .select()
       .single()

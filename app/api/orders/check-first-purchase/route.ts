@@ -5,38 +5,13 @@ export const dynamic = 'force-dynamic'
 
 /**
  * GET /api/orders/check-first-purchase
- * Checks if the current user has any previous orders to determine if they are eligible for a first-purchase discount.
+ * First-purchase discount disabled globally.
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-
-    // If there is no user, they are not eligible for a logged-in-user-specific discount.
-    if (!user) {
-      return NextResponse.json({ is_first_purchase: false })
-    }
-
-    // Check if any order exists for this user that is paid or refunded.
-    const { count, error } = await supabase
-      .from('orders')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .in('status', ['paid', 'refunded'])
-
-    if (error) {
-      console.error('[API Check First Purchase] Error querying orders:', error)
-      // In case of a database error, it's safer to deny the discount.
-      return NextResponse.json({ is_first_purchase: false })
-    }
-
-    // If the order count is 0, it is indeed their first purchase.
-    return NextResponse.json({ is_first_purchase: count === 0 })
-
+    return NextResponse.json({ is_first_purchase: false })
   } catch (err) {
-      console.error('[API Check First Purchase Error]', err)
-      // In case of a general error, deny the discount to be safe.
-      return NextResponse.json({ is_first_purchase: false })
+    console.error('[API Check First Purchase Error]', err)
+    return NextResponse.json({ is_first_purchase: false })
   }
 }
