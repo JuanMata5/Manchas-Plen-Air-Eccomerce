@@ -76,7 +76,7 @@ const categories = [
     icon: Palette,
     title: 'Workshops',
     description: 'Talleres y clinicas con docentes invitados para todos los niveles.',
-    href: '/tienda',
+    href: '/tienda?categoria=talleres',
     color: 'bg-amber-500/10 text-amber-600',
   },
 ]
@@ -183,11 +183,16 @@ export default async function HomePage() {
             <p className="text-lg md:text-xl text-white/80 max-w-2xl leading-relaxed text-balance">
               EVENTOS Y EXPERIENCIAS PREMIUM PARA ARTISTAS
             </p>
-            <div className="mt-4">
+            <div className="mt-4 flex flex-col sm:flex-row gap-3">
               <Button asChild size="lg" className="bg-white text-black hover:bg-white/90 font-semibold text-base px-8 shadow-lg">
                 <Link href="/tienda?categoria=entradas">
                   Explorar Eventos
                   <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="border-white text-white bg-transparent hover:bg-white/10 font-semibold text-base px-8 shadow-lg">
+                <Link href="/tienda?categoria=talleres">
+                  Ver stands
                 </Link>
               </Button>
             </div>
