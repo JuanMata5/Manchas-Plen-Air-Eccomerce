@@ -6,7 +6,13 @@ import { Trash2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 
-export function DeleteOrderButton({ orderId }: { orderId: string }) {
+export function DeleteOrderButton({
+  orderId,
+  showLabel = false,
+}: {
+  orderId: string
+  showLabel?: boolean
+}) {
   const [deleting, setDeleting] = useState(false)
   const router = useRouter()
 
@@ -35,17 +41,19 @@ export function DeleteOrderButton({ orderId }: { orderId: string }) {
 
   return (
     <Button
-      variant="ghost"
+      variant={showLabel ? 'outline' : 'ghost'}
       size="sm"
       className="text-destructive hover:text-destructive hover:bg-destructive/10"
       onClick={handleDelete}
       disabled={deleting}
+      title="Eliminar orden"
     >
       {deleting ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className={`h-4 w-4 ${showLabel ? 'mr-2' : ''}`} />
       )}
+      {showLabel ? 'Eliminar' : <span className="sr-only">Eliminar orden</span>}
     </Button>
   )
 }

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { formatARS } from '@/lib/format'
 import { OrderStatusActions } from '@/components/admin/order-status-actions'
 import { AdminOrderEmail } from '@/components/admin/admin-order-email'
+import { DeleteOrderButton } from '@/components/delete-order-button'
 
 const statusLabels: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pendiente', className: 'bg-yellow-100 text-yellow-800' },
@@ -105,15 +106,18 @@ export default async function AdminOrdersPage() {
                       {new Date(order.created_at).toLocaleDateString('es-AR')}
                     </td>
                     <td className="px-5 py-3">
-                      <div className="flex items-center gap-1">
+                      <div className="flex flex-col gap-2 min-w-35">
                         <OrderStatusActions orderId={order.id} currentStatus={order.status} />
-                        <AdminOrderEmail
-                          orderId={order.id}
-                          buyerName={order.buyer_name}
-                          buyerEmail={order.buyer_email}
-                          receiptUrl={order.receipt_url}
-                          currentStatus={order.status}
-                        />
+                        <div className="flex items-center gap-2">
+                          <AdminOrderEmail
+                            orderId={order.id}
+                            buyerName={order.buyer_name}
+                            buyerEmail={order.buyer_email}
+                            receiptUrl={order.receipt_url}
+                            currentStatus={order.status}
+                          />
+                          <DeleteOrderButton orderId={order.id} showLabel />
+                        </div>
                       </div>
                     </td>
                   </tr>
