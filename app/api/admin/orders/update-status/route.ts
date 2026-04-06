@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/resend'
+import { paymentConfirmedTemplate } from '@/lib/email/templates'
 import { generateMultipleTicketsPDF, type TicketData } from '@/lib/pdf/ticket-generator'
 
 const VALID_STATUSES = ['pending', 'payment_pending', 'paid', 'cancelled', 'refunded']
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
 
       const { data: order, error: orderErr } = await adminDb
         .from('orders')
-        .select('buyer_name, buyer_email, buyer_dni')
+        .select('buyer_name, buyer_email, buyer_dni, total_ars')
         .eq('id', order_id)
         .single()
 
@@ -112,23 +113,14 @@ export async function POST(request: NextRequest) {
               return sendEmail({
                 to: order.buyer_email,
                 subject: `Tus tickets — Orden #${order_id.slice(0, 8).toUpperCase()}`,
-                html: `
-                  <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                    <div style="background: #1a1a1a; padding: 24px; text-align: center; border-radius: 8px 8px 0 0;">
-                      <h1 style="color: #fff; font-size: 24px; margin: 0;">Manchas Plen Air</h1>
-                    </div>
-                    <div style="padding: 24px; border: 1px solid #eee; border-top: none; border-radius: 0 0 8px 8px;">
-                      <p>Hola <strong>${order.buyer_name}</strong>,</p>
-                      <p>Tu pago fue confirmado. Adjuntamos tus tickets con los codigos QR.</p>
-                      <div style="background: #dcfce7; color: #166534; padding: 12px 16px; border-radius: 8px; text-align: center; font-weight: bold; margin: 16px 0;">
-                        ${tickets.length} ticket${tickets.length > 1 ? 's' : ''} disponible${tickets.length > 1 ? 's' : ''}
-                      </div>
-                      <p style="font-size: 14px; color: #666;">Tambien podes ver tus tickets en tu cuenta: <strong>Mis tickets</strong></p>
-                      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-                      <p style="color: #999; font-size: 12px; text-align: center;">Manchas Plen Air</p>
-                    </div>
-                  </div>
-                `,
+                html: paymentConfirmedTemplate({
+                  orderReference: order_id,
+                  buyerName: order.buyer_name,
+                  total: order.total_ars ?? 0,
+                  paymentDate: new Date().toISOString(),
+                  ticketCount: tickets.length,
+                  eventName: 'Manchas Plen Air',
+                }),
                 attachments: [
                   {
                     content: pdfBuffer.toString('base64'),

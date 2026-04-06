@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { Building2, Copy } from 'lucide-react'
+import { Building2, Copy, MessageCircle } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { SUPPORT_WHATSAPP_DISPLAY, createWhatsAppLink } from '@/lib/contact'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { Button } from '@/components/ui/button'
@@ -45,6 +46,10 @@ export default async function BankTransferPage({ params }: PageProps) {
   if (!order) notFound()
 
   const receiptUrl = (order as any).receipt_url ?? null
+  const orderReference = order.bank_transfer_ref ?? order.id.slice(0, 8).toUpperCase()
+  const whatsappTransferUrl = createWhatsAppLink(
+    `Hola, quiero enviar el comprobante de la orden ${orderReference} por ${formatARS(order.total_ars)}.`
+  )
 
   return (
     <>
@@ -110,6 +115,10 @@ export default async function BankTransferPage({ params }: PageProps) {
               Si tenés dudas o no recibís el mail, escribinos a{' '}
               <a href="mailto:mpadsas@gmail.com" className="text-primary underline">
                 mpadsas@gmail.com
+              </a>{' '}
+              o por WhatsApp al{' '}
+              <a href={whatsappTransferUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                {SUPPORT_WHATSAPP_DISPLAY}
               </a>
             </li>
           </ul>
@@ -118,6 +127,17 @@ export default async function BankTransferPage({ params }: PageProps) {
         {/* Receipt upload */}
         <div className="bg-card rounded-xl border border-border p-6 flex flex-col gap-4">
           <h2 className="font-semibold text-foreground">Comprobante de pago</h2>
+          <p className="text-sm text-muted-foreground">
+            Si preferís, también podés avisarnos y enviar el comprobante por WhatsApp.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button asChild className="bg-[#25D366] hover:bg-[#1ea952] text-white">
+              <a href={whatsappTransferUrl} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Enviar comprobante a WhatsApp
+              </a>
+            </Button>
+          </div>
           <Separator />
           <ReceiptUpload orderId={order.id} existingUrl={receiptUrl} />
         </div>

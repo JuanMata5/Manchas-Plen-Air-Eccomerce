@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/resend'
+import { SUPPORT_WHATSAPP_DISPLAY, createWhatsAppLink } from '@/lib/contact'
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,6 +49,8 @@ export async function POST(request: NextRequest) {
         .eq('id', order_id)
     }
 
+    const whatsappUrl = createWhatsAppLink(`Hola, tengo una consulta sobre mi orden #${order.id.slice(0, 8).toUpperCase()}.`)
+
     // Try to send email
     let emailSent = false
     let emailError = ''
@@ -78,6 +81,9 @@ export async function POST(request: NextRequest) {
                 </tr>
               </table>
               ${update_status === 'paid' ? '<div style="background: #dcfce7; color: #166534; padding: 12px 16px; border-radius: 8px; text-align: center; font-weight: bold;">Pago confirmado</div>' : ''}
+              <div style="background: #f5f5f5; padding: 14px; border-radius: 8px; margin-top: 16px; font-size: 14px; color: #333;">
+                Para consultas, escribinos por WhatsApp al <a href="${whatsappUrl}" style="color: #25D366; font-weight: 700; text-decoration: none;">${SUPPORT_WHATSAPP_DISPLAY}</a>.
+              </div>
               <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
               <p style="color: #999; font-size: 12px; text-align: center;">Plen Air — Convencion de pintura al aire libre</p>
             </div>

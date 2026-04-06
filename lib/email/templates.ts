@@ -1,3 +1,5 @@
+import { SUPPORT_WHATSAPP_DISPLAY, createWhatsAppLink } from '@/lib/contact'
+
 export interface OrderConfirmationTemplate {
   orderReference: string
   buyerName: string
@@ -55,6 +57,18 @@ const sanitize = (text: string) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#x27;') ?? ''
 
+const getBaseUrl = () => process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+
+const supportContactHtml = (message: string) => `
+  <div style="background: #f5f5f5; padding: 15px; border-radius: 6px; margin-top: 20px;">
+    <p style="margin: 0 0 8px 0; font-size: 14px; color: #333;">
+      ¿Necesitás ayuda? Escribinos por WhatsApp al
+      <a href="${createWhatsAppLink(message)}" style="color: #25D366; font-weight: 700; text-decoration: none;">${SUPPORT_WHATSAPP_DISPLAY}</a>
+    </p>
+    <p style="margin: 0; font-size: 13px; color: #666;">También podés responder este email si lo preferís.</p>
+  </div>
+`
+
 export function orderConfirmationTemplate(data: OrderConfirmationTemplate): string {
   const itemsHtml = data.items
     .map(
@@ -84,6 +98,23 @@ export function orderConfirmationTemplate(data: OrderConfirmationTemplate): stri
       </p>
     </div>
   `).join('') : ''
+
+  const baseUrl = getBaseUrl()
+  const ordersUrl = `${baseUrl}/cuenta/mis-ordenes`
+  const transferUrl = `${baseUrl}/checkout/transferencia/${data.orderReference}`
+  const transferWhatsAppUrl = createWhatsAppLink(`Hola, quiero enviar el comprobante de la orden ${data.orderReference}.`)
+  const actionButtons = data.paymentMethod === 'transfer'
+    ? `
+      <div style="margin-top: 20px; text-align: center;">
+        <a href="${transferUrl}" style="display: inline-block; margin: 0 8px 8px 0; background: #667eea; color: white; padding: 12px 18px; border-radius: 6px; text-decoration: none; font-weight: 600;">Ver datos de transferencia</a>
+        <a href="${transferWhatsAppUrl}" style="display: inline-block; margin: 0 8px 8px 0; background: #25D366; color: white; padding: 12px 18px; border-radius: 6px; text-decoration: none; font-weight: 600;">Enviar comprobante por WhatsApp</a>
+      </div>
+    `
+    : `
+      <div style="margin-top: 20px; text-align: center;">
+        <a href="${ordersUrl}" style="display: inline-block; background: #667eea; color: white; padding: 12px 18px; border-radius: 6px; text-decoration: none; font-weight: 600;">Ver mi orden</a>
+      </div>
+    `
 
   return `
 <!DOCTYPE html>
@@ -140,9 +171,8 @@ export function orderConfirmationTemplate(data: OrderConfirmationTemplate): stri
         </p>
       </div>
 
-      <p style="margin-top: 25px; font-size: 13px; color: #666;">
-        Si tenés preguntas, respondé este email o contactanos en soporte@plenair.com.ar
-      </p>
+      ${actionButtons}
+      ${supportContactHtml(`Hola, tengo una consulta sobre mi orden ${data.orderReference}.`)}
     </div>
 
     <!-- Footer -->
@@ -159,6 +189,10 @@ export function orderConfirmationTemplate(data: OrderConfirmationTemplate): stri
 }
 
 export function paymentConfirmedTemplate(data: PaymentConfirmedTemplate): string {
+  const baseUrl = getBaseUrl()
+  const ticketsUrl = `${baseUrl}/cuenta/mis-tickets`
+  const whatsappUrl = createWhatsAppLink(`Hola, ya tengo el pago confirmado de la orden ${data.orderReference} y quiero hacer una consulta.`)
+
   return `
 <!DOCTYPE html>
 <html lang="es">
@@ -198,14 +232,18 @@ export function paymentConfirmedTemplate(data: PaymentConfirmedTemplate): string
 
       <h3 style="color: #333; margin-top: 25px;">📋 Próximos pasos</h3>
       <ol style="padding-left: 20px;">
-        <li>Descargá o capturé tus entradas (adjuntas abajo)</li>
+        <li>Descargá o capturá tus entradas (adjuntas abajo)</li>
+        <li>También podés verlas desde tu cuenta</li>
         <li>Presentalas en la entrada del evento</li>
         <li>¡Disfrutá Plen Air!</li>
       </ol>
 
-      <p style="margin-top: 25px; font-size: 13px; color: #666;">
-        Si tenés preguntas o necesitás ayuda, respondé este email o contactanos en <a href="mailto:soporte@plenair.com.ar" style="color: #4caf50; text-decoration: none;">soporte@plenair.com.ar</a>
-      </p>
+      <div style="margin-top: 20px; text-align: center;">
+        <a href="${ticketsUrl}" style="display: inline-block; margin: 0 8px 8px 0; background: #4caf50; color: white; padding: 12px 18px; border-radius: 6px; text-decoration: none; font-weight: 600;">Ver mis tickets</a>
+        <a href="${whatsappUrl}" style="display: inline-block; margin: 0 8px 8px 0; background: #25D366; color: white; padding: 12px 18px; border-radius: 6px; text-decoration: none; font-weight: 600;">Contactar por WhatsApp</a>
+      </div>
+
+      ${supportContactHtml(`Hola, ya tengo el pago confirmado de la orden ${data.orderReference} y quiero hacer una consulta.`)}
     </div>
 
     <!-- Footer -->
