@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
 import { UserProvider } from '@/components/user-provider'
 import { CartSessionManager } from '@/components/cart-session-manager' // 🔥 Importado
+import { WhatsAppFloat } from '@/components/whatsapp-float'
 import './globals.css'
 
 const _lato = Lato({ subsets: ['latin'], weight: ['300', '400', '700', '900'] })
@@ -57,6 +58,7 @@ export default function RootLayout({
           <UserProvider>
             <CartSessionManager /> {/* 🔥 Añadido el guardián */}
             {children}
+            <WhatsAppFloat />
             <Toaster richColors position="top-right" />
           </UserProvider>
         </ThemeProvider>
