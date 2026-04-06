@@ -164,26 +164,24 @@ export default async function HomePage() {
       <Navbar />
       <main>
         {/* ── 1. Hero Section ── */}
-        {/* Hero eliminado en mobile/tablet, solo visible en desktop */}
-        <section className="relative w-full h-[60vh] min-h-125 items-center justify-center text-center text-white overflow-hidden hidden md:flex">
-          {/* Hero desktop aquí, mobile/tablet no renderiza nada */}
+        <section className="relative flex w-full min-h-[72svh] items-center justify-center overflow-hidden text-center text-white md:h-[60vh] md:min-h-128">
           <video 
             src="/2c26b202-351c-4323-817e-1f033c78b3b8.mp4" 
             autoPlay 
             loop 
             muted 
             playsInline
-            className="absolute top-0 left-0 w-full h-full object-cover z-0" 
+            className="absolute top-0 left-0 h-full w-full object-cover z-0" 
           />
-          <div className="absolute inset-0 bg-black/50 z-10" />
-          <div className="relative z-20 max-w-4xl mx-auto px-4 flex flex-col items-center gap-6">
-            <h1 className="font-serif font-bold text-4xl sm:text-5xl md:text-6xl tracking-tight text-balance leading-tight">
+          <div className="absolute inset-0 bg-black/55 z-10" />
+          <div className="relative z-20 mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 py-20 sm:px-6 sm:py-24 md:gap-6">
+            <h1 className="font-serif text-3xl font-bold leading-tight tracking-tight text-balance sm:text-5xl md:text-6xl">
               Manchas Eventos
             </h1>
-            <p className="text-lg md:text-xl text-white/80 max-w-2xl leading-relaxed text-balance">
+            <p className="max-w-2xl text-base leading-relaxed text-white/85 text-balance sm:text-lg md:text-xl">
               EVENTOS Y EXPERIENCIAS PREMIUM PARA ARTISTAS
             </p>
-            <div className="mt-4 flex flex-col sm:flex-row gap-3">
+            <div className="mt-3 flex w-full max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
               <Button asChild size="lg" className="bg-white text-black hover:bg-white/90 font-semibold text-base px-8 shadow-lg">
                 <Link href="/tienda?categoria=entradas">
                   Explorar Eventos
