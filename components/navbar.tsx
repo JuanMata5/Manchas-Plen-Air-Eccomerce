@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ShoppingCart, Menu, X, Leaf, Settings, LogOut, LogIn, UserPlus, Sun, Moon, Ticket } from 'lucide-react'
+import { ShoppingCart, Menu, X, Leaf, Settings, LogOut, LogIn, UserPlus, Sun, Moon, Ticket, Plane } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import { useCartStore } from '@/lib/cart-store'
@@ -17,6 +17,7 @@ const navLinks = [
   { href: '/tienda', label: 'Tienda' },
   { href: '/tienda?categoria=entradas', label: 'Entradas' },
   { href: '/tienda?categoria=talleres', label: 'Stands' },
+  { href: '/experiencias', label: 'Experiencias' },
   { href: '/#contacto', label: 'Contacto' },
 ]
 console.log();
