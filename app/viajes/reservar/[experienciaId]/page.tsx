@@ -168,10 +168,10 @@ export default function TravelCheckoutPage() {
       {/* Header */}
       <div className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href={`/experiencias/${experience.id}`}>
+          <Link href="/tienda">
             <button className="flex items-center gap-2 text-slate-900 hover:text-slate-600">
               <ArrowLeft size={20} />
-              Volver a {experience.title}
+              Volver a Tienda
             </button>
           </Link>
         </div>

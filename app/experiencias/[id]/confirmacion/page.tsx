@@ -94,9 +94,9 @@ export default function ConfirmacionPage() {
         <div className="text-red-600 text-center mb-6">
           {error || 'No se encontró la reserva'}
         </div>
-        <Link href="/experiencias">
+        <Link href="/tienda">
           <button className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800">
-            Volver a Experiencias
+            Volver a Tienda
           </button>
         </Link>
       </div>
@@ -270,9 +270,9 @@ export default function ConfirmacionPage() {
             Compartir
           </button>
 
-          <Link href="/experiencias">
+          <Link href="/tienda">
             <button className="w-full flex items-center justify-center gap-2 bg-slate-200 hover:bg-slate-300 text-slate-900 font-semibold py-3 px-6 rounded-lg transition-colors">
-              Ver Más Experiencias
+              Ver Más Experiencias en Tienda
             </button>
           </Link>
         </div>

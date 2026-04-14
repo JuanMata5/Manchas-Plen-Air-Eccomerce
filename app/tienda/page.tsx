@@ -6,10 +6,29 @@ import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { Empty } from '@/components/ui/empty'
 import { Spinner } from '@/components/ui/spinner'
+import Link from 'next/link'
+import { MapPin, Users, DollarSign, ArrowRight } from 'lucide-react'
+import Image from 'next/image'
 import type { Product, Category } from '@/lib/types'
 
 interface PageProps {
   searchParams: Promise<{ categoria?: string; q?: string }>
+}
+
+interface TravelExperience {
+  id: string
+  title: string
+  location: string
+  dates: string
+  description: string
+  capacity: number
+  image_url: string
+  plans: Array<{
+    name: string
+    price_usd: number
+    price_ars_blue?: number
+  }>
+  is_active: boolean
 }
 
 async function getProducts(categorySlug?: string, q?: string): Promise<Product[]> {
@@ -47,6 +66,16 @@ async function getCategories(): Promise<Category[]> {
   return data ?? []
 }
 
+async function getTravelExperiences(): Promise<TravelExperience[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('travel_experiences')
+    .select('*')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+  return data ?? []
+}
+
 async function ProductGrid({
   categorySlug,
   q,
@@ -81,6 +110,107 @@ async function ProductGrid({
   )
 }
 
+async function ExperiencesGrid() {
+  const experiences = await getTravelExperiences()
+
+  if (experiences.length === 0) {
+    return null
+  }
+
+  const getMinPrice = (exp: TravelExperience) => {
+    if (!exp.plans || exp.plans.length === 0) return 0
+    return Math.min(...exp.plans.map(p => p.price_usd))
+  }
+
+  const getMinPriceARS = (exp: TravelExperience) => {
+    if (!exp.plans || exp.plans.length === 0) return 0
+    return Math.min(...exp.plans.map(p => p.price_ars_blue || p.price_usd * 1100))
+  }
+
+  return (
+    <div className="mb-12">
+      <h2 className="font-serif font-bold text-2xl md:text-3xl text-foreground mb-6">
+        Experiencias Premium
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {experiences.map((experience) => (
+          <Link
+            key={experience.id}
+            href={`/viajes/reservar/${experience.id}`}
+            className="group"
+          >
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer h-full flex flex-col">
+              {/* Image */}
+              <div className="relative h-64 w-full bg-slate-200 overflow-hidden">
+                {experience.image_url ? (
+                  <Image
+                    src={experience.image_url}
+                    alt={experience.title}
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center">
+                    <span className="text-slate-500">Sin imagen</span>
+                  </div>
+                )}
+                <div className="absolute top-0 right-0 bg-blue-600 text-white px-3 py-1 m-3 rounded-full text-sm font-semibold">
+                  Experiencia
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 flex flex-col flex-grow">
+                <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2">
+                  {experience.title}
+                </h3>
+
+                {/* Location */}
+                <div className="flex items-center text-slate-600 mb-3">
+                  <MapPin size={16} className="mr-2 flex-shrink-0" />
+                  <span className="text-sm">{experience.location}</span>
+                </div>
+
+                {/* Description */}
+                <p className="text-slate-700 text-sm mb-4 line-clamp-2 flex-grow">
+                  {experience.description}
+                </p>
+
+                {/* Capacity */}
+                <div className="flex items-center text-slate-600 mb-4">
+                  <Users size={16} className="mr-2" />
+                  <span className="text-sm">{experience.capacity} cupos</span>
+                </div>
+
+                {/* Price */}
+                <div className="mt-auto">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center">
+                      <DollarSign size={16} className="text-green-600" />
+                      <span className="text-xl font-bold text-green-600">
+                        {getMinPrice(experience)} USD
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Desde ${getMinPriceARS(experience).toLocaleString('es-AR')} ARS
+                  </p>
+                </div>
+
+                {/* CTA */}
+                <button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2">
+                  Ver opciones de pago
+                  <ArrowRight size={18} />
+                </button>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default async function TiendaPage({ searchParams }: PageProps) {
   const params = await searchParams
   const categories = await getCategories()
@@ -104,6 +234,13 @@ export default async function TiendaPage({ searchParams }: PageProps) {
             <p className="text-muted-foreground">{activeCategory.description}</p>
           )}
         </div>
+
+        {/* Show Experiences section only when no category filter */}
+        {!categorySlug && (
+          <Suspense fallback={null}>
+            <ExperiencesGrid />
+          </Suspense>
+        )}
 
         {/* Filters */}
         <div className="mb-8">

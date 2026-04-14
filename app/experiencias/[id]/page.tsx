@@ -97,7 +97,7 @@ export default function ExperienceDetailPage() {
       {/* Back Button */}
       <div className="bg-white border-b">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link href="/experiencias">
+          <Link href="/tienda">
             <button className="flex items-center gap-2 text-slate-900 hover:text-slate-600 font-semibold">
               <ArrowLeft size={20} />
               Volver a Experiencias
@@ -255,8 +255,8 @@ export default function ExperienceDetailPage() {
               )}
 
               {/* CTA Button */}
-              <Link href={`/app/viajes/reservar/${experience.id}`}>
-                <button className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-6 rounded-lg transition-colors duration-200 text-lg">
+              <Link href={`/viajes/reservar/${experience.id}`}>
+                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg transition-colors duration-200 text-lg">
                   Reservar Ahora
                 </button>
               </Link>

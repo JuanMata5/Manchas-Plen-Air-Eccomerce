@@ -17,7 +17,6 @@ const navLinks = [
   { href: '/tienda', label: 'Tienda' },
   { href: '/tienda?categoria=entradas', label: 'Entradas' },
   { href: '/tienda?categoria=talleres', label: 'Stands' },
-  { href: '/experiencias', label: 'Experiencias' },
   { href: '/#contacto', label: 'Contacto' },
 ]
 console.log();
