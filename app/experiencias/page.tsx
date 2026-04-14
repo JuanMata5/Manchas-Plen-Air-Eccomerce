@@ -43,6 +43,11 @@ export default async function ExperienciasPage() {
     return Math.min(...experience.plans.map(p => p.price_usd));
   };
 
+  const getMinPriceARS = (experience: TravelExperience) => {
+    if (!experience.plans || experience.plans.length === 0) return 0;
+    return Math.min(...experience.plans.map(p => (p as any).price_ars_blue || p.price_usd * 1100));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Hero Section */}
@@ -117,12 +122,16 @@ export default async function ExperienciasPage() {
 
                     {/* Price */}
                     <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center">
-                        <DollarSign size={18} className="text-green-600 mr-1" />
-                        <span className="text-2xl font-bold text-green-600">
-                          {getMinPrice(experience)}
-                        </span>
-                        <span className="text-slate-600 text-sm ml-1 font-medium">USD</span>
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <DollarSign size={18} className="text-green-600" />
+                          <span className="text-lg font-bold text-green-600">
+                            {getMinPrice(experience)} USD
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-600 font-medium">
+                          Desde ${getMinPriceARS(experience).toLocaleString('es-AR')} ARS
+                        </div>
                       </div>
                     </div>
 

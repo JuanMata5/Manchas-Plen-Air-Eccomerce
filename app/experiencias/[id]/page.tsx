@@ -10,6 +10,7 @@ import { MapPin, Calendar, Users, ArrowLeft, Check, X } from 'lucide-react';
 interface Plan {
   name: string;
   price_usd: number;
+  price_ars_blue?: number;
   variants: string[];
   includes: string[];
   not_includes: string[];
@@ -211,9 +212,14 @@ export default function ExperienceDetailPage() {
                           </p>
                         )}
                       </div>
-                      <p className="text-2xl font-bold text-green-600">
-                        ${plan.price_usd}
-                      </p>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-green-600">
+                          ${plan.price_usd}
+                        </p>
+                        <p className="text-xs text-slate-600 font-medium">
+                          ${((plan as any).price_ars_blue || plan.price_usd * 1100).toLocaleString('es-AR')} ARS
+                        </p>
+                      </div>
                     </div>
                   </button>
                 ))}

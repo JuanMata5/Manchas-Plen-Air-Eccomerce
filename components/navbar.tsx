@@ -68,7 +68,12 @@ export function Navbar() {
                 <Link href="/cuenta" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><UserPlus className="h-4 w-4" />Mi perfil</Link>
                 <Link href="/cuenta/mis-ordenes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><ShoppingCart className="h-4 w-4" />Mis Órdenes</Link>
                 <Link href="/cuenta/mis-tickets" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><Ticket className="h-4 w-4" />Mis Tickets</Link>
-                {isAdmin && <Link href="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><Settings className="h-4 w-4" />Admin</Link>}
+                {isAdmin && (
+                  <>
+                    <Link href="/admin/viajes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><Plane className="h-4 w-4" />Viajes</Link>
+                    <Link href="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><Settings className="h-4 w-4" />Admin</Link>
+                  </>
+                )}
                 <button onClick={() => supabase.auth.signOut()} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><LogOut className="h-4 w-4" />Cerrar sesión</button>
               </>
             ) : (
@@ -98,7 +103,12 @@ export function Navbar() {
                     <li><Link href="/cuenta" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Mi perfil</Link></li>
                     <li><Link href="/cuenta/mis-ordenes" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Mis ordenes</Link></li>
                     <li><Link href="/cuenta/mis-tickets" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Mis tickets</Link></li>
-                    {isAdmin && <li><Link href="/admin" className="hover:text-foreground" onClick={() => setMobileOpen(false)}>Panel Admin</Link></li>}
+                    {isAdmin && (
+                      <>
+                        <li><Link href="/admin/viajes" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Reservas de Viajes</Link></li>
+                        <li><Link href="/admin" className="hover:text-foreground" onClick={() => setMobileOpen(false)}>Panel Admin</Link></li>
+                      </>
+                    )}
                     <li><button onClick={() => { supabase.auth.signOut(); setMobileOpen(false); }} className="text-red-500">Cerrar sesion</button></li>
                   </>
                 ) : (

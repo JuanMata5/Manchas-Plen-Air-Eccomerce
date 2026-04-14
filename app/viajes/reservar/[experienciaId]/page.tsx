@@ -9,6 +9,7 @@ import { ArrowLeft, AlertCircle, Loader, Check } from 'lucide-react';
 interface Plan {
   name: string;
   price_usd: number;
+  price_ars_blue?: number;
   variants: string[];
   includes: string[];
   not_includes: string[];
@@ -237,9 +238,14 @@ export default function TravelCheckoutPage() {
                               <p className="text-sm text-slate-600">{plan.variants[0]}</p>
                             )}
                           </div>
-                          <p className="text-2xl font-bold text-green-600">
-                            ${plan.price_usd}
-                          </p>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-green-600">
+                              ${plan.price_usd}
+                            </p>
+                            <p className="text-xs text-slate-600 font-medium">
+                              ${((plan as any).price_ars_blue || plan.price_usd * 1100).toLocaleString('es-AR')} ARS
+                            </p>
+                          </div>
                         </div>
                       </label>
                     ))}
@@ -370,10 +376,17 @@ export default function TravelCheckoutPage() {
                     </p>
                   </div>
 
-                  <div className="flex justify-between items-center pt-4 border-t">
-                    <p className="font-semibold text-slate-900">Total</p>
-                    <p className="text-2xl font-bold text-green-600">
+                  <div className="flex justify-between items-center pt-4 border-t mb-4">
+                    <p className="font-semibold text-slate-900">Precio USD</p>
+                    <p className="text-xl font-bold text-green-600">
                       ${experience.plans[formData.plan].price_usd} USD
+                    </p>
+                  </div>
+
+                  <div className="flex justify-between items-center pb-4 border-b">
+                    <p className="font-semibold text-slate-900">Precio ARS (Dólar Blue)</p>
+                    <p className="text-lg font-bold text-blue-600">
+                      ${((experience.plans[formData.plan] as any).price_ars_blue || experience.plans[formData.plan].price_usd * 1100).toLocaleString('es-AR')} ARS
                     </p>
                   </div>
                 </div>

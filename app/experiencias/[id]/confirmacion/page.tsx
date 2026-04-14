@@ -104,8 +104,24 @@ export default function ConfirmacionPage() {
   }
 
   const downloadVoucher = async () => {
-    // TODO: Implementar descarga de PDF voucher
-    alert('PDF de voucher está en desarrollo');
+    try {
+      const response = await fetch(`/api/travel-bookings/${booking.id}/voucher`);
+      const html = await response.text();
+
+      // Create blob and download
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `voucher-${booking.booking_reference}.html`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading voucher:', error);
+      alert('Error al descargar el voucher');
+    }
   };
 
   const shareBooking = async () => {
