@@ -128,11 +128,77 @@ export type Coupon = {
   created_at: string
 }
 
+// Travel Experience types
+export type Plan = {
+  id: string
+  name: string
+  price_usd: number
+  price_ars_blue: number
+  includes: string[]
+  excludes?: string[]
+  description?: string
+}
+
+export type TravelExperience = {
+  id: string
+  title: string
+  location: string
+  dates: string
+  description: string
+  capacity: number
+  image_url: string
+  gallery: string[]
+  plans: Plan[]
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export type TravelBooking = {
+  id: string
+  order_id: string
+  experience_id: string
+  booking_reference: string
+  customer_name: string
+  customer_email: string
+  customer_phone: string | null
+  plan_name: string
+  location: string
+  dates: string
+  price_usd: number
+  price_ars_blue: number
+  status: 'pending' | 'paid' | 'cancelled' | 'completed'
+  created_at: string
+  updated_at: string
+}
+
 // Cart types (client-side only)
-export type CartItem = {
-  product: Product
+export type BaseCartItem = {
   quantity: number
 }
+
+export type ProductCartItem = BaseCartItem & {
+  product: Product
+  type?: 'product'
+}
+
+export type ExperienceCartItem = BaseCartItem & {
+  type: 'experience'
+  id: string
+  name: string
+  price_usd: number
+  price_ars_blue: number
+  image_url: string
+  metadata: {
+    experienceId: string
+    planIndex: number
+    planName: string
+    location: string
+    dates: string
+  }
+}
+
+export type CartItem = ProductCartItem | ExperienceCartItem
 
 export type Cart = {
   items: CartItem[]
