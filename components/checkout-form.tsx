@@ -19,6 +19,16 @@ import { Separator } from '@/components/ui/separator'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Empty } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
+import type { CartItem } from '@/lib/types'
+
+// Type guards
+function isExperienceItem(item: CartItem) {
+  return item.type === 'experience'
+}
+
+function isProductItem(item: CartItem) {
+  return 'product' in item && item.product !== undefined
+}
 
 const checkoutSchema = z.object({
   buyer_email: z.string().email(),
@@ -103,17 +113,37 @@ export function CheckoutForm() {
     }
     setIsSubmitting(true)
     try {
-      // LOG: Verificar valor de buyer_dni y payload
-      console.log('[CHECKOUT] Valor buyer_dni:', data.buyer_dni)
+      // Map items to proper format for API (handle both products and experiences)
+      const mappedItems = items.map(i => {
+        if (isProductItem(i)) {
+          return {
+            type: 'product',
+            product_id: i.product.id,
+            quantity: i.quantity,
+            unit_price_ars: i.product.price_ars,
+          }
+        } else if (isExperienceItem(i)) {
+          return {
+            type: 'experience',
+            id: i.id,
+            name: i.name,
+            price_ars_blue: i.price_ars_blue,
+            price_usd: i.price_usd,
+            quantity: i.quantity,
+            metadata: i.metadata,
+          }
+        }
+      })
+
       const payload = {
         ...data,
         buyer_name: user.user_metadata.full_name || user.email,
         buyer_email: user.email,
         buyer_phone: data.buyer_phone?.trim() || user.user_metadata.phone || null,
-        items: items.map(i => ({ product_id: i.product.id, quantity: i.quantity, unit_price_ars: i.product.price_ars })),
+        items: mappedItems,
         coupon_code: finalCouponCode,
         subtotal_ars: subtotal,
-        discount_ars: manualDiscountAmount, // Enviamos solo descuentos manuales/cupones
+        discount_ars: manualDiscountAmount,
         total_ars: total,
       }
       console.log('[CHECKOUT] Payload enviado:', payload)
@@ -163,7 +193,42 @@ export function CheckoutForm() {
       <div className="lg:col-span-1"><div className="bg-card rounded-xl border p-6 sticky top-24 flex flex-col gap-4">
         <h2 className="font-serif font-semibold text-lg">Tu orden</h2>
         <Separator />
-        <div className="flex flex-col gap-3">{items.map(({ product, quantity }) => (<div key={product.id} className="flex items-center gap-3"><div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted"><Image src={product.image_url!} alt={product.name} fill className="object-cover" sizes="48px" /></div><div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{product.name}</p><p className="text-xs text-muted-foreground">x{quantity}</p></div><span className="text-sm font-medium tabular-nums">{formatARS(product.price_ars * quantity)}</span></div>))}</div>
+        <div className="flex flex-col gap-3">{items.map((item) => {
+          if (isProductItem(item)) {
+            const { product, quantity } = item
+            return (
+              <div key={product.id} className="flex items-center gap-3">
+                <div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted">
+                  <Image src={product.image_url!} alt={product.name} fill className="object-cover" sizes="48px" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{product.name}</p>
+                  <p className="text-xs text-muted-foreground">x{quantity}</p>
+                </div>
+                <span className="text-sm font-medium tabular-nums">{formatARS(product.price_ars * quantity)}</span>
+              </div>
+            )
+          } else if (isExperienceItem(item)) {
+            return (
+              <div key={item.id} className="flex items-center gap-3">
+                <div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted">
+                  {item.image_url ? (
+                    <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="48px" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs font-serif">
+                      EXP
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">{item.metadata.planName}</p>
+                </div>
+                <span className="text-sm font-medium tabular-nums">{formatARS(item.price_ars_blue)}</span>
+              </div>
+            )
+          }
+        })}</div>
         <Separator />
         <div className="flex flex-col gap-2">
           <Label htmlFor="coupon_code" className="text-sm">Cupón de descuento</Label>
