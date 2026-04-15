@@ -434,7 +434,6 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-    }
 
     // 🎟 CUPON
     let couponId: string | null = null
