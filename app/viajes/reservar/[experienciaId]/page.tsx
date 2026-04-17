@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { ArrowLeft, AlertCircle, Loader, Check } from 'lucide-react';
+import { ArrowLeft, AlertCircle, Loader, Check, MapPin, Calendar, Users, Star } from 'lucide-react';
+import { useCartStore } from '@/lib/cart-store';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface Plan {
   name: string;
@@ -12,7 +15,7 @@ interface Plan {
   price_ars_blue?: number;
   variants: string[];
   includes: string[];
-  not_includes: string[];
+  not_includes?: string[];
 }
 
 interface TravelExperience {
@@ -22,16 +25,13 @@ interface TravelExperience {
   dates: string;
   description: string;
   capacity: number;
+  image_url: string;
   plans: Plan[];
+  is_active: boolean;
 }
 
-interface FormData {
-  plan: number | null;
-  variant: string;
-  fullName: string;
-  email: string;
-  phone: string;
-  agreedToTerms: boolean;
+function getARSPrice(plan: Plan) {
+  return plan.price_ars_blue ?? Math.round(plan.price_usd * 1100);
 }
 
 export default function TravelCheckoutPage() {
@@ -39,21 +39,14 @@ export default function TravelCheckoutPage() {
   const router = useRouter();
   const experienciaId = params.experienciaId as string;
   const supabase = createClient();
+  const { addToCart } = useCartStore();
+  const { toast } = useToast();
 
   const [experience, setExperience] = useState<TravelExperience | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-
-  const [formData, setFormData] = useState<FormData>({
-    plan: null,
-    variant: '',
-    fullName: '',
-    email: '',
-    phone: '',
-    agreedToTerms: false,
-  });
+  const [selectedPlan, setSelectedPlan] = useState(0);
 
   useEffect(() => {
     const fetchExperience = async () => {
@@ -77,65 +70,6 @@ export default function TravelCheckoutPage() {
       fetchExperience();
     }
   }, [experienciaId, supabase]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!experience || formData.plan === null) {
-      setError('Por favor selecciona un plan');
-      return;
-    }
-
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      const selectedPlan = experience.plans[formData.plan];
-      
-      // Call API to create booking
-      const response = await fetch('/api/travel-bookings/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          travelId: experience.id,
-          planName: selectedPlan.name,
-          planPrice: selectedPlan.price_usd,
-          planVariant: formData.variant || selectedPlan.variants[0],
-          customerName: formData.fullName,
-          customerEmail: formData.email,
-          customerPhone: formData.phone,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al crear la reserva');
-      }
-
-      const result = await response.json();
-
-      // Redirect to confirmation page
-      setSuccess(true);
-      setTimeout(() => {
-        router.push(`/experiencias/${experience.id}/confirmacion?ref=${result.booking.bookingReference}`);
-      }, 2000);
-
-    } catch (err: any) {
-      setError(err.message || 'Error al crear la reserva');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -163,9 +97,62 @@ export default function TravelCheckoutPage() {
     return null;
   }
 
+  const plan = experience.plans[selectedPlan];
+  const planPriceARS = getARSPrice(plan);
+  const isTrevelin = experience.location.toLowerCase().includes('trevelin') || experience.title.toLowerCase().includes('trevelin');
+  const requiresMinimum = isTrevelin && planPriceARS < 500000;
+
+  const handleAddToCart = async () => {
+    if (!plan) return;
+
+    if (requiresMinimum) {
+      toast({
+        title: 'Reserva Trevelin no permitida',
+        description: 'Los viajes a Trevelin se pueden reservar desde $500.000 ARS.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      addToCart({
+        type: 'experience',
+        id: experience.id,
+        name: experience.title,
+        price_usd: plan.price_usd,
+        price_ars_blue: planPriceARS,
+        quantity: 1,
+        image_url: experience.image_url,
+        metadata: {
+          experienceId: experience.id,
+          planIndex: selectedPlan,
+          planName: plan.name,
+          location: experience.location,
+          dates: experience.dates,
+        },
+      });
+
+      toast({
+        title: 'Experiencia agregada al carrito',
+        description: `${experience.title} - ${plan.name}`,
+      });
+      router.push('/carrito');
+    } catch (err) {
+      console.error('Error al agregar al carrito:', err);
+      toast({
+        title: 'Error',
+        description: 'No se pudo agregar la experiencia al carrito.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
       <div className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <Link href="/tienda">
@@ -177,178 +164,139 @@ export default function TravelCheckoutPage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {success && (
-          <div className="mb-8 bg-green-50 border border-green-200 rounded-lg p-6 flex gap-4">
-            <Check size={24} className="text-green-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-bold text-green-900">¡Reserva creada!</h3>
-              <p className="text-green-800 text-sm mt-1">Redirigiendo a confirmación...</p>
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-6 flex gap-4">
-            <AlertCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-bold text-red-900">Error</h3>
-              <p className="text-red-800 text-sm mt-1">{error}</p>
-            </div>
-          </div>
-        )}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-900">Reserva tu experiencia</h1>
+          <p className="text-slate-600 mt-2">Selecciona el plan y agrégalo al carrito para finalizar la reserva.</p>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Form */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow p-8">
-              <h1 className="text-3xl font-bold text-slate-900 mb-8">
-                Reserva tu Experiencia
-              </h1>
+          <div className="lg:col-span-2 space-y-8">
+            {/* Experience Details */}
+            <div className="bg-white rounded-3xl shadow p-8">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-slate-900 mb-4">{experience.title}</h2>
+                <div className="flex flex-wrap gap-4 text-sm text-slate-600 mb-4">
+                  <div className="flex items-center gap-2">
+                    <MapPin size={16} />
+                    {experience.location}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar size={16} />
+                    {experience.dates}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users size={16} />
+                    Capacidad: {experience.capacity} personas
+                  </div>
+                </div>
+                <p className="text-slate-700">{experience.description}</p>
+              </div>
 
-              <form onSubmit={handleSubmit} className="space-y-8">
-                {/* Plan Selection */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-4">
-                    1. Selecciona tu Plan
-                  </label>
-                  <div className="space-y-3">
-                    {experience.plans.map((plan, idx) => (
-                      <label
-                        key={idx}
-                        className={`block p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                          formData.plan === idx
-                            ? 'border-slate-900 bg-slate-50'
-                            : 'border-slate-200 bg-white hover:border-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <input
-                            type="radio"
-                            name="planSelection"
-                            value={idx}
-                            checked={formData.plan === idx}
-                            onChange={() => setFormData(prev => ({ ...prev, plan: idx }))}
-                            className="w-4 h-4"
-                          />
-                          <div className="flex-1">
-                            <p className="font-semibold text-slate-900">{plan.name}</p>
-                            {plan.variants.length > 0 && (
-                              <p className="text-sm text-slate-600">{plan.variants[0]}</p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <p className="text-lg font-bold text-green-600">
-                              ${plan.price_usd}
-                            </p>
-                            <p className="text-xs text-slate-600 font-medium">
-                              ${((plan as any).price_ars_blue || plan.price_usd * 1100).toLocaleString('es-AR')} ARS
-                            </p>
-                          </div>
+              {experience.image_url && (
+                <div className="mb-6">
+                  <img
+                    src={experience.image_url}
+                    alt={experience.title}
+                    className="w-full h-64 object-cover rounded-xl"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Plan Selection */}
+            <div className="bg-white rounded-3xl shadow p-8">
+              <h3 className="text-xl font-bold text-slate-900 mb-6">Selecciona tu Plan</h3>
+              <div className="space-y-4">
+                {experience.plans.map((plan, idx) => (
+                  <div
+                    key={idx}
+                    className={`border-2 rounded-xl p-6 cursor-pointer transition-all ${
+                      selectedPlan === idx
+                        ? 'border-slate-900 bg-slate-50'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
+                    onClick={() => setSelectedPlan(idx)}
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="radio"
+                          name="plan"
+                          checked={selectedPlan === idx}
+                          onChange={() => setSelectedPlan(idx)}
+                          className="w-4 h-4"
+                        />
+                        <div>
+                          <h4 className="text-lg font-semibold text-slate-900">{plan.name}</h4>
+                          {plan.variants.length > 0 && (
+                            <p className="text-sm text-slate-600">{plan.variants.join(', ')}</p>
+                          )}
                         </div>
-                      </label>
-                    ))}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold text-green-600">
+                          ${plan.price_usd} USD
+                        </p>
+                        <p className="text-sm text-slate-600">
+                          ${getARSPrice(plan).toLocaleString('es-AR')} ARS
+                        </p>
+                      </div>
+                    </div>
+
+                    {selectedPlan === idx && (
+                      <div className="mt-4 pt-4 border-t border-slate-200">
+                        {plan.includes.length > 0 && (
+                          <div className="mb-4">
+                            <h5 className="font-semibold text-slate-900 mb-2">Incluye:</h5>
+                            <ul className="list-disc list-inside text-sm text-slate-700 space-y-1">
+                              {plan.includes.map((item, i) => (
+                                <li key={i}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {plan.not_includes && plan.not_includes.length > 0 && (
+                          <div>
+                            <h5 className="font-semibold text-slate-900 mb-2">No incluye:</h5>
+                            <ul className="list-disc list-inside text-sm text-slate-700 space-y-1">
+                              {plan.not_includes.map((item, i) => (
+                                <li key={i}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {isTrevelin && (
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex gap-3">
+                    <AlertCircle size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-blue-900">Información importante</h4>
+                      <p className="text-sm text-blue-800 mt-1">
+                        Los viajes a Trevelin tienen un valor mínimo de reserva de $500.000 ARS.
+                        {requiresMinimum && (
+                          <span className="block mt-1 font-medium">
+                            El plan seleccionado no cumple con el mínimo requerido.
+                          </span>
+                        )}
+                      </p>
+                    </div>
                   </div>
                 </div>
-
-                {/* Personal Information */}
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                    2. Datos Personales
-                  </h2>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Nombre Completo *
-                      </label>
-                      <input
-                        type="text"
-                        name="fullName"
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                        placeholder="Ej: Juan Pérez"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Email *
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                        placeholder="tu@email.com"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Teléfono / WhatsApp *
-                      </label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        required
-                        className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-                        placeholder="Ej: +54 9 11 1234-5678"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Terms & Conditions */}
-                <div>
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="agreedToTerms"
-                      checked={formData.agreedToTerms}
-                      onChange={handleInputChange}
-                      className="w-4 h-4 mt-1 flex-shrink-0"
-                    />
-                    <span className="text-sm text-slate-700">
-                      Acepto los términos y condiciones y la política de privacidad
-                    </span>
-                  </label>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={submitting || !formData.agreedToTerms || formData.plan === null}
-                  className={`w-full py-4 px-6 rounded-lg font-bold text-lg transition-all ${
-                    submitting || !formData.agreedToTerms || formData.plan === null
-                      ? 'bg-slate-400 text-slate-600 cursor-not-allowed'
-                      : 'bg-slate-900 hover:bg-slate-800 text-white'
-                  }`}
-                >
-                  {submitting ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Loader size={20} className="animate-spin" />
-                      Procesando...
-                    </span>
-                  ) : (
-                    'Confirmar Reserva'
-                  )}
-                </button>
-              </form>
+              )}
             </div>
           </div>
 
           {/* Summary Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6 sticky top-24">
-              <h3 className="text-lg font-bold text-slate-900 mb-6">Resumen</h3>
+            <div className="bg-white rounded-3xl shadow p-6 sticky top-24">
+              <h3 className="text-lg font-bold text-slate-900 mb-6">Resumen de Reserva</h3>
 
               <div className="space-y-4 pb-6 border-b">
                 <div>
@@ -365,32 +313,50 @@ export default function TravelCheckoutPage() {
                   <p className="text-sm text-slate-600">Fechas</p>
                   <p className="font-semibold text-slate-900 text-sm">{experience.dates}</p>
                 </div>
+
+                <div>
+                  <p className="text-sm text-slate-600">Plan Seleccionado</p>
+                  <p className="font-semibold text-slate-900">{plan.name}</p>
+                </div>
               </div>
 
-              {formData.plan !== null && (
-                <div className="pt-6">
-                  <div className="mb-4">
-                    <p className="text-sm text-slate-600">Plan Seleccionado</p>
-                    <p className="font-semibold text-slate-900">
-                      {experience.plans[formData.plan].name}
-                    </p>
-                  </div>
-
-                  <div className="flex justify-between items-center pt-4 border-t mb-4">
-                    <p className="font-semibold text-slate-900">Precio USD</p>
-                    <p className="text-xl font-bold text-green-600">
-                      ${experience.plans[formData.plan].price_usd} USD
-                    </p>
-                  </div>
-
-                  <div className="flex justify-between items-center pb-4 border-b">
-                    <p className="font-semibold text-slate-900">Precio ARS (Dólar Blue)</p>
-                    <p className="text-lg font-bold text-blue-600">
-                      ${((experience.plans[formData.plan] as any).price_ars_blue || experience.plans[formData.plan].price_usd * 1100).toLocaleString('es-AR')} ARS
-                    </p>
-                  </div>
+              <div className="pt-6">
+                <div className="flex justify-between items-center mb-4">
+                  <p className="font-semibold text-slate-900">Precio USD</p>
+                  <p className="text-xl font-bold text-green-600">
+                    ${plan.price_usd} USD
+                  </p>
                 </div>
-              )}
+
+                <div className="flex justify-between items-center mb-6">
+                  <p className="font-semibold text-slate-900">Precio ARS (Dólar Blue)</p>
+                  <p className="text-lg font-bold text-blue-600">
+                    ${planPriceARS.toLocaleString('es-AR')} ARS
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={submitting || requiresMinimum}
+                  className="w-full py-4 text-lg font-bold"
+                  size="lg"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader size={20} className="animate-spin mr-2" />
+                      Agregando...
+                    </>
+                  ) : (
+                    'Agregar al Carrito'
+                  )}
+                </Button>
+
+                {requiresMinimum && (
+                  <p className="text-sm text-red-600 mt-2 text-center">
+                    Plan no disponible - mínimo $500.000 ARS
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -398,3 +364,4 @@ export default function TravelCheckoutPage() {
     </div>
   );
 }
+
