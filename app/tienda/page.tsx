@@ -6,6 +6,7 @@ import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { Empty } from '@/components/ui/empty'
 import { Spinner } from '@/components/ui/spinner'
+import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { MapPin, Users, DollarSign, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
@@ -164,12 +165,10 @@ async function ExperiencesGrid({ locationFilter }: { locationFilter?: string }) 
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {experiences.map((experience) => (
-          <Link
+          <div
             key={experience.id}
-            href={`/viajes/reservar/${experience.id}`}
-            className="group"
+            className="group bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 h-full flex flex-col"
           >
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 cursor-pointer h-full flex flex-col">
               {/* Image */}
               <div className="relative h-64 w-full bg-slate-200 overflow-hidden">
                 {experience.image_url ? (
@@ -212,6 +211,11 @@ async function ExperiencesGrid({ locationFilter }: { locationFilter?: string }) 
                   <span className="text-sm">{experience.capacity} cupos</span>
                 </div>
 
+                {/* Availability note */}
+                <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-700 mb-4 w-fit">
+                  Cupos limitados
+                </div>
+
                 {/* Price */}
                 <div className="mt-auto">
                   <div className="flex items-center justify-between mb-2">
@@ -228,13 +232,14 @@ async function ExperiencesGrid({ locationFilter }: { locationFilter?: string }) 
                 </div>
 
                 {/* CTA */}
-                <button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2">
-                  Ver opciones de pago
-                  <ArrowRight size={18} />
-                </button>
+                <Button asChild className="w-full mt-4">
+                  <Link href={`/viajes/reservar/${experience.id}`}>
+                    Ver detalles
+                    <ArrowRight size={18} />
+                  </Link>
+                </Button>
               </div>
             </div>
-          </Link>
         ))}
       </div>
     </div>

@@ -139,14 +139,24 @@ export default function AdminViajosPage() {
       {/* Header */}
       <div className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-slate-900">Reservas de Viajes</h1>
-            <Link href="/admin">
-              <button className="flex items-center gap-2 text-slate-600 hover:text-slate-900">
-                <ArrowLeft size={20} />
-                Volver
-              </button>
-            </Link>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Reservas de Viajes</h1>
+              <p className="text-sm text-slate-600 mt-1">Ver y administrar las reservas registradas.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button asChild size="sm" variant="outline">
+                <Link href="/admin/viajes/experiencias">
+                  <MapPin className="mr-2 h-4 w-4" />
+                  Gestionar viajes
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="secondary">
+                <Link href="/admin">
+                  <ArrowLeft size={18} /> Volver
+                </Link>
+              </Button>
+            </div>
           </div>
 
           {/* Stats */}

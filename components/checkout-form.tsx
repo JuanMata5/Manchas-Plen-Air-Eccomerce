@@ -40,6 +40,13 @@ const checkoutSchema = z.object({
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>
 
+function isTrevelinItem(item: CartItem) {
+  return (
+    item.type === 'experience' &&
+    (item.metadata.location.toLowerCase().includes('trevelin') || item.name.toLowerCase().includes('trevelin'))
+  )
+}
+
 const paymentMethods = [
   { id: 'mercadopago' as const, label: 'Mercado Pago', description: 'Tarjeta de credito, debito, dinero en cuenta', icon: CreditCard },
   { id: 'transfer' as const, label: 'Transferencia bancaria', description: 'CBU / Alias. Te enviamos los datos por email.', icon: Building2 },
@@ -53,6 +60,13 @@ export function CheckoutForm() {
   const { items, totalARS, clearCart } = useCartStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [manualCoupon, setManualCoupon] = useState<any | null>(null)
+
+  const invalidTrevelinItems = items.filter(
+    (item) =>
+      isTrevelinItem(item) &&
+      item.type === 'experience' &&
+      item.price_ars_blue < 500000,
+  )
 
 
 
@@ -111,6 +125,12 @@ export function CheckoutForm() {
       toast.error('Debes iniciar sesión para comprar.')
       return
     }
+
+    if (invalidTrevelinItems.length > 0) {
+      toast.error('Hay viajes de Trevelin en el carrito que requieren una reserva mínima de $500.000 ARS.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       // Map items to proper format for API (handle both products and experiences)
@@ -230,6 +250,11 @@ export function CheckoutForm() {
           }
         })}</div>
         <Separator />
+        {invalidTrevelinItems.length > 0 && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            Hay viajes de Trevelin en el carrito que requieren reserva mínima de $500.000 ARS. Ajustá el plan o quitá el viaje para continuar.
+          </div>
+        )}
         <div className="flex flex-col gap-2">
           <Label htmlFor="coupon_code" className="text-sm">Cupón de descuento</Label>
           <div className="flex gap-2"><Input id="coupon_code" placeholder="TENGOUNCODIGO" {...register('coupon_code')} disabled={!!manualCoupon} className="uppercase" /><Button type="button" variant="outline" size="sm" onClick={handleApplyCoupon} disabled={!!manualCoupon || !couponCode?.trim()}>Aplicar</Button></div>

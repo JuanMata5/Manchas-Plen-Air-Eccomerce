@@ -49,6 +49,13 @@ export function CartView() {
     }
   })
 
+  const invalidTrevelinItems = items.filter(
+    (item) =>
+      isExperienceItem(item) &&
+      (item.metadata.location.toLowerCase().includes('trevelin') || item.name.toLowerCase().includes('trevelin')) &&
+      item.price_ars_blue < 500000,
+  )
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Items list */}
@@ -238,14 +245,20 @@ export function CartView() {
               <span className="tabular-nums">USD {totalUSD().toFixed(2)}</span>
             </div>
           )}
-          <Button asChild size="lg" className="w-full mt-2">
-            <Link href="/checkout" onClick={() => {
-              console.log('[CartView] Click en Continuar', items)
-            }}>
-              Continuar
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+          {invalidTrevelinItems.length > 0 ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              Hay viajes a Trevelin en el carrito que deben reservarse desde $500.000 ARS. Ajusta el plan o elimina el viaje para continuar.
+            </div>
+          ) : (
+            <Button asChild size="lg" className="w-full mt-2">
+              <Link href="/checkout" onClick={() => {
+                console.log('[CartView] Click en Continuar', items)
+              }}>
+                Continuar
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          )}
           <p className="text-xs text-muted-foreground text-center">
             Podes pagar con Mercado Pago o transferencia bancaria
           </p>

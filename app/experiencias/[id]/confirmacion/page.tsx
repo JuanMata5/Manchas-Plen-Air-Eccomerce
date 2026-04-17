@@ -64,7 +64,7 @@ export default function ConfirmacionPage() {
         const { data: experienceData, error: experienceError } = await supabase
           .from('travel_experiences')
           .select('*')
-          .eq('id', experienceData?.travel_id || experienciaId)
+          .eq('id', bookingData?.travel_id || experienciaId)
           .single();
 
         if (experienceError) throw experienceError;

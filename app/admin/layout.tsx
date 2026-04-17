@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { LayoutDashboard, Package, ShoppingBag, Ticket, Leaf, LogOut } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingBag, Ticket, Leaf, LogOut, MapPin } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { AdminMobileNav } from '@/components/admin/admin-mobile-nav'
 
@@ -8,6 +8,7 @@ const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/ordenes', label: 'Ordenes', icon: ShoppingBag },
   { href: '/admin/productos', label: 'Productos', icon: Package },
+  { href: '/admin/viajes/experiencias', label: 'Viajes', icon: MapPin },
   { href: '/admin/tickets', label: 'Tickets', icon: Ticket },
 ]
 

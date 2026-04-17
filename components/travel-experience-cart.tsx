@@ -18,9 +18,21 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
   const { toast } = useToast()
 
   const selectedPlan = experience.plans[selectedPlanIndex]
+  const selectedPlanPriceARS = selectedPlan.price_ars_blue ?? Math.round(selectedPlan.price_usd * 1100)
+  const isTrevelinExperience = experience.location.toLowerCase().includes('trevelin') || experience.title.toLowerCase().includes('trevelin')
+  const canAddToCart = !isTrevelinExperience || selectedPlanPriceARS >= 500000
 
   const handleAddToCart = async () => {
     if (!selectedPlan) return
+
+    if (!canAddToCart) {
+      toast({
+        title: 'Reserva Trevelin no permitida',
+        description: 'Los viajes a Trevelin solo se pueden reservar a partir de $500.000 ARS.',
+        variant: 'destructive',
+      })
+      return
+    }
 
     setIsAdding(true)
     try {
@@ -29,7 +41,7 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
         id: experience.id,
         name: experience.title,
         price_usd: selectedPlan.price_usd,
-        price_ars_blue: selectedPlan.price_ars_blue,
+        price_ars_blue: selectedPlanPriceARS,
         quantity: 1,
         image_url: experience.image_url,
         metadata: {
@@ -135,17 +147,21 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
         </div>
       </div>
 
-      {/* Add to Cart Button */}
+      {isTrevelinExperience && selectedPlanPriceARS < 500000 && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Los viajes a Trevelin deben reservarse desde $500.000 ARS. Elige otro plan para continuar.
+        </div>
+      )}
+
       <Button
         onClick={handleAddToCart}
-        disabled={isAdding}
+        disabled={isAdding || !canAddToCart}
         size="lg"
         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
       >
-        {isAdding ? 'Agregando...' : 'Agregar al carrito'}
+        {isAdding ? 'Agregando...' : canAddToCart ? 'Agregar al carrito' : 'Plan no disponible'}
       </Button>
 
-      {/* Stock Info */}
       <Badge variant="outline" className="w-full text-center justify-center">
         {experience.capacity} cupos disponibles
       </Badge>
