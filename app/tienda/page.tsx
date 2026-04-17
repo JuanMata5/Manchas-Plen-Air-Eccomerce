@@ -12,7 +12,7 @@ import Image from 'next/image'
 import type { Product, Category } from '@/lib/types'
 
 interface PageProps {
-  searchParams: Promise<{ categoria?: string; q?: string }>
+  searchParams: Promise<{ categoria?: string; q?: string; viaje?: string }>
 }
 
 interface TravelExperience {
@@ -66,14 +66,39 @@ async function getCategories(): Promise<Category[]> {
   return data ?? []
 }
 
-async function getTravelExperiences(): Promise<TravelExperience[]> {
+async function getTravelExperiences(locationFilter?: string): Promise<TravelExperience[]> {
   const supabase = await createClient()
-  const { data } = await supabase
+  let query = supabase
     .from('travel_experiences')
     .select('*')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
+
+  if (locationFilter && locationFilter !== 'all') {
+    query = query.ilike('location', `%${locationFilter}%`)
+  }
+
+  const { data } = await query
   return data ?? []
+}
+
+function buildTiendaHref({
+  categoria,
+  q,
+  viaje,
+}: {
+  categoria?: string | null
+  q?: string | null
+  viaje?: string | null
+}) {
+  const params = new URLSearchParams()
+
+  if (categoria) params.set('categoria', categoria)
+  if (q) params.set('q', q)
+  if (viaje) params.set('viaje', viaje)
+
+  const queryString = params.toString()
+  return `/tienda${queryString ? `?${queryString}` : ''}`
 }
 
 async function ProductGrid({
@@ -110,11 +135,16 @@ async function ProductGrid({
   )
 }
 
-async function ExperiencesGrid() {
-  const experiences = await getTravelExperiences()
+async function ExperiencesGrid({ locationFilter }: { locationFilter?: string }) {
+  const experiences = await getTravelExperiences(locationFilter)
 
   if (experiences.length === 0) {
-    return null
+    return (
+      <Empty
+        title="Sin experiencias"
+        description="No encontramos experiencias con ese filtro. Probá con otra opción."
+      />
+    )
   }
 
   const getMinPrice = (exp: TravelExperience) => {
@@ -217,6 +247,7 @@ export default async function TiendaPage({ searchParams }: PageProps) {
 
   const categorySlug = params.categoria
   const q = params.q
+  const locationFilter = params.viaje ?? 'all'
 
   const activeCategory = categories.find((c) => c.slug === categorySlug)
   const pageTitle = activeCategory ? activeCategory.name : 'Tienda'
@@ -237,9 +268,26 @@ export default async function TiendaPage({ searchParams }: PageProps) {
 
         {/* Show Experiences section only when no category filter */}
         {!categorySlug && (
-          <Suspense fallback={null}>
-            <ExperiencesGrid />
-          </Suspense>
+          <>
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              <span className="text-sm font-semibold text-foreground">Filtrar viajes:</span>
+              <Link
+                href={buildTiendaHref({ categoria: categorySlug ?? null, q: q ?? null, viaje: null })}
+                className={`rounded-full border px-4 py-2 text-sm transition ${locationFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'}`}
+              >
+                Todos
+              </Link>
+              <Link
+                href={buildTiendaHref({ categoria: categorySlug ?? null, q: q ?? null, viaje: 'trevelin' })}
+                className={`rounded-full border px-4 py-2 text-sm transition ${locationFilter === 'trevelin' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'}`}
+              >
+                Trevelin
+              </Link>
+            </div>
+            <Suspense fallback={null}>
+              <ExperiencesGrid locationFilter={locationFilter} />
+            </Suspense>
+          </>
         )}
 
         {/* Filters */}
