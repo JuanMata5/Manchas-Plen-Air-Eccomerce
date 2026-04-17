@@ -50,11 +50,25 @@ export async function POST(request: NextRequest) {
       buyer_phone,
       buyer_dni,
       payment_method,
+      payment_option,
       items,
       coupon_code,
       subtotal_ars,
       discount_ars,
     } = body
+
+    const trevelinPaymentOption = payment_option === 'deposit' ? 'deposit' : 'full'
+
+    const isTrevelinExperience = (item: ExperienceItemInput) =>
+      item.metadata.location.toLowerCase().includes('trevelin') ||
+      item.name.toLowerCase().includes('trevelin')
+
+    const getExperienceChargePrice = (item: ExperienceItemInput) => {
+      if (trevelinPaymentOption === 'deposit' && isTrevelinExperience(item)) {
+        return Math.min(500000, item.price_ars_blue)
+      }
+      return item.price_ars_blue
+    }
 
     if (!buyer_name || !buyer_email || !payment_method || !items?.length) {
       console.error('[ORDER API] Faltan datos requeridos:', { buyer_name, buyer_email, payment_method, items })
@@ -227,9 +241,10 @@ export async function POST(request: NextRequest) {
     // 🎫 TRAVEL BOOKINGS (EXPERIENCIAS)
     const travelBookingsData = validatedExperienceItems.map((item) => {
       const bookingRef = `RES-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+      const chargedPrice = getExperienceChargePrice(item.item)
       return {
         order_id: order.id,
-        experience_id: item.experience.id,
+        travel_id: item.experience.id,
         booking_reference: bookingRef,
         customer_name: buyer_name,
         customer_email: buyer_email,
@@ -238,7 +253,7 @@ export async function POST(request: NextRequest) {
         location: item.item.metadata.location,
         dates: item.item.metadata.dates,
         price_usd: item.item.price_usd,
-        price_ars_blue: item.item.price_ars_blue,
+        price_ars_blue: chargedPrice,
         status: payment_method === 'transfer' ? 'payment_pending' : 'pending',
       }
     })
@@ -305,7 +320,7 @@ export async function POST(request: NextRequest) {
           )
 
           return {
-            id: booking.experience_id,
+            id: booking.travel_id,
             title: `${booking.plan_name} - ${booking.location}`,
             quantity: 1,
             unit_price: adjustedPrice,

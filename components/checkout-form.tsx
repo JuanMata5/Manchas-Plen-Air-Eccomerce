@@ -60,6 +60,7 @@ export function CheckoutForm() {
   const { items, totalARS, clearCart } = useCartStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [manualCoupon, setManualCoupon] = useState<any | null>(null)
+  const [trevelinPaymentOption, setTrevelinPaymentOption] = useState<'deposit' | 'full'>('full')
 
   const invalidTrevelinItems = items.filter(
     (item) =>
@@ -93,23 +94,38 @@ export function CheckoutForm() {
   }
 
   const subtotal = totalARS()
+  let trevelinDepositAmount = 0
+  let trevelinFullAmount = 0
+
+  // Calculate Trevelin amounts
+  items.forEach(item => {
+    if (isTrevelinItem(item) && isExperienceItem(item)) {
+      trevelinFullAmount += item.price_ars_blue
+      trevelinDepositAmount += Math.min(500000, item.price_ars_blue) // Deposit is min($500k, full price)
+    }
+  })
+
+  // Adjust subtotal based on payment option
+  const adjustedSubtotal = trevelinPaymentOption === 'deposit'
+    ? subtotal - trevelinFullAmount + trevelinDepositAmount
+    : subtotal
   let manualDiscountAmount = 0
   let discountLabel = ''
   let finalCouponCode = null
 
   if (manualCoupon) {
-    manualDiscountAmount = manualCoupon.type === 'percentage' ? Math.round((subtotal * manualCoupon.value) / 100) : manualCoupon.value
+    manualDiscountAmount = manualCoupon.type === 'percentage' ? Math.round((adjustedSubtotal * manualCoupon.value) / 100) : manualCoupon.value
     discountLabel = `Cupón (${manualCoupon.code})`
     finalCouponCode = manualCoupon.code
   }
 
   const totalDiscount = manualDiscountAmount
-  const total = subtotal - totalDiscount
+  const total = adjustedSubtotal - totalDiscount
 
   const handleApplyCoupon = async () => {
     if (!couponCode?.trim()) return
     try {
-      const res = await fetch('/api/coupons/validate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: couponCode, subtotal }) })
+      const res = await fetch('/api/coupons/validate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: couponCode, subtotal: adjustedSubtotal }) })
       const data = await res.json()
       if (res.ok && data.valid) {
         setManualCoupon({ code: couponCode, ...data })
@@ -134,26 +150,32 @@ export function CheckoutForm() {
     setIsSubmitting(true)
     try {
       // Map items to proper format for API (handle both products and experiences)
-      const mappedItems = items.map(i => {
-        if (isProductItem(i)) {
-          return {
-            type: 'product',
-            product_id: i.product.id,
-            quantity: i.quantity,
-            unit_price_ars: i.product.price_ars,
+      const mappedItems = items
+        .map((item) => {
+          if (isProductItem(item)) {
+            return {
+              type: 'product',
+              product_id: item.product.id,
+              quantity: item.quantity,
+              unit_price_ars: item.product.price_ars,
+            }
           }
-        } else if (isExperienceItem(i)) {
-          return {
-            type: 'experience',
-            id: i.id,
-            name: i.name,
-            price_ars_blue: i.price_ars_blue,
-            price_usd: i.price_usd,
-            quantity: i.quantity,
-            metadata: i.metadata,
+
+          if (isExperienceItem(item)) {
+            return {
+              type: 'experience',
+              id: item.id,
+              name: item.name,
+              price_ars_blue: item.price_ars_blue,
+              price_usd: item.price_usd,
+              quantity: item.quantity,
+              metadata: item.metadata,
+            }
           }
-        }
-      })
+
+          return null
+        })
+        .filter(Boolean) as Array<any>
 
       const payload = {
         ...data,
@@ -162,7 +184,8 @@ export function CheckoutForm() {
         buyer_phone: data.buyer_phone?.trim() || user.user_metadata.phone || null,
         items: mappedItems,
         coupon_code: finalCouponCode,
-        subtotal_ars: subtotal,
+        payment_option: trevelinPaymentOption,
+        subtotal_ars: adjustedSubtotal,
         discount_ars: manualDiscountAmount,
         total_ars: total,
       }
@@ -208,6 +231,29 @@ export function CheckoutForm() {
           </div>
         </section>
         <section className="bg-card rounded-xl border p-6"><h2 className="font-serif font-semibold text-lg mb-5">Metodo de pago</h2><RadioGroup value={paymentMethod} onValueChange={v => setValue('payment_method', v as any)} className="flex flex-col gap-3">{paymentMethods.map(m => (<label key={m.id} htmlFor={m.id} className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', paymentMethod === m.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}><RadioGroupItem value={m.id} id={m.id} /><m.icon className="h-5 w-5 text-muted-foreground shrink-0" /><div className="flex-1"><p className="font-medium text-sm">{m.label}</p><p className="text-xs text-muted-foreground">{m.description}</p></div></label>))}</RadioGroup>{paymentMethod === 'transfer' && <div className="mt-4 p-4 bg-muted rounded-lg text-sm text-muted-foreground">Recibirás los datos por email al confirmar. Tu orden quedara reservada por 48 horas.</div>}</section>
+
+        {/* Trevelin Payment Options */}
+        {items.some(isTrevelinItem) && (
+          <section className="bg-card rounded-xl border p-6">
+            <h2 className="font-serif font-semibold text-lg mb-5">Opciones de pago para Trevelin</h2>
+            <RadioGroup value={trevelinPaymentOption} onValueChange={v => setTrevelinPaymentOption(v as 'deposit' | 'full')} className="flex flex-col gap-3">
+              <label htmlFor="trevelin-full" className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', trevelinPaymentOption === 'full' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}>
+                <RadioGroupItem value="full" id="trevelin-full" />
+                <div className="flex-1">
+                  <p className="font-medium text-sm">Pago completo</p>
+                  <p className="text-xs text-muted-foreground">Paga el monto total de {formatARS(trevelinFullAmount)}</p>
+                </div>
+              </label>
+              <label htmlFor="trevelin-deposit" className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', trevelinPaymentOption === 'deposit' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}>
+                <RadioGroupItem value="deposit" id="trevelin-deposit" />
+                <div className="flex-1">
+                  <p className="font-medium text-sm">Seña de $500.000</p>
+                  <p className="text-xs text-muted-foreground">Paga solo {formatARS(trevelinDepositAmount)} ahora, el resto al llegar</p>
+                </div>
+              </label>
+            </RadioGroup>
+          </section>
+        )}
       </div>
 
       <div className="lg:col-span-1"><div className="bg-card rounded-xl border p-6 sticky top-24 flex flex-col gap-4">
@@ -263,6 +309,12 @@ export function CheckoutForm() {
         <Separator />
         <div className="flex flex-col gap-2 text-sm">
           <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{formatARS(subtotal)}</span></div>
+          {trevelinPaymentOption === 'deposit' && trevelinFullAmount > trevelinDepositAmount && (
+            <div className="flex justify-between text-orange-600">
+              <span>Descuento por seña Trevelin</span>
+              <span className="tabular-nums">-{formatARS(trevelinFullAmount - trevelinDepositAmount)}</span>
+            </div>
+          )}
           {manualDiscountAmount > 0 && (
             <div className="flex justify-between text-primary">
               <span>{discountLabel}</span>
@@ -272,6 +324,11 @@ export function CheckoutForm() {
 
           <Separator />
           <div className="flex justify-between font-bold text-base"><span>Total</span><span className="tabular-nums">{formatARS(total)}</span></div>
+          {trevelinPaymentOption === 'deposit' && trevelinFullAmount > trevelinDepositAmount && (
+            <div className="text-xs text-muted-foreground mt-1">
+              Pendiente: {formatARS(trevelinFullAmount - trevelinDepositAmount)} (pago al llegar)
+            </div>
+          )}
         </div>
         <Button type="submit" size="lg" className="w-full mt-2" disabled={isSubmitting || isUserLoading}>{isSubmitting || isUserLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</> : 'Finalizar Compra'}</Button>
       </div></div>
