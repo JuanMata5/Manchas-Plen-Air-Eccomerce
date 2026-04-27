@@ -74,9 +74,9 @@ const categories = [
   },
   {
     icon: Palette,
-    title: 'Workshops',
+    title: 'Stands',
     description: 'Talleres y clinicas con docentes invitados para todos los niveles.',
-    href: '/tienda?categoria=talleres',
+    href: '/tienda?categoria=stands',
     color: 'bg-amber-500/10 text-amber-600',
   },
 ]
@@ -120,8 +120,8 @@ const testimonials = [
   {
     name: 'Camila S.',
     location: 'Rosario',
-    text: 'Los talleres de arte fueron lo mejor que hice este ano. Excelente atencion y organizacion.',
-    event: 'Taller de arte',
+    text: 'Los stands de arte fueron lo mejor que hice este ano. Excelente atencion y organizacion.',
+    event: 'Stand de arte',
   },
   {
     name: 'Diego A.',
@@ -189,7 +189,7 @@ export default async function HomePage() {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-white text-white bg-transparent hover:bg-white/10 font-semibold text-base px-8 shadow-lg">
-                <Link href="/tienda?categoria=talleres">
+                <Link href="/tienda?categoria=stands">
                   Ver stands
                 </Link>
               </Button>

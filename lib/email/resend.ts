@@ -17,7 +17,7 @@ const getResend = () => {
 }
 
 export interface EmailOptions {
-  to: string
+  to: string | string[]
   subject: string
   html: string
   from?: string

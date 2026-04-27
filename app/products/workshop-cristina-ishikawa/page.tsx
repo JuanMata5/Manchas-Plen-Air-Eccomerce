@@ -4,5 +4,5 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default function Page() {
-  return <ProductPageView slug="entrada-general-3dias" />;
+  return <ProductPageView slug="workshop-cristina-ishikawa" />;
 }

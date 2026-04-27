@@ -108,7 +108,15 @@ export default async function AdminOrdersPage() {
                     <td className="px-5 py-3">
                       <div className="flex flex-col gap-2 min-w-35">
                         <OrderStatusActions orderId={order.id} currentStatus={order.status} />
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {order.status === 'paid' && (
+                            <a
+                              href={`/api/admin/orders/download-pdf?order_id=${order.id}`}
+                              className="inline-flex items-center justify-center rounded-md border border-border bg-slate-50 px-3 py-1 text-xs text-foreground hover:bg-slate-100"
+                            >
+                              Descargar PDF
+                            </a>
+                          )}
                           <AdminOrderEmail
                             orderId={order.id}
                             buyerName={order.buyer_name}

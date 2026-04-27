@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendEmail } from '@/lib/email/resend'
+import { sendEmail, sendBulkEmail } from '@/lib/email/resend'
 import { paymentConfirmedTemplate } from '@/lib/email/templates'
 import { generateMultipleTicketsPDF } from '@/lib/pdf/ticket-generator'
+import { generateDepositConfirmationPDF, generateFullPaymentConfirmationPDF } from '@/lib/pdf/booking-generator'
 
 function genTicketCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -130,8 +131,24 @@ export async function POST(request: NextRequest) {
 
               const pdfBuffer = await generateMultipleTicketsPDF(ticketData)
 
+              // Send email to buyer and admin
+              const recipients = [order.buyer_email]
+              if (process.env.ADMIN_EMAIL) {
+                recipients.push(process.env.ADMIN_EMAIL)
+              }
+              if (process.env.ADMIN_EMAILS) {
+                recipients.push(
+                  ...process.env.ADMIN_EMAILS
+                    .split(',')
+                    .map((email) => email.trim())
+                    .filter(Boolean),
+                )
+              }
+
+              const uniqueRecipients = Array.from(new Set(recipients))
+
               await sendEmail({
-                to: order.buyer_email,
+                to: uniqueRecipients,
                 subject: `¡Tus entradas para Plen Air! - Orden ${orderId.slice(0, 8).toUpperCase()}`,
                 html: paymentConfirmedTemplate({
                   orderReference: orderId,
@@ -150,10 +167,84 @@ export async function POST(request: NextRequest) {
                 ],
               })
 
-              console.log('[WEBHOOK] Email sent with tickets to:', order.buyer_email)
+              console.log('[WEBHOOK] Email sent with tickets to:', recipients.join(', '))
             } catch (emailErr) {
               console.error('[WEBHOOK] Error sending email with tickets:', emailErr)
             }
+          }
+        }
+
+        // Handle travel bookings
+        const { data: travelBookings } = await adminDb
+          .from('travel_bookings')
+          .select('*')
+          .eq('order_id', orderId)
+
+        if (travelBookings && travelBookings.length > 0) {
+          const { data: order } = await adminDb
+            .from('orders')
+            .select('payment_option, buyer_name, buyer_email')
+            .eq('id', orderId)
+            .single()
+
+          const isDeposit = order?.payment_option === 'deposit'
+          const newPaymentStatus = isDeposit ? 'deposit_paid' : 'paid'
+
+          // Update payment_status
+          await adminDb
+            .from('travel_bookings')
+            .update({ payment_status: newPaymentStatus })
+            .eq('order_id', orderId)
+
+          // Generate PDF and send email
+          try {
+            const { data: experiences } = await adminDb
+              .from('travel_experiences')
+              .select('id, title')
+              .in('id', travelBookings.map(b => b.travel_id))
+
+            for (const booking of travelBookings) {
+              const experience = experiences?.find(e => e.id === booking.travel_id)
+              const bookingData = {
+                bookingReference: booking.booking_reference,
+                customerName: booking.customer_name,
+                customerEmail: booking.customer_email,
+                customerPhone: booking.customer_phone,
+                experienceTitle: experience?.title || 'Experiencia',
+                planName: booking.plan_name,
+                location: booking.location,
+                dates: booking.dates,
+                priceUsd: booking.price_usd,
+                priceArsBlue: booking.price_ars_blue,
+                paymentStatus: newPaymentStatus as 'deposit_paid' | 'paid',
+                orderReference: orderId,
+              }
+
+              const pdfBuffer = isDeposit
+                ? await generateDepositConfirmationPDF(bookingData)
+                : await generateFullPaymentConfirmationPDF(bookingData)
+
+              await sendEmail({
+                to: booking.customer_email,
+                subject: isDeposit
+                  ? `Confirmación de Depósito - Reserva ${booking.booking_reference}`
+                  : `Reserva Confirmada - ${booking.booking_reference}`,
+                html: `<p>Hola ${booking.customer_name},</p><p>${
+                  isDeposit
+                    ? 'Tu depósito ha sido confirmado. Te contactaremos cuando debas completar el pago.'
+                    : 'Tu reserva ha sido completamente confirmada.'
+                }</p><p>Adjunto el comprobante de tu reserva.</p>`,
+                attachments: [
+                  {
+                    content: pdfBuffer.toString('base64'),
+                    filename: `reserva-${booking.booking_reference}.pdf`,
+                    type: 'application/pdf',
+                  },
+                ],
+              })
+            }
+          } catch (error) {
+            console.error('[WEBHOOK] Error generating booking PDFs:', error)
           }
         }
       }

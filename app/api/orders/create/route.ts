@@ -190,6 +190,7 @@ export async function POST(request: NextRequest) {
             ? 'payment_pending'
             : 'pending',
         payment_method,
+        payment_option: payment_option || 'full',
         subtotal_ars,
         discount_ars: finalDiscount,
         total_ars: finalTotal,

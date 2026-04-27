@@ -85,7 +85,31 @@ export function ProductCard({ product }: ProductCardProps) {
           {product.name}
         </h2>
 
-        <div className="mt-auto mb-4">
+        {/* Información adicional del producto */}
+        <div className="mb-3">
+          {product.subtitle && (
+            <p className="text-sm text-muted-foreground font-medium mb-1">
+              {product.subtitle}
+            </p>
+          )}
+          {product.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+              {product.description}
+            </p>
+          )}
+          {product.features && product.features.length > 0 && (
+            <div className="mt-2">
+              <ul className="text-xs text-muted-foreground space-y-0.5">
+                {product.features.slice(0, 2).map((feature, index) => (
+                  <li key={index} className="flex items-center gap-1">
+                    <span className="text-primary">•</span>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
           <p className="font-display font-bold text-2xl text-foreground -mt-1">
             {formatARS(product.price_ars)}
           </p>
