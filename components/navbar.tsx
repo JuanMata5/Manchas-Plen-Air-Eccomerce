@@ -16,7 +16,7 @@ const navLinks = [
   { href: '/', label: 'Inicio' },
   { href: '/tienda', label: 'Tienda' },
   { href: '/tienda?categoria=entradas', label: 'Entradas' },
-  { href: '/tienda?categoria=talleres', label: 'Stands' },
+  { href: '/tienda?categoria=stands', label: 'Stands' },
   { href: '/#contacto', label: 'Contacto' },
 ]
 console.log();
