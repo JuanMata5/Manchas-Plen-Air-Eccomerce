@@ -182,6 +182,7 @@ export function CheckoutForm() {
         buyer_name: user.user_metadata.full_name || user.email,
         buyer_email: user.email,
         buyer_phone: data.buyer_phone?.trim() || user.user_metadata.phone || null,
+        buyer_dni: user.user_metadata.dni || null,
         items: mappedItems,
         coupon_code: finalCouponCode,
         payment_option: trevelinPaymentOption,
