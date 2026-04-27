@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const adminDb = createAdminClient()
     const { data: order, error: orderError } = await adminDb
       .from('orders')
-      .select('status, buyer_name, buyer_dni')
+      .select('status, buyer_name, buyer_dni, buyer_phone')
       .eq('id', orderId)
       .single()
 
@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
           holder_name: order.buyer_name,
           holder_email: order.buyer_email,
           holder_dni: order.buyer_dni,
+          holder_phone: order.buyer_phone,
         })),
       )
 
@@ -102,6 +103,7 @@ export async function GET(request: NextRequest) {
         ticketCode: ticket.qr_code,
         holderName: ticket.holder_name,
         dni: ticket.holder_dni || order.buyer_dni || '-',
+        phone: ticket.holder_phone || order.buyer_phone || '-',
         productName: product?.name || 'Entrada',
         eventName: product?.name || 'Evento',
         eventDate: product?.event_date || undefined,

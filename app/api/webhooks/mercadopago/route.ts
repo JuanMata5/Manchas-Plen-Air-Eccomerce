@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
           const { data: order } = await adminDb
             .from('orders')
-            .select('buyer_name, buyer_dni, buyer_email, total_ars')
+            .select('buyer_name, buyer_dni, buyer_email, buyer_phone, total_ars')
             .eq('id', orderId)
             .single()
 
@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
                 holder_name: order.buyer_name,
                 holder_email: order.buyer_email,
                 holder_dni: order.buyer_dni,
+                holder_phone: order.buyer_phone,
               })),
             )
 
@@ -123,6 +124,7 @@ export async function POST(request: NextRequest) {
                   ticketCode: t.qr_code,
                   holderName: t.holder_name,
                   dni: t.holder_dni || order.buyer_dni || '-',
+                  phone: t.holder_phone || order.buyer_phone || '-',
                   productName: product?.name || 'Entrada',
                   eventDate: product?.event_date,
                   eventLocation: product?.event_location,
