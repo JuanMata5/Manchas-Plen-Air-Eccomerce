@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
     const holderName = ownerUser.user_metadata?.full_name || 'Nombre no disponible';
     const holderEmail = ownerUser.email || 'Email no disponible';
     const holderDni = ownerUser.user_metadata?.dni || '';
+    const holderPhone = ownerUser.user_metadata?.phone || '';
 
     // 4. Generar el PDF con los datos correctos del dueño.
     const pdfBuffer = await generateTicketPDF({
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
       holderName: holderName,
       holderEmail: holderEmail,
       dni: holderDni,
+      phone: holderPhone,
       productName: ticket.products?.name || 'Entrada',
       eventName: ticket.products?.name || 'Evento',
       eventDate: ticket.products?.event_date || undefined,

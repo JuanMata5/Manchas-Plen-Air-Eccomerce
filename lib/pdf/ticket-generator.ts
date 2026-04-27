@@ -6,6 +6,7 @@ export interface TicketData {
   ticketCode: string
   holderName: string
   dni?: string
+  phone?: string
   productName: string
   eventDate?: string
   eventLocation?: string
@@ -109,6 +110,9 @@ function drawTicketPage(
   cursorY = writeLabelValue(doc, 'Titular', ticket.holderName, detailsX, cursorY, detailsW)
   if (ticket.dni && ticket.dni.trim() !== '') {
     cursorY = writeLabelValue(doc, 'DNI', ticket.dni, detailsX, cursorY, detailsW)
+  }
+  if (ticket.phone && ticket.phone.trim() !== '') {
+    cursorY = writeLabelValue(doc, 'Telefono', ticket.phone, detailsX, cursorY, detailsW)
   }
   cursorY = writeLabelValue(doc, 'Tipo de entrada', ticket.productName || 'General', detailsX, cursorY, detailsW)
   cursorY = writeLabelValue(doc, 'Fecha', formatEventDate(ticket.eventDate), detailsX, cursorY, detailsW)

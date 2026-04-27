@@ -33,6 +33,7 @@ export async function GET(
     const holderName = ownerUser?.user_metadata?.full_name || 'Nombre no disponible';
     const holderEmail = ownerUser?.email || 'Email no disponible';
     const holderDni = ownerUser?.user_metadata?.dni || '';
+    const holderPhone = ownerUser?.user_metadata?.phone || '';
 
     const pdfBuffer = await generateTicketPDF({
       orderReference: ticket.orders.id.slice(0, 8).toUpperCase(),
@@ -40,6 +41,7 @@ export async function GET(
       holderName,
       holderEmail,
       dni: holderDni,
+      phone: holderPhone,
       productName: ticket.products?.name || 'Entrada',
       eventName: ticket.products?.name || 'Evento',
       eventDate: ticket.products?.event_date || undefined,
