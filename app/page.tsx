@@ -181,6 +181,8 @@ export default async function HomePage() {
             <p className="max-w-2xl text-base leading-relaxed text-white/85 text-balance sm:text-lg md:text-xl">
               EVENTOS Y EXPERIENCIAS PREMIUM PARA ARTISTAS
             </p>
+
+            <p>Entradas digitales agotadas, compra tus entradas en el lugar del evento, Círculo Oficiales de Mar COM Sarmiento 1867 </p>
             <div className="mt-3 flex w-full max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
               <Button asChild size="lg" className="bg-white text-black hover:bg-white/90 font-semibold text-base px-8 shadow-lg">
                 <Link href="/tienda?categoria=entradas">
