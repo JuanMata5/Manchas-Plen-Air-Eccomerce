@@ -20,6 +20,7 @@ interface ExperienceItemInput {
   id: string
   name: string
   price_ars_blue: number
+  price_reservation_ars?: number | null
   price_usd: number
   quantity: number
   metadata: {
@@ -53,22 +54,17 @@ export async function POST(request: NextRequest) {
       payment_option,
       items,
       coupon_code,
-      subtotal_ars,
       discount_ars,
     } = body
 
-    const trevelinPaymentOption = payment_option === 'deposit' ? 'deposit' : 'full'
+    const travelPaymentOption =
+      payment_option === 'deposit' || payment_option === 'reservation'
+        ? 'reservation'
+        : 'full'
 
     const isTrevelinExperience = (item: ExperienceItemInput) =>
       item.metadata.location.toLowerCase().includes('trevelin') ||
       item.name.toLowerCase().includes('trevelin')
-
-    const getExperienceChargePrice = (item: ExperienceItemInput) => {
-      if (trevelinPaymentOption === 'deposit' && isTrevelinExperience(item)) {
-        return Math.min(500000, item.price_ars_blue)
-      }
-      return item.price_ars_blue
-    }
 
     if (!buyer_name || !buyer_email || !payment_method || !items?.length) {
       console.error('[ORDER API] Faltan datos requeridos:', { buyer_name, buyer_email, payment_method, items })
@@ -146,7 +142,7 @@ export async function POST(request: NextRequest) {
     for (const item of experienceItems) {
       const { data: experience } = await adminDb
         .from('travel_experiences')
-        .select('id, title, capacity, is_active')
+        .select('id, title, capacity, is_active, price_total, price_reservation, plans, currency')
         .eq('id', item.metadata.experienceId)
         .single()
 
@@ -157,28 +153,56 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      const plan = Array.isArray(experience.plans)
+        ? experience.plans[item.metadata.planIndex]
+        : null
+      const fullPrice = Number(
+        plan?.price_ars_blue ??
+        experience.price_total ??
+        item.price_ars_blue ??
+        0
+      )
+      const reservationPrice = Number(
+        plan?.precio_reserva_ars ??
+        experience.price_reservation ??
+        item.price_reservation_ars ??
+        (isTrevelinExperience(item) ? 500000 : fullPrice)
+      )
+      const safeReservationPrice = reservationPrice > 0 ? Math.min(reservationPrice, fullPrice) : fullPrice
+      const chargedPrice = travelPaymentOption === 'reservation' ? safeReservationPrice : fullPrice
+
       validatedExperienceItems.push({
         experience,
-        item,
-        unit_price: item.price_ars_blue,
+        item: {
+          ...item,
+          price_ars_blue: fullPrice,
+          price_reservation_ars: safeReservationPrice,
+        },
+        unit_price: chargedPrice,
+        full_price: fullPrice,
+        reservation_price: safeReservationPrice,
       })
     }
 
     // 🎟 CUPON
-    let couponId: string | null = null
     if (coupon_code) {
-      const { data: coupon } = await adminDb
+      await adminDb
         .from('coupons')
         .select('id')
         .eq('code', coupon_code.toUpperCase().trim())
         .single()
-
-      couponId = coupon?.id ?? null
     }
 
     const manualDiscount = discount_ars ?? 0
     const finalDiscount = manualDiscount
-    const finalTotal = Math.max(0, subtotal_ars - finalDiscount)
+    const backendSubtotal =
+      validatedProductItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0) +
+      validatedExperienceItems.reduce((sum, item) => sum + item.unit_price * item.item.quantity, 0)
+    const finalTotal = Math.max(0, backendSubtotal - finalDiscount)
+    const totalTripBalance = validatedExperienceItems.reduce(
+      (sum, item) => sum + Math.max(0, item.full_price - item.unit_price) * item.item.quantity,
+      0,
+    )
 
     // 🧾 CREAR ORDEN
     const { data: order, error: orderError } = await adminDb
@@ -190,10 +214,12 @@ export async function POST(request: NextRequest) {
             ? 'payment_pending'
             : 'pending',
         payment_method,
-        payment_option: payment_option || 'full',
-        subtotal_ars,
+        payment_option: travelPaymentOption,
+        subtotal_ars: backendSubtotal,
         discount_ars: finalDiscount,
         total_ars: finalTotal,
+        amount_paid_ars: finalTotal,
+        balance_due_ars: totalTripBalance,
         buyer_name,
         buyer_email,
         buyer_phone: buyer_phone || null,
@@ -242,7 +268,10 @@ export async function POST(request: NextRequest) {
     // 🎫 TRAVEL BOOKINGS (EXPERIENCIAS)
     const travelBookingsData = validatedExperienceItems.map((item) => {
       const bookingRef = `RES-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
-      const chargedPrice = getExperienceChargePrice(item.item)
+      const chargedPrice = item.unit_price
+      const fullPrice = item.full_price
+      const reservationPrice = item.reservation_price
+      const passengerCount = item.item.quantity || 1
       return {
         order_id: order.id,
         travel_id: item.experience.id,
@@ -254,7 +283,15 @@ export async function POST(request: NextRequest) {
         location: item.item.metadata.location,
         dates: item.item.metadata.dates,
         price_usd: item.item.price_usd,
-        price_ars_blue: chargedPrice,
+        price_ars_blue: chargedPrice * passengerCount,
+        price_total: fullPrice * passengerCount,
+        price_reservation: reservationPrice * passengerCount,
+        balance_due: Math.max(0, fullPrice - chargedPrice) * passengerCount,
+        currency: 'ARS',
+        payment_method,
+        payment_mode: travelPaymentOption,
+        passenger_count: passengerCount,
+        reservation_status: 'pending',
         status: payment_method === 'transfer' ? 'payment_pending' : 'pending',
       }
     })
@@ -295,8 +332,8 @@ export async function POST(request: NextRequest) {
       }
 
       const ratio =
-        subtotal_ars > 0
-          ? (subtotal_ars - finalDiscount) / subtotal_ars
+        backendSubtotal > 0
+          ? (backendSubtotal - finalDiscount) / backendSubtotal
           : 1
 
       const mpItems = [
@@ -450,4 +487,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

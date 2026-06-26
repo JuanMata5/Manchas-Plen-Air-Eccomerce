@@ -8,7 +8,7 @@ const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/ordenes', label: 'Ordenes', icon: ShoppingBag },
   { href: '/admin/productos', label: 'Productos', icon: Package },
-  { href: '/admin/viajes/experiencias', label: 'Viajes', icon: MapPin },
+  { href: '/admin/viajes', label: 'Viajes', icon: MapPin },
   { href: '/admin/tickets', label: 'Tickets', icon: Ticket },
 ]
 

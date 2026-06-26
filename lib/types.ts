@@ -134,20 +134,64 @@ export type Plan = {
   name: string
   price_usd: number
   price_ars_blue: number
+  precio_reserva_ars?: number | null
   includes: string[]
   excludes?: string[]
+  not_includes?: string[]
   description?: string
+}
+
+export type TravelStatus = 'available' | 'upcoming' | 'sold_out' | 'finished'
+export type TravelCurrency = 'ARS' | 'USD'
+
+export type TravelItineraryDay = {
+  title: string
+  description: string
+  time?: string
+  images?: string[]
 }
 
 export type TravelExperience = {
   id: string
+  slug?: string | null
   title: string
   location: string
   dates: string
   description: string
+  short_description?: string | null
+  full_description?: string | null
+  destination?: string | null
+  country?: string | null
+  city?: string | null
+  category?: string | null
+  status?: TravelStatus
+  departure_date?: string | null
+  return_date?: string | null
+  duration_days?: number | null
+  reservation_deadline?: string | null
   capacity: number
+  available_spots?: number | null
+  min_spots?: number | null
+  max_spots?: number | null
+  price_total?: number | null
+  price_reservation?: number | null
+  currency?: TravelCurrency
+  show_both_prices?: boolean
   image_url: string
   gallery: string[]
+  video_url?: string | null
+  itinerary?: TravelItineraryDay[]
+  includes?: string[]
+  excludes?: string[]
+  packing_list?: string[]
+  recommendations?: string | null
+  difficulty?: string | null
+  language?: string | null
+  expected_weather?: string | null
+  seo_title?: string | null
+  seo_description?: string | null
+  seo_slug?: string | null
+  share_image_url?: string | null
   plans: Plan[]
   is_active: boolean
   created_at?: string
@@ -167,6 +211,12 @@ export type TravelBooking = {
   dates: string
   price_usd: number
   price_ars_blue: number
+  price_reservation?: number | null
+  balance_due?: number | null
+  passenger_count?: number
+  payment_method?: PaymentMethod | null
+  payment_mode?: 'full' | 'reservation'
+  reservation_status?: 'pending' | 'confirmed' | 'cancelled' | 'completed'
   status: 'pending' | 'paid' | 'cancelled' | 'completed'
   created_at: string
   updated_at: string
@@ -188,6 +238,7 @@ export type ExperienceCartItem = BaseCartItem & {
   name: string
   price_usd: number
   price_ars_blue: number
+  price_reservation_ars?: number | null
   image_url: string
   metadata: {
     experienceId: string

@@ -45,7 +45,7 @@ async function getTravelExperience(slug: string): Promise<TravelExperience | nul
   const { data } = await supabase
     .from('travel_experiences')
     .select('*')
-    .eq('id', slug)
+    .or(`id.eq.${slug},slug.eq.${slug}`)
     .eq('is_active', true)
     .single()
   return data ?? null

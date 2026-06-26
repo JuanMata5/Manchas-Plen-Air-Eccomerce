@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { TravelExperienceForm } from '@/components/TravelExperienceForm'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 interface EditTravelExperiencePageProps {
   params: Promise<{ id: string }>
@@ -27,20 +29,21 @@ export default async function EditTravelExperiencePage({ params }: EditTravelExp
   }
 
   return (
-    <div className="space-y-6 p-6 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold">Editar Viaje</h1>
-        <p className="text-gray-500 mt-2">Actualiza los datos principales de la experiencia.</p>
+    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="font-serif font-bold text-2xl text-foreground">Editar viaje</h1>
+          <p className="text-muted-foreground text-sm mt-1">Actualiza el paquete turístico, precios y contenido público.</p>
+        </div>
+        <Button asChild variant="outline">
+          <Link href="/admin/viajes/experiencias">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Volver
+          </Link>
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Información del Viaje</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <TravelExperienceForm experience={experience} />
-        </CardContent>
-      </Card>
+      <TravelExperienceForm experience={experience} mode="edit" />
     </div>
   )
 }

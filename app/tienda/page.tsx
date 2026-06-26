@@ -148,9 +148,10 @@ async function ExperiencesGrid({ locationFilter }: { locationFilter?: string }) 
     )
   }
 
-  const getMinPrice = (exp: TravelExperience) => {
+  const getMinPriceUSD = (exp: TravelExperience) => {
     if (!exp.plans || exp.plans.length === 0) return 0
-    return Math.min(...exp.plans.map(p => p.price_usd))
+    const usdPrices = exp.plans.map(p => p.price_usd).filter(price => price > 0)
+    return usdPrices.length > 0 ? Math.min(...usdPrices) : 0
   }
 
   const getMinPriceARS = (exp: TravelExperience) => {
@@ -164,11 +165,15 @@ async function ExperiencesGrid({ locationFilter }: { locationFilter?: string }) 
         Experiencias Premium
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {experiences.map((experience) => (
-          <div
-            key={experience.id}
-            className="group bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 h-full flex flex-col"
-          >
+        {experiences.map((experience) => {
+          const minUsd = getMinPriceUSD(experience)
+          const minArs = getMinPriceARS(experience)
+
+          return (
+            <div
+              key={experience.id}
+              className="group bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-105 h-full flex flex-col"
+            >
               {/* Image */}
               <div className="relative h-64 w-full bg-slate-200 overflow-hidden">
                 {experience.image_url ? (
@@ -222,13 +227,15 @@ async function ExperiencesGrid({ locationFilter }: { locationFilter?: string }) 
                     <div className="flex items-center">
                       <DollarSign size={16} className="text-green-600" />
                       <span className="text-xl font-bold text-green-600">
-                        {getMinPrice(experience)} USD
+                        {minUsd > 0 ? `${minUsd} USD` : `$${minArs.toLocaleString('es-AR')} ARS`}
                       </span>
                     </div>
                   </div>
-                  <p className="text-xs text-slate-600">
-                    Desde ${getMinPriceARS(experience).toLocaleString('es-AR')} ARS
-                  </p>
+                  {minUsd > 0 && (
+                    <p className="text-xs text-slate-600">
+                      Desde ${minArs.toLocaleString('es-AR')} ARS
+                    </p>
+                  )}
                 </div>
 
                 {/* CTA */}
@@ -240,7 +247,8 @@ async function ExperiencesGrid({ locationFilter }: { locationFilter?: string }) 
                 </Button>
               </div>
             </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

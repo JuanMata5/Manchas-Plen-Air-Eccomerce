@@ -19,6 +19,8 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
 
   const selectedPlan = experience.plans[selectedPlanIndex]
   const selectedPlanPriceARS = selectedPlan.price_ars_blue ?? Math.round(selectedPlan.price_usd * 1100)
+  const reservationPriceARS = selectedPlan.precio_reserva_ars ?? experience.price_reservation ?? null
+  const balanceDueARS = reservationPriceARS ? Math.max(0, selectedPlanPriceARS - reservationPriceARS) : 0
   const isTrevelinExperience = experience.location.toLowerCase().includes('trevelin') || experience.title.toLowerCase().includes('trevelin')
   const canAddToCart = !isTrevelinExperience || selectedPlanPriceARS >= 500000
 
@@ -42,6 +44,7 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
         name: experience.title,
         price_usd: selectedPlan.price_usd,
         price_ars_blue: selectedPlanPriceARS,
+        price_reservation_ars: reservationPriceARS,
         quantity: 1,
         image_url: experience.image_url,
         metadata: {
@@ -95,7 +98,9 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
                   )}
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-blue-600">USD {plan.price_usd.toFixed(2)}</div>
+                  {plan.price_usd > 0 && (
+                    <div className="font-bold text-blue-600">USD {plan.price_usd.toFixed(2)}</div>
+                  )}
                   <div className="text-sm text-muted-foreground">$ {plan.price_ars_blue.toLocaleString('es-AR')}</div>
                 </div>
               </div>
@@ -139,12 +144,26 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
       <div className="bg-foreground/5 p-4 rounded-lg space-y-2">
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">Precio por persona:</span>
-          <span className="font-semibold">USD {selectedPlan.price_usd.toFixed(2)}</span>
+          <span className="font-semibold">
+            {selectedPlan.price_usd > 0 ? `USD ${selectedPlan.price_usd.toFixed(2)}` : `$ ${selectedPlanPriceARS.toLocaleString('es-AR')}`}
+          </span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground">En pesos (dólar blue):</span>
           <span className="font-semibold">$ {selectedPlan.price_ars_blue.toLocaleString('es-AR')}</span>
         </div>
+        {reservationPriceARS && reservationPriceARS < selectedPlanPriceARS && (
+          <>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Reserva:</span>
+              <span className="font-semibold">$ {reservationPriceARS.toLocaleString('es-AR')}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Saldo pendiente:</span>
+              <span className="font-semibold">$ {balanceDueARS.toLocaleString('es-AR')}</span>
+            </div>
+          </>
+        )}
       </div>
 
       {isTrevelinExperience && selectedPlanPriceARS < 500000 && (
@@ -168,4 +187,3 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
     </div>
   )
 }
-

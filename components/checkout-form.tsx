@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { CreditCard, Building2, ShoppingBag, Loader2, Gift } from 'lucide-react'
+import { CreditCard, Building2, ShoppingBag, Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -47,6 +47,17 @@ function isTrevelinItem(item: CartItem) {
   )
 }
 
+function getReservationAmount(item: CartItem) {
+  if (!isExperienceItem(item)) return null
+  if (item.price_reservation_ars && item.price_reservation_ars > 0 && item.price_reservation_ars < item.price_ars_blue) {
+    return item.price_reservation_ars
+  }
+  if (isTrevelinItem(item)) {
+    return Math.min(500000, item.price_ars_blue)
+  }
+  return null
+}
+
 const paymentMethods = [
   { id: 'mercadopago' as const, label: 'Mercado Pago', description: 'Tarjeta de credito, debito, dinero en cuenta', icon: CreditCard },
   { id: 'transfer' as const, label: 'Transferencia bancaria', description: 'CBU / Alias. Te enviamos los datos por email.', icon: Building2 },
@@ -60,7 +71,7 @@ export function CheckoutForm() {
   const { items, totalARS, clearCart } = useCartStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [manualCoupon, setManualCoupon] = useState<any | null>(null)
-  const [trevelinPaymentOption, setTrevelinPaymentOption] = useState<'deposit' | 'full'>('full')
+  const [travelPaymentOption, setTravelPaymentOption] = useState<'deposit' | 'full'>('full')
 
   const invalidTrevelinItems = items.filter(
     (item) =>
@@ -94,20 +105,23 @@ export function CheckoutForm() {
   }
 
   const subtotal = totalARS()
-  let trevelinDepositAmount = 0
-  let trevelinFullAmount = 0
+  let reservationAmount = 0
+  let reservableFullAmount = 0
 
-  // Calculate Trevelin amounts
+  // Calculate reservation amounts for travel experiences.
   items.forEach(item => {
-    if (isTrevelinItem(item) && isExperienceItem(item)) {
-      trevelinFullAmount += item.price_ars_blue
-      trevelinDepositAmount += Math.min(500000, item.price_ars_blue) // Deposit is min($500k, full price)
+    if (isExperienceItem(item)) {
+      const reserve = getReservationAmount(item)
+      if (reserve) {
+        reservableFullAmount += item.price_ars_blue
+        reservationAmount += reserve
+      }
     }
   })
 
   // Adjust subtotal based on payment option
-  const adjustedSubtotal = trevelinPaymentOption === 'deposit'
-    ? subtotal - trevelinFullAmount + trevelinDepositAmount
+  const adjustedSubtotal = travelPaymentOption === 'deposit'
+    ? subtotal - reservableFullAmount + reservationAmount
     : subtotal
   let manualDiscountAmount = 0
   let discountLabel = ''
@@ -167,6 +181,7 @@ export function CheckoutForm() {
               id: item.id,
               name: item.name,
               price_ars_blue: item.price_ars_blue,
+              price_reservation_ars: item.price_reservation_ars ?? null,
               price_usd: item.price_usd,
               quantity: item.quantity,
               metadata: item.metadata,
@@ -185,7 +200,7 @@ export function CheckoutForm() {
         buyer_dni: user.user_metadata.dni || null,
         items: mappedItems,
         coupon_code: finalCouponCode,
-        payment_option: trevelinPaymentOption,
+        payment_option: travelPaymentOption === 'deposit' ? 'reservation' : 'full',
         subtotal_ars: adjustedSubtotal,
         discount_ars: manualDiscountAmount,
         total_ars: total,
@@ -233,23 +248,23 @@ export function CheckoutForm() {
         </section>
         <section className="bg-card rounded-xl border p-6"><h2 className="font-serif font-semibold text-lg mb-5">Metodo de pago</h2><RadioGroup value={paymentMethod} onValueChange={v => setValue('payment_method', v as any)} className="flex flex-col gap-3">{paymentMethods.map(m => (<label key={m.id} htmlFor={m.id} className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', paymentMethod === m.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}><RadioGroupItem value={m.id} id={m.id} /><m.icon className="h-5 w-5 text-muted-foreground shrink-0" /><div className="flex-1"><p className="font-medium text-sm">{m.label}</p><p className="text-xs text-muted-foreground">{m.description}</p></div></label>))}</RadioGroup>{paymentMethod === 'transfer' && <div className="mt-4 p-4 bg-muted rounded-lg text-sm text-muted-foreground">Recibirás los datos por email al confirmar. Tu orden quedara reservada por 48 horas.</div>}</section>
 
-        {/* Trevelin Payment Options */}
-        {items.some(isTrevelinItem) && (
+        {/* Travel payment options */}
+        {items.some((item) => Boolean(getReservationAmount(item))) && (
           <section className="bg-card rounded-xl border p-6">
-            <h2 className="font-serif font-semibold text-lg mb-5">Opciones de pago para Trevelin</h2>
-            <RadioGroup value={trevelinPaymentOption} onValueChange={v => setTrevelinPaymentOption(v as 'deposit' | 'full')} className="flex flex-col gap-3">
-              <label htmlFor="trevelin-full" className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', trevelinPaymentOption === 'full' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}>
-                <RadioGroupItem value="full" id="trevelin-full" />
+            <h2 className="font-serif font-semibold text-lg mb-5">Opciones de pago para viajes</h2>
+            <RadioGroup value={travelPaymentOption} onValueChange={v => setTravelPaymentOption(v as 'deposit' | 'full')} className="flex flex-col gap-3">
+              <label htmlFor="travel-full" className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', travelPaymentOption === 'full' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}>
+                <RadioGroupItem value="full" id="travel-full" />
                 <div className="flex-1">
                   <p className="font-medium text-sm">Pago completo</p>
-                  <p className="text-xs text-muted-foreground">Paga el monto total de {formatARS(trevelinFullAmount)}</p>
+                  <p className="text-xs text-muted-foreground">Paga el monto total de {formatARS(reservableFullAmount)}</p>
                 </div>
               </label>
-              <label htmlFor="trevelin-deposit" className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', trevelinPaymentOption === 'deposit' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}>
-                <RadioGroupItem value="deposit" id="trevelin-deposit" />
+              <label htmlFor="travel-deposit" className={cn('flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all', travelPaymentOption === 'deposit' ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40')}>
+                <RadioGroupItem value="deposit" id="travel-deposit" />
                 <div className="flex-1">
-                  <p className="font-medium text-sm">Seña de $500.000</p>
-                  <p className="text-xs text-muted-foreground">Paga solo {formatARS(trevelinDepositAmount)} ahora, el resto al llegar</p>
+                  <p className="font-medium text-sm">Pagar reserva</p>
+                  <p className="text-xs text-muted-foreground">Paga solo {formatARS(reservationAmount)} ahora. El saldo queda pendiente.</p>
                 </div>
               </label>
             </RadioGroup>
@@ -310,10 +325,10 @@ export function CheckoutForm() {
         <Separator />
         <div className="flex flex-col gap-2 text-sm">
           <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="tabular-nums">{formatARS(subtotal)}</span></div>
-          {trevelinPaymentOption === 'deposit' && trevelinFullAmount > trevelinDepositAmount && (
+          {travelPaymentOption === 'deposit' && reservableFullAmount > reservationAmount && (
             <div className="flex justify-between text-orange-600">
-              <span>Descuento por seña Trevelin</span>
-              <span className="tabular-nums">-{formatARS(trevelinFullAmount - trevelinDepositAmount)}</span>
+              <span>Saldo pendiente de viajes</span>
+              <span className="tabular-nums">-{formatARS(reservableFullAmount - reservationAmount)}</span>
             </div>
           )}
           {manualDiscountAmount > 0 && (
@@ -325,9 +340,9 @@ export function CheckoutForm() {
 
           <Separator />
           <div className="flex justify-between font-bold text-base"><span>Total</span><span className="tabular-nums">{formatARS(total)}</span></div>
-          {trevelinPaymentOption === 'deposit' && trevelinFullAmount > trevelinDepositAmount && (
+          {travelPaymentOption === 'deposit' && reservableFullAmount > reservationAmount && (
             <div className="text-xs text-muted-foreground mt-1">
-              Pendiente: {formatARS(trevelinFullAmount - trevelinDepositAmount)} (pago al llegar)
+              Pendiente: {formatARS(reservableFullAmount - reservationAmount)} (pago posterior)
             </div>
           )}
         </div>

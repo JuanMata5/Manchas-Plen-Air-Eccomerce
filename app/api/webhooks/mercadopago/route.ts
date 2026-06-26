@@ -189,13 +189,13 @@ export async function POST(request: NextRequest) {
             .eq('id', orderId)
             .single()
 
-          const isDeposit = order?.payment_option === 'deposit'
+          const isDeposit = order?.payment_option === 'deposit' || order?.payment_option === 'reservation'
           const newPaymentStatus = isDeposit ? 'deposit_paid' : 'paid'
 
           // Update payment_status
           await adminDb
             .from('travel_bookings')
-            .update({ payment_status: newPaymentStatus })
+            .update({ payment_status: newPaymentStatus, reservation_status: 'confirmed' })
             .eq('order_id', orderId)
 
           // Generate PDF and send email

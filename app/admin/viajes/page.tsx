@@ -1,367 +1,190 @@
-'use client';
+import Link from 'next/link'
+import { CalendarDays, CheckCircle2, Clock, DollarSign, MapPin, Plane, Plus, Users } from 'lucide-react'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { formatARS } from '@/lib/format'
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import Link from 'next/link';
-import { ArrowLeft, Download, Eye, EyeOff, CheckCircle, XCircle, Clock } from 'lucide-react';
-
-interface TravelBooking {
-  id: string;
-  travel_id: string;
-  plan_name: string;
-  plan_price_usd: number;
-  plan_variant: string;
-  booking_reference: string;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string;
-  status: string;
-  payment_status: string;
-  created_at: string;
+type TravelRow = {
+  id: string
+  title: string
+  is_active: boolean
+  status: string
+  departure_date: string | null
+  available_spots: number | null
+  capacity: number
 }
 
-export default function AdminViajosPage() {
-  const supabase = createClient();
-  const [bookings, setBookings] = useState<TravelBooking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPayment, setFilterPayment] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+type BookingRow = {
+  id: string
+  booking_reference: string
+  customer_name: string
+  customer_email: string
+  customer_phone: string | null
+  plan_name: string
+  passenger_count: number | null
+  price_total: number | null
+  price_reservation: number | null
+  balance_due: number | null
+  price_ars_blue: number | null
+  status: string
+  payment_status: string
+  reservation_status: string | null
+  payment_method: string | null
+  created_at: string
+  travel_experiences?: { title: string } | null
+}
 
-  useEffect(() => {
-    const fetchBookings = async () => {
-      try {
-        let query = supabase
-          .from('travel_bookings')
-          .select('*')
-          .order('created_at', { ascending: false });
+async function getTravelDashboard() {
+  const adminDb = createAdminClient()
+  const [travelsRes, bookingsRes] = await Promise.all([
+    adminDb
+      .from('travel_experiences')
+      .select('id, title, is_active, status, departure_date, available_spots, capacity')
+      .order('departure_date', { ascending: true, nullsFirst: false }),
+    adminDb
+      .from('travel_bookings')
+      .select('id, booking_reference, customer_name, customer_email, customer_phone, plan_name, passenger_count, price_total, price_reservation, balance_due, price_ars_blue, status, payment_status, reservation_status, payment_method, created_at, travel_experiences(title)')
+      .order('created_at', { ascending: false })
+      .limit(25),
+  ])
 
-        if (filterStatus !== 'all') {
-          query = query.eq('status', filterStatus);
-        }
-
-        if (filterPayment !== 'all') {
-          query = query.eq('payment_status', filterPayment);
-        }
-
-        const { data, error: fetchError } = await query;
-
-        if (fetchError) throw fetchError;
-
-        let filtered = data || [];
-
-        if (searchTerm) {
-          filtered = filtered.filter(
-            b =>
-              b.booking_reference.includes(searchTerm.toUpperCase()) ||
-              b.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-              b.customer_email.toLowerCase().includes(searchTerm.toLowerCase())
-          );
-        }
-
-        setBookings(filtered);
-      } catch (err: any) {
-        setError(err.message || 'Error al cargar reservas');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBookings();
-  }, [filterStatus, filterPayment, searchTerm, supabase]);
-
-  const getStatusBadge = (status: string) => {
-    const badgeClass =
-      status === 'confirmed'
-        ? 'bg-green-100 text-green-800'
-        : status === 'pending'
-        ? 'bg-yellow-100 text-yellow-800'
-        : 'bg-red-100 text-red-800';
-
-    return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeClass}`}>
-        {status === 'confirmed' && '✓ Confirmada'}
-        {status === 'pending' && '⏳ Pendiente'}
-        {status === 'cancelled' && '✗ Cancelada'}
-      </span>
-    );
-  };
-
-  const getPaymentBadge = (status: string) => {
-    const badgeClass =
-      status === 'paid'
-        ? 'bg-green-100 text-green-800'
-        : status === 'pending'
-        ? 'bg-yellow-100 text-yellow-800'
-        : 'bg-red-100 text-red-800';
-
-    return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badgeClass}`}>
-        {status === 'paid' && '✓ Pagado'}
-        {status === 'pending' && '⏳ Pendiente'}
-        {status === 'failed' && '✗ Fallido'}
-      </span>
-    );
-  };
-
-  const downloadVoucher = async (bookingId: string, reference: string) => {
-    try {
-      const response = await fetch(`/api/travel-bookings/${bookingId}/voucher`);
-      const html = await response.text();
-
-      // Create blob and download
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `voucher-${reference}.html`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (err) {
-      console.error('Error downloading voucher:', err);
-      alert('Error al descargar el voucher');
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-slate-600">Cargando reservas de viajes...</div>
-      </div>
-    );
+  return {
+    travels: (travelsRes.data ?? []) as TravelRow[],
+    bookings: (bookingsRes.data ?? []) as BookingRow[],
   }
+}
 
+const reservationLabels: Record<string, { label: string; className: string }> = {
+  pending: { label: 'Pendiente', className: 'bg-amber-100 text-amber-800 border-0' },
+  confirmed: { label: 'Confirmada', className: 'bg-emerald-100 text-emerald-800 border-0' },
+  cancelled: { label: 'Cancelada', className: 'bg-red-100 text-red-800 border-0' },
+  completed: { label: 'Completada', className: 'bg-blue-100 text-blue-800 border-0' },
+}
+
+function StatCard({ title, value, icon: Icon }: { title: string; value: string | number; icon: any }) {
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">Reservas de Viajes</h1>
-              <p className="text-sm text-slate-600 mt-1">Ver y administrar las reservas registradas.</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button asChild size="sm" variant="outline">
-                <Link href="/admin/viajes/experiencias">
-                  <MapPin className="mr-2 h-4 w-4" />
-                  Gestionar viajes
-                </Link>
-              </Button>
-              <Button asChild size="sm" variant="secondary">
-                <Link href="/admin">
-                  <ArrowLeft size={18} /> Volver
-                </Link>
-              </Button>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div className="bg-slate-50 rounded p-4">
-              <p className="text-sm text-slate-600">Total Reservas</p>
-              <p className="text-2xl font-bold text-slate-900">{bookings.length}</p>
-            </div>
-            <div className="bg-blue-50 rounded p-4">
-              <p className="text-sm text-slate-600">Confirmadas</p>
-              <p className="text-2xl font-bold text-blue-600">
-                {bookings.filter(b => b.status === 'confirmed').length}
-              </p>
-            </div>
-            <div className="bg-yellow-50 rounded p-4">
-              <p className="text-sm text-slate-600">Pagos Pendientes</p>
-              <p className="text-2xl font-bold text-yellow-600">
-                {bookings.filter(b => b.payment_status === 'pending').length}
-              </p>
-            </div>
-            <div className="bg-green-50 rounded p-4">
-              <p className="text-sm text-slate-600">Pagadas</p>
-              <p className="text-2xl font-bold text-green-600">
-                {bookings.filter(b => b.payment_status === 'paid').length}
-              </p>
-            </div>
-          </div>
+    <div className="rounded-xl border border-border bg-card p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground">{title}</p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
         </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white border-b p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Búsqueda
-              </label>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Referencia, nombre, email..."
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Estado Reserva
-              </label>
-              <select
-                value={filterStatus}
-                onChange={e => setFilterStatus(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-              >
-                <option value="all">Todos</option>
-                <option value="confirmed">Confirmadas</option>
-                <option value="pending">Pendientes</option>
-                <option value="cancelled">Canceladas</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Estado Pago
-              </label>
-              <select
-                value={filterPayment}
-                onChange={e => setFilterPayment(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900"
-              >
-                <option value="all">Todos</option>
-                <option value="pending">Pendiente</option>
-                <option value="paid">Pagado</option>
-                <option value="failed">Fallido</option>
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  setFilterStatus('all');
-                  setFilterPayment('all');
-                  setSearchTerm('');
-                }}
-                className="w-full bg-slate-200 hover:bg-slate-300 text-slate-900 font-semibold py-2 px-4 rounded-lg transition-colors"
-              >
-                Limpiar Filtros
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto">
-          {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-              {error}
-            </div>
-          )}
-
-          {bookings.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-12 text-center">
-              <p className="text-slate-600 text-lg">No hay reservas de viajes</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-b">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                        Referencia
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                        Cliente
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                        Plan / Precio
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                        Teléfono
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                        Estado
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                        Pago
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                        Fecha
-                      </th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {bookings.map(booking => (
-                      <tr key={booking.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <span className="font-mono font-bold text-slate-900">
-                            {booking.booking_reference}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="font-semibold text-slate-900">
-                              {booking.customer_name}
-                            </p>
-                            <p className="text-xs text-slate-600">{booking.customer_email}</p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="text-sm font-medium text-slate-900">
-                              {booking.plan_name}
-                            </p>
-                            <p className="text-xs text-slate-600">
-                              {booking.plan_variant}
-                            </p>
-                            <p className="text-sm font-bold text-green-600 mt-1">
-                              ${booking.plan_price_usd} USD
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <a
-                            href={`https://wa.me/${booking.customer_phone.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 text-sm"
-                          >
-                            {booking.customer_phone}
-                          </a>
-                        </td>
-                        <td className="px-6 py-4">
-                          {getStatusBadge(booking.status)}
-                        </td>
-                        <td className="px-6 py-4">
-                          {getPaymentBadge(booking.payment_status)}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-600">
-                          {new Date(booking.created_at).toLocaleDateString('es-AR')}
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() =>
-                              downloadVoucher(booking.id, booking.booking_reference)
-                            }
-                            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium text-sm"
-                            title="Descargar voucher"
-                          >
-                            <Download size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+        <div className="rounded-lg bg-muted p-2 text-muted-foreground">
+          <Icon className="h-5 w-5" />
         </div>
       </div>
     </div>
-  );
+  )
+}
+
+export default async function AdminTravelsDashboard() {
+  const { travels, bookings } = await getTravelDashboard()
+  const now = new Date()
+  const activeTravels = travels.filter((travel) => travel.is_active).length
+  const upcomingTravels = travels.filter((travel) => travel.departure_date && new Date(`${travel.departure_date}T00:00:00`) >= now).length
+  const fullTravels = travels.filter((travel) => travel.status === 'sold_out' || (travel.available_spots ?? travel.capacity) <= 0).length
+  const pendingBookings = bookings.filter((booking) => (booking.reservation_status || booking.status) === 'pending').length
+  const confirmedBookings = bookings.filter((booking) => (booking.reservation_status || booking.status) === 'confirmed').length
+  const reservationIncome = bookings.reduce((sum, booking) => {
+    const paid = booking.price_reservation ?? booking.price_ars_blue ?? 0
+    const isPaid = ['paid', 'deposit_paid', 'reserva_pagada'].includes(booking.payment_status)
+    return isPaid ? sum + Number(paid) : sum
+  }, 0)
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="font-serif font-bold text-2xl text-foreground">Viajes</h1>
+          <p className="text-muted-foreground text-sm mt-1">Dashboard de paquetes turísticos y reservas.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/admin/viajes/experiencias">
+              <MapPin className="mr-2 h-4 w-4" />
+              Ver viajes
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/admin/viajes/experiencias/nuevo">
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo viaje
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard title="Total de viajes" value={travels.length} icon={Plane} />
+        <StatCard title="Viajes activos" value={activeTravels} icon={CheckCircle2} />
+        <StatCard title="Próximas salidas" value={upcomingTravels} icon={CalendarDays} />
+        <StatCard title="Viajes completos" value={fullTravels} icon={Users} />
+        <StatCard title="Reservas pendientes" value={pendingBookings} icon={Clock} />
+        <StatCard title="Reservas confirmadas" value={confirmedBookings} icon={CheckCircle2} />
+        <StatCard title="Ingresos por reservas" value={formatARS(reservationIncome)} icon={DollarSign} />
+      </div>
+
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-foreground">Últimas reservas</h2>
+            <p className="text-sm text-muted-foreground">Reservas creadas desde el checkout de viajes.</p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40">
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground">Reserva</th>
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground">Cliente</th>
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground">Viaje</th>
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground">Pasajeros</th>
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground">Pago</th>
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground">Saldo</th>
+                <th className="text-left px-5 py-3 font-medium text-muted-foreground">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map((booking) => {
+                const status = reservationLabels[booking.reservation_status || booking.status] ?? reservationLabels.pending
+                const paidAmount = booking.price_reservation ?? booking.price_ars_blue ?? 0
+                return (
+                  <tr key={booking.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                    <td className="px-5 py-3">
+                      <p className="font-mono font-medium">{booking.booking_reference}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(booking.created_at).toLocaleDateString('es-AR')}</p>
+                    </td>
+                    <td className="px-5 py-3">
+                      <p className="font-medium text-foreground">{booking.customer_name}</p>
+                      <p className="text-xs text-muted-foreground">{booking.customer_email}</p>
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {booking.travel_experiences?.title || booking.plan_name}
+                    </td>
+                    <td className="px-5 py-3 tabular-nums">{booking.passenger_count ?? 1}</td>
+                    <td className="px-5 py-3">
+                      <p className="font-medium tabular-nums">{formatARS(Number(paidAmount))}</p>
+                      <p className="text-xs text-muted-foreground">{booking.payment_method || 'Sin método'}</p>
+                    </td>
+                    <td className="px-5 py-3 tabular-nums">{formatARS(Number(booking.balance_due ?? 0))}</td>
+                    <td className="px-5 py-3">
+                      <Badge className={status.className}>{status.label}</Badge>
+                    </td>
+                  </tr>
+                )
+              })}
+              {bookings.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-5 py-12 text-center text-muted-foreground">
+                    No hay reservas de viajes registradas.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
 }
