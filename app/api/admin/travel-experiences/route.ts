@@ -2,16 +2,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { buildTravelPayload, generateUniqueTravelSlug, travelExperienceSchema } from '@/lib/travel-admin'
+import {
+  buildTravelPayload,
+  generateUniqueTravelSlug,
+  travelExperienceSchema,
+} from '@/lib/travel-admin'
 
 async function requireAdmin() {
   const supabase = await createClient()
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+    return {
+      error: NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      ),
+    }
   }
 
   const { data: profile } = await supabase
@@ -21,7 +31,12 @@ async function requireAdmin() {
     .single()
 
   if (!profile?.is_admin) {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) }
+    return {
+      error: NextResponse.json(
+        { error: 'Forbidden' },
+        { status: 403 }
+      ),
+    }
   }
 
   return { user }
@@ -30,13 +45,29 @@ async function requireAdmin() {
 export async function POST(request: NextRequest) {
   try {
     const adminCheck = await requireAdmin()
-    if ('error' in adminCheck) return adminCheck.error
+
+    if ('error' in adminCheck) {
+      return adminCheck.error
+    }
 
     const body = await request.json()
+
+    console.log('===== BODY =====')
+    console.log(JSON.stringify(body, null, 2))
+
     const data = travelExperienceSchema.parse(body)
+
     const adminDb = createAdminClient()
-    const slug = await generateUniqueTravelSlug(data.slug || data.seo_slug || data.title, adminDb)
+
+    const slug = await generateUniqueTravelSlug(
+      data.slug || data.seo_slug || data.title,
+      adminDb
+    )
+
     const payload = buildTravelPayload(data, slug)
+
+    console.log('===== PAYLOAD =====')
+    console.log(JSON.stringify(payload, null, 2))
 
     const { data: created, error } = await adminDb
       .from('travel_experiences')
@@ -45,16 +76,45 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
-      console.error('[ADMIN API] Create travel experience error:', error)
-      return NextResponse.json({ error: 'No se pudo crear el viaje' }, { status: 500 })
+      console.error('===== SUPABASE ERROR =====')
+      console.error(JSON.stringify(error, null, 2))
+
+      return NextResponse.json(
+        {
+          message: 'Supabase insert error',
+          supabaseError: error,
+        },
+        { status: 500 }
+      )
     }
+
+    console.log('===== CREATED =====')
+    console.log(JSON.stringify(created, null, 2))
 
     return NextResponse.json(created, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 })
+      console.error('===== ZOD ERROR =====')
+      console.error(JSON.stringify(error.issues, null, 2))
+
+      return NextResponse.json(
+        {
+          message: 'Validation failed',
+          issues: error.issues,
+        },
+        { status: 400 }
+      )
     }
-    console.error('[ADMIN API] Create travel experience fatal:', error)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+
+    console.error('===== FATAL ERROR =====')
+    console.error(error)
+
+    return NextResponse.json(
+      {
+        message: 'Internal server error',
+        error: String(error),
+      },
+      { status: 500 }
+    )
   }
 }
