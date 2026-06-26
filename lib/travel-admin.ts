@@ -104,22 +104,21 @@ export function buildTravelPayload(data: z.infer<typeof travelExperienceSchema>,
   }
   const plans = data.plans.length > 0 ? data.plans : [basePlan]
 
-  return {
-    ...data,
-    slug,
-    id: slug,
-    title: data.title,
-    location: destination,
-    dates: dateLabel || (data.duration_days ? `${data.duration_days} dias` : 'Fechas a confirmar'),
-    description: data.short_description || data.full_description || data.description || data.title,
-    full_description: data.full_description || data.description || data.short_description || '',
-    short_description: data.short_description || data.description || '',
-    destination,
-    capacity,
-    available_spots: data.available_spots ?? capacity,
-    max_spots: data.max_spots ?? capacity,
-    image_url: data.image_url || null,
-    gallery: data.gallery,
-    plans,
-  }
+return {
+  ...data,
+  slug,
+  title: data.title,
+  location: destination,
+  dates: dateLabel || (data.duration_days ? `${data.duration_days} dias` : 'Fechas a confirmar'),
+  description: data.short_description || data.full_description || data.description || data.title,
+  full_description: data.full_description || data.description || data.short_description || '',
+  short_description: data.short_description || data.description || '',
+  destination,
+  capacity,
+  available_spots: data.available_spots ?? capacity,
+  max_spots: data.max_spots ?? capacity,
+  image_url: data.image_url || null,
+  gallery: data.gallery,
+  plans,
+}
 }
