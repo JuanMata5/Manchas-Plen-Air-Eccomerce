@@ -28,17 +28,27 @@ export async function GET(request: NextRequest) {
 
     // Check for any order from this user that used the specified coupon.
     // We check for `coupon_code` specifically, assuming it's stored on the order.
+    const { data: coupon, error: couponError } = await supabase
+      .from('coupons')
+      .select('id')
+      .eq('code', code.toUpperCase().trim())
+      .single()
+
+    if (couponError || !coupon) {
+      console.error('Error finding coupon for usage check:', couponError)
+      return NextResponse.json({ used: false })
+    }
+
     const { data: order, error } = await supabase
       .from('orders')
       .select('id')
       .eq('user_id', user.id)
-      .eq('coupon_code', code)
+      .eq('coupon_id', coupon.id)
       .limit(1)
       .maybeSingle()
 
     if (error) {
       console.error('Error checking coupon usage:', error)
-      // In case of a DB error, default to not hiding the banner.
       return NextResponse.json({ used: false })
     }
 

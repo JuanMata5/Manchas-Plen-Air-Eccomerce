@@ -265,6 +265,11 @@ export async function POST(request: NextRequest) {
       0,
     )
 
+    const normalizedPaymentOption =
+      payment_option === 'deposit' || payment_option === 'reservation'
+        ? 'reservation'
+        : 'full'
+
     // 🧾 CREAR ORDEN
     const { data: order, error: orderError } = await adminDb
       .from('orders')
@@ -275,13 +280,12 @@ export async function POST(request: NextRequest) {
             ? 'payment_pending'
             : 'pending',
         payment_method,
-        payment_option: travelPaymentOption,
+        payment_option: normalizedPaymentOption,
         subtotal_ars: backendSubtotal,
         discount_ars: finalDiscount,
         total_ars: finalTotal,
         amount_paid_ars: 0,
         balance_due_ars: totalTripBalance,
-        coupon_code: validatedCouponCode,
         coupon_id: couponId,
         buyer_name,
         buyer_email,
