@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Esta orden no es de Mercado Pago' }, { status: 400 })
     }
 
-    const mpAccessToken = process.env.MP_ACCESS_TOKEN
+    const mpAccessToken = process.env.MP_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MP_ACCESS_TOKEN
     if (!mpAccessToken) {
       return NextResponse.json({ error: 'Mercado Pago no configurado' }, { status: 500 })
     }

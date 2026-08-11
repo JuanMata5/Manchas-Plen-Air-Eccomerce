@@ -90,13 +90,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const mpAccessToken = process.env.MP_ACCESS_TOKEN
+    const mpAccessToken = process.env.MP_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MP_ACCESS_TOKEN
     const baseUrl =
       process.env.NEXT_PUBLIC_BASE_URL ||
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
     if (payment_method === 'mercadopago' && !mpAccessToken) {
-      console.error('[ORDER API] Mercado Pago no configurado: falta MP_ACCESS_TOKEN')
+      console.error('[ORDER API] Mercado Pago no configurado: falta MP_ACCESS_TOKEN o NEXT_PUBLIC_MP_ACCESS_TOKEN')
       return NextResponse.json(
         { error: 'Mercado Pago no está configurado en el servidor' },
         { status: 500 }
