@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
     for (const item of experienceItems) {
       const { data: experience } = await adminDb
         .from('travel_experiences')
-        .select('id, title, capacity, is_active, price_total, price_reservation, plans, currency')
+        .select('id, title, location, dates, capacity, is_active, price_total, price_reservation, plans, currency')
         .eq('id', item.metadata.experienceId)
         .single()
 
@@ -169,16 +169,26 @@ export async function POST(request: NextRequest) {
       const plan = Array.isArray(experience.plans)
         ? experience.plans[item.metadata.planIndex]
         : null
+      if (!plan || typeof plan.name !== 'string' || !plan.name.trim()) {
+        return NextResponse.json(
+          { error: `Plan de experiencia no válido: ${item.name}` },
+          { status: 400 },
+        )
+      }
+
       const fullPrice = Number(
         plan?.price_ars_blue ??
-        experience.price_total ??
-        item.price_ars_blue ??
-        0
+        experience.price_total
       )
+      if (!Number.isFinite(fullPrice) || fullPrice <= 0) {
+        return NextResponse.json(
+          { error: `Precio no configurado para la experiencia: ${experience.title}` },
+          { status: 400 },
+        )
+      }
       const reservationPrice = Number(
         plan?.precio_reserva_ars ??
         experience.price_reservation ??
-        item.price_reservation_ars ??
         (isTrevelinExperience(item) ? 500000 : fullPrice)
       )
       const safeReservationPrice = reservationPrice > 0 ? Math.min(reservationPrice, fullPrice) : fullPrice
@@ -265,10 +275,7 @@ export async function POST(request: NextRequest) {
       0,
     )
 
-    const normalizedPaymentOption =
-      payment_option === 'deposit' || payment_option === 'reservation'
-        ? 'reservation'
-        : 'full'
+    const customerPhone = buyer_phone && buyer_phone.trim() !== '' ? buyer_phone : 'N/A'
 
     // 🧾 CREAR ORDEN
     const { data: order, error: orderError } = await adminDb
@@ -280,7 +287,7 @@ export async function POST(request: NextRequest) {
             ? 'payment_pending'
             : 'pending',
         payment_method,
-        payment_option: normalizedPaymentOption,
+        payment_option: travelPaymentOption,
         subtotal_ars: backendSubtotal,
         discount_ars: finalDiscount,
         total_ars: finalTotal,
@@ -349,11 +356,14 @@ export async function POST(request: NextRequest) {
         booking_reference: bookingRef,
         customer_name: buyer_name,
         customer_email: buyer_email,
-        customer_phone: buyer_phone || null,
-        plan_name: item.item.metadata.planName,
-        location: item.item.metadata.location,
-        dates: item.item.metadata.dates,
-        price_usd: item.item.price_usd,
+        // These values come from the validated experience, never from cart metadata.
+        // plan_price_usd and customer_phone preserve compatibility with the original schema.
+        customer_phone: customerPhone,
+        plan_name: item.experience.plans[item.item.metadata.planIndex].name,
+        plan_price_usd: item.experience.plans[item.item.metadata.planIndex].price_usd,
+        location: item.experience.location,
+        dates: item.experience.dates,
+        price_usd: item.experience.plans[item.item.metadata.planIndex].price_usd,
         price_ars_blue: chargedPrice * passengerCount,
         price_total: fullPrice * passengerCount,
         price_reservation: reservationPrice * passengerCount,
