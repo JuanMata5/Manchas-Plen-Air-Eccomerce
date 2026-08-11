@@ -106,21 +106,23 @@ export default function ConfirmacionPage() {
   const downloadVoucher = async () => {
     try {
       const response = await fetch(`/api/travel-bookings/${booking.id}/voucher`);
-      const html = await response.text();
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || 'No se pudo descargar el voucher');
+      }
 
-      // Create blob and download
-      const blob = new Blob([html], { type: 'text/html' });
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `voucher-${booking.booking_reference}.html`;
+      a.download = `voucher-${booking.booking_reference}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error downloading voucher:', error);
-      alert('Error al descargar el voucher');
+      alert(error instanceof Error ? error.message : 'Error al descargar el voucher');
     }
   };
 

@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/resend'
 import { paymentConfirmedTemplate } from '@/lib/email/templates'
 import { generateMultipleTicketsPDF, type TicketData } from '@/lib/pdf/ticket-generator'
+import { generateFullPaymentConfirmationPDF } from '@/lib/pdf/booking-generator'
 
 const VALID_STATUSES = ['pending', 'payment_pending', 'paid', 'cancelled', 'refunded']
 
@@ -171,33 +172,72 @@ export async function POST(request: NextRequest) {
             })
             .catch((e) => console.warn('[ADMIN] Ticket PDF email failed:', e))
 
-          // Confirmar reservas de viaje asociadas a la orden (si las hay)
-          try {
-            const { data: travelBookings } = await adminDb
-              .from('travel_bookings')
-              .select('*')
-              .eq('order_id', order_id)
-
-            if (travelBookings && travelBookings.length > 0) {
-              const isDeposit = existingOrder?.payment_option === 'deposit' || existingOrder?.payment_option === 'reservation'
-              const newPaymentStatus = isDeposit ? 'deposit_paid' : 'paid'
-
-              await adminDb
-                .from('travel_bookings')
-                .update({ payment_status: newPaymentStatus, reservation_status: 'confirmed', balance_due: 0 })
-                .eq('order_id', order_id)
-            }
-          } catch (tbErr) {
-            console.error('[ADMIN] Error confirming travel bookings:', tbErr)
-          }
-
-          return NextResponse.json({ ok: true, tickets_created: tickets.length })
+          // Continue so associated travel bookings are confirmed as well.
         }
       } else {
         console.log('[ADMIN] No order data found. orderItems:', !!orderItems, 'order:', !!order)
       }
     } else {
       console.log('[ADMIN] Tickets already exist for order:', order_id, 'count:', existingTickets?.length)
+    }
+
+    // Travel-only orders do not generate product tickets, so confirm them here
+    // independently from the ticket-generation flow.
+    try {
+      const { data: travelBookings, error: bookingsError } = await adminDb
+        .from('travel_bookings')
+        .select('*')
+        .eq('order_id', order_id)
+
+      if (bookingsError) throw bookingsError
+      if (travelBookings && travelBookings.length > 0) {
+        const { error: bookingUpdateError } = await adminDb
+          .from('travel_bookings')
+          .update({
+            payment_status: 'paid',
+            reservation_status: 'confirmed',
+            balance_due: 0,
+          })
+          .in('id', travelBookings.map((booking) => booking.id))
+
+        if (bookingUpdateError) throw bookingUpdateError
+
+        const { data: experiences } = await adminDb
+          .from('travel_experiences')
+          .select('id, title')
+          .in('id', travelBookings.map((booking) => booking.travel_id))
+
+        for (const booking of travelBookings) {
+          const experience = experiences?.find((item) => item.id === booking.travel_id)
+          const pdfBuffer = await generateFullPaymentConfirmationPDF({
+            bookingReference: booking.booking_reference,
+            customerName: booking.customer_name,
+            customerEmail: booking.customer_email,
+            customerPhone: booking.customer_phone,
+            experienceTitle: experience?.title || 'Experiencia',
+            planName: booking.plan_name,
+            location: booking.location || '-',
+            dates: booking.dates || '-',
+            priceUsd: Number(booking.price_usd || booking.plan_price_usd || 0),
+            priceArsBlue: Number(booking.price_total || booking.price_ars_blue || 0),
+            paymentStatus: 'paid',
+            orderReference: order_id,
+          })
+
+          await sendEmail({
+            to: booking.customer_email,
+            subject: `Reserva confirmada - ${booking.booking_reference}`,
+            html: `<p>Hola ${booking.customer_name},</p><p>Tu reserva fue confirmada y el pago figura como acreditado.</p><p>Adjuntamos tu voucher.</p>`,
+            attachments: [{
+              content: pdfBuffer.toString('base64'),
+              filename: `reserva-${booking.booking_reference}.pdf`,
+              type: 'application/pdf',
+            }],
+          })
+        }
+      }
+    } catch (travelError) {
+      console.error('[ADMIN] Error confirming travel bookings or sending vouchers:', travelError)
     }
   }
 
