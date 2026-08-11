@@ -394,10 +394,10 @@ export async function POST(request: NextRequest) {
       )
 
       if (!mpRes.ok) {
-        const err = await mpRes.text()
-        console.error('[MP ERROR]', err)
+        const errText = await mpRes.text()
+        console.error('[MP ERROR]', mpRes.status, errText)
         return NextResponse.json(
-          { error: 'Error MercadoPago' },
+          { error: 'Error MercadoPago', details: errText },
           { status: 500 }
         )
       }

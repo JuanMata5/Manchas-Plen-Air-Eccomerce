@@ -13,6 +13,7 @@ interface Plan {
   name: string;
   price_usd: number;
   price_ars_blue?: number;
+  precio_reserva_ars?: number | null;
   variants: string[];
   includes: string[];
   not_includes?: string[];
@@ -101,8 +102,9 @@ export default function TravelCheckoutPage() {
     ? experience.plans[selectedPlan]
     : { name: '', price_usd: 0, price_ars_blue: 0, variants: [], includes: [], not_includes: [] };
   const planPriceARS = getARSPrice(plan);
+  const reservationPriceARS = plan.precio_reserva_ars ?? experience.price_reservation ?? null;
   const isTrevelin = experience.location.toLowerCase().includes('trevelin') || experience.title.toLowerCase().includes('trevelin');
-  const requiresMinimum = isTrevelin && planPriceARS < 500000;
+  const requiresMinimum = isTrevelin && planPriceARS < 500000 && !(reservationPriceARS && reservationPriceARS > 0);
 
   const handleAddToCart = async () => {
     if (!plan) return;
@@ -116,6 +118,8 @@ export default function TravelCheckoutPage() {
       return;
     }
 
+    const reservationPriceARS = plan.precio_reserva_ars ?? experience.price_reservation ?? null;
+
     setSubmitting(true);
 
     try {
@@ -125,6 +129,7 @@ export default function TravelCheckoutPage() {
         name: experience.title,
         price_usd: plan.price_usd,
         price_ars_blue: planPriceARS,
+        price_reservation_ars: reservationPriceARS,
         quantity: 1,
         image_url: experience.image_url,
         metadata: {

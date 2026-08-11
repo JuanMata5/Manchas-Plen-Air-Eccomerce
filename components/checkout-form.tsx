@@ -77,7 +77,8 @@ export function CheckoutForm() {
     (item) =>
       isTrevelinItem(item) &&
       item.type === 'experience' &&
-      item.price_ars_blue < 500000,
+      item.price_ars_blue < 500000 &&
+      !(item.price_reservation_ars && item.price_reservation_ars > 0),
   )
 
 
@@ -208,7 +209,9 @@ export function CheckoutForm() {
       console.log('[CHECKOUT] Payload enviado:', payload)
       const res = await fetch('/api/orders/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const result = await res.json()
-      if (!res.ok) { throw new Error(result.error ?? 'Error al crear la orden') }
+      if (!res.ok) {
+        throw new Error(result.error ?? result.details ?? 'Error al crear la orden')
+      }
       if (data.payment_method === 'mercadopago' && result.init_point) {
         window.location.href = result.init_point
       } else if (data.payment_method === 'transfer') {
@@ -291,6 +294,10 @@ export function CheckoutForm() {
               </div>
             )
           } else if (isExperienceItem(item)) {
+            const displayPrice = travelPaymentOption === 'deposit'
+              ? getReservationAmount(item) ?? item.price_ars_blue
+              : item.price_ars_blue
+
             return (
               <div key={item.id} className="flex items-center gap-3">
                 <div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted">
@@ -306,7 +313,7 @@ export function CheckoutForm() {
                   <p className="text-sm font-medium truncate">{item.name}</p>
                   <p className="text-xs text-muted-foreground">{item.metadata.planName}</p>
                 </div>
-                <span className="text-sm font-medium tabular-nums">{formatARS(item.price_ars_blue)}</span>
+                <span className="text-sm font-medium tabular-nums">{formatARS(displayPrice)}</span>
               </div>
             )
           }

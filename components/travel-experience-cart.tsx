@@ -24,7 +24,10 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
   const reservationPriceARS = selectedPlan.precio_reserva_ars ?? experience.price_reservation ?? null
   const balanceDueARS = reservationPriceARS ? Math.max(0, selectedPlanPriceARS - reservationPriceARS) : 0
   const isTrevelinExperience = experience.location.toLowerCase().includes('trevelin') || experience.title.toLowerCase().includes('trevelin')
-  const canAddToCart = !isTrevelinExperience || selectedPlanPriceARS >= 500000
+  const canAddToCart =
+    !isTrevelinExperience ||
+    selectedPlanPriceARS >= 500000 ||
+    (reservationPriceARS !== null && reservationPriceARS > 0)
 
   const handleAddToCart = async () => {
     if (!selectedPlan) return
