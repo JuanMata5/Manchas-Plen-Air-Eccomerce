@@ -97,7 +97,9 @@ export default function TravelCheckoutPage() {
     return null;
   }
 
-  const plan = experience.plans[selectedPlan];
+  const plan = Array.isArray(experience.plans) && experience.plans[selectedPlan]
+    ? experience.plans[selectedPlan]
+    : { name: '', price_usd: 0, price_ars_blue: 0, variants: [], includes: [], not_includes: [] };
   const planPriceARS = getARSPrice(plan);
   const isTrevelin = experience.location.toLowerCase().includes('trevelin') || experience.title.toLowerCase().includes('trevelin');
   const requiresMinimum = isTrevelin && planPriceARS < 500000;
@@ -208,7 +210,7 @@ export default function TravelCheckoutPage() {
             <div className="bg-white rounded-3xl shadow p-8">
               <h3 className="text-xl font-bold text-slate-900 mb-6">Selecciona tu Plan</h3>
               <div className="space-y-4">
-                {experience.plans.map((plan, idx) => (
+                {Array.isArray(experience.plans) && experience.plans.map((plan, idx) => (
                   <div
                     key={idx}
                     className={`border-2 rounded-xl p-6 cursor-pointer transition-all ${
@@ -229,7 +231,7 @@ export default function TravelCheckoutPage() {
                         />
                         <div>
                           <h4 className="text-lg font-semibold text-slate-900">{plan.name}</h4>
-                          {plan.variants.length > 0 && (
+                          {plan.variants && plan.variants.length > 0 && (
                             <p className="text-sm text-slate-600">{plan.variants.join(', ')}</p>
                           )}
                         </div>
@@ -246,7 +248,7 @@ export default function TravelCheckoutPage() {
 
                     {selectedPlan === idx && (
                       <div className="mt-4 pt-4 border-t border-slate-200">
-                        {plan.includes.length > 0 && (
+                        {plan.includes && plan.includes.length > 0 && (
                           <div className="mb-4">
                             <h5 className="font-semibold text-slate-900 mb-2">Incluye:</h5>
                             <ul className="list-disc list-inside text-sm text-slate-700 space-y-1">

@@ -193,7 +193,7 @@ export default function ExperienceDetailPage() {
               <h2 className="text-2xl font-bold text-slate-900 mb-6">Elige tu Plan</h2>
 
               <div className="space-y-3 mb-8">
-                {experience.plans.map((plan, idx) => (
+                {Array.isArray(experience.plans) && experience.plans.map((plan, idx) => (
                   <button
                     key={idx}
                     onClick={() => setSelectedPlan(idx)}
@@ -206,7 +206,7 @@ export default function ExperienceDetailPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="font-semibold text-slate-900">{plan.name}</p>
-                        {plan.variants.length > 0 && (
+                        {plan.variants && plan.variants.length > 0 && (
                           <p className="text-sm text-slate-600">
                             {plan.variants[0]}
                           </p>
@@ -226,12 +226,12 @@ export default function ExperienceDetailPage() {
               </div>
 
               {/* Plan Details */}
-              {selectedPlanData && (
+                      {selectedPlanData && (
                 <div className="mb-8">
                   <div className="mb-6">
                     <h3 className="font-semibold text-slate-900 mb-3">Incluye:</h3>
                     <ul className="space-y-2">
-                      {selectedPlanData.includes.map((item, idx) => (
+                      {selectedPlanData.includes && selectedPlanData.includes.map((item, idx) => (
                         <li key={idx} className="flex gap-2 text-sm text-slate-700">
                           <Check size={18} className="text-green-600 flex-shrink-0 mt-0.5" />
                           <span>{item}</span>
@@ -243,7 +243,7 @@ export default function ExperienceDetailPage() {
                   <div>
                     <h3 className="font-semibold text-slate-900 mb-3">No Incluye:</h3>
                     <ul className="space-y-2">
-                      {selectedPlanData.not_includes.map((item, idx) => (
+                      {selectedPlanData.not_includes && selectedPlanData.not_includes.map((item, idx) => (
                         <li key={idx} className="flex gap-2 text-sm text-slate-600">
                           <X size={18} className="text-slate-400 flex-shrink-0 mt-0.5" />
                           <span>{item}</span>

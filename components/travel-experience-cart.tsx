@@ -17,7 +17,9 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
   const { addToCart } = useCartStore()
   const { toast } = useToast()
 
-  const selectedPlan = experience.plans[selectedPlanIndex]
+  const selectedPlan = Array.isArray(experience.plans) && experience.plans[selectedPlanIndex]
+    ? experience.plans[selectedPlanIndex]
+    : { id: '0', name: '', price_usd: 0, price_ars_blue: 0, includes: [], excludes: [], description: '' }
   const selectedPlanPriceARS = selectedPlan.price_ars_blue ?? Math.round(selectedPlan.price_usd * 1100)
   const reservationPriceARS = selectedPlan.precio_reserva_ars ?? experience.price_reservation ?? null
   const balanceDueARS = reservationPriceARS ? Math.max(0, selectedPlanPriceARS - reservationPriceARS) : 0
@@ -80,7 +82,7 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
       <div className="space-y-3">
         <h3 className="font-semibold text-lg">Elige tu plan</h3>
         <div className="space-y-2">
-          {experience.plans.map((plan, index) => (
+          {Array.isArray(experience.plans) && experience.plans.map((plan, index) => (
             <button
               key={plan.id}
               onClick={() => setSelectedPlanIndex(index)}
@@ -93,7 +95,7 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="font-semibold text-foreground">{plan.name}</h4>
-                  {plan.description && (
+                        {plan.description && (
                     <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
                   )}
                 </div>
@@ -110,12 +112,12 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
       </div>
 
       {/* Selected Plan Details */}
-      {selectedPlan && (
+              {selectedPlan && (
         <div className="bg-muted/50 p-4 rounded-lg space-y-3">
           <div>
             <h4 className="font-semibold mb-2">Incluye:</h4>
             <ul className="space-y-1">
-              {selectedPlan.includes.map((item, idx) => (
+              {selectedPlan.includes && selectedPlan.includes.map((item, idx) => (
                 <li key={idx} className="text-sm text-foreground flex items-start gap-2">
                   <span className="text-blue-600 mt-0.5">✓</span>
                   <span>{item}</span>
@@ -128,7 +130,7 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
             <div>
               <h4 className="font-semibold mb-2">No incluye:</h4>
               <ul className="space-y-1">
-                {selectedPlan.excludes.map((item, idx) => (
+                {selectedPlan.excludes && selectedPlan.excludes.map((item, idx) => (
                   <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
                     <span className="text-gray-400">✗</span>
                     <span>{item}</span>
