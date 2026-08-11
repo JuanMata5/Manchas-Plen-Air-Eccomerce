@@ -130,10 +130,10 @@ export function TicketCard({ ticket }: TicketCardProps) {
         {/* Nombre */}
         <div>
           <p className="text-xs text-muted-foreground uppercase tracking-wider">
-            Entrada
+            Reserva
           </p>
           <p className="font-semibold text-foreground">
-            {ticket.products?.name ?? 'Ticket'}
+            {ticket.products?.name ?? 'Reserva'}
           </p>
         </div>
 
@@ -164,7 +164,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
             {ticket.qr_code}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Presenta este código en la entrada
+            Presenta este código para tu reserva
           </p>
         </div>
 

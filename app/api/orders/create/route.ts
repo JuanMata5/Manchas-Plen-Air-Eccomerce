@@ -90,6 +90,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const mpAccessToken = process.env.MP_ACCESS_TOKEN
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+
+    if (payment_method === 'mercadopago' && !mpAccessToken) {
+      console.error('[ORDER API] Mercado Pago no configurado: falta MP_ACCESS_TOKEN')
+      return NextResponse.json(
+        { error: 'Mercado Pago no está configurado en el servidor' },
+        { status: 500 }
+      )
+    }
+
     // Separar items en productos y experiencias
     const productItems = items.filter((i: OrderItemInput) => !isExperienceItem(i)) as ProductItemInput[]
     const experienceItems = items.filter((i: OrderItemInput) => isExperienceItem(i)) as ExperienceItemInput[]
@@ -184,20 +197,68 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // 🎟 CUPON
-    if (coupon_code) {
-      await adminDb
-        .from('coupons')
-        .select('id')
-        .eq('code', coupon_code.toUpperCase().trim())
-        .single()
-    }
-
-    const manualDiscount = discount_ars ?? 0
-    const finalDiscount = manualDiscount
     const backendSubtotal =
       validatedProductItems.reduce((sum, item) => sum + item.unit_price * item.quantity, 0) +
       validatedExperienceItems.reduce((sum, item) => sum + item.unit_price * item.item.quantity, 0)
+
+    // 🎟 CUPON - validar en backend y proteger contra descuentos falsos
+    let couponId: number | null = null
+    let validatedCouponCode: string | null = null
+    let couponDiscount = 0
+
+    if (coupon_code) {
+      const { data: coupon, error: couponError } = await adminDb
+        .from('coupons')
+        .select('*')
+        .eq('code', coupon_code.toUpperCase().trim())
+        .eq('is_active', true)
+        .single()
+
+      if (couponError || !coupon) {
+        return NextResponse.json(
+          { error: 'Cupón inválido o no disponible' },
+          { status: 400 }
+        )
+      }
+
+      const now = new Date().toISOString()
+      if (coupon.valid_from && now < coupon.valid_from) {
+        return NextResponse.json(
+          { error: 'El cupón aún no está vigente' },
+          { status: 400 }
+        )
+      }
+      if (coupon.valid_until && now > coupon.valid_until) {
+        return NextResponse.json(
+          { error: 'El cupón expiró' },
+          { status: 400 }
+        )
+      }
+      if (coupon.max_uses !== null && coupon.current_uses >= coupon.max_uses) {
+        return NextResponse.json(
+          { error: 'El cupón alcanzó su límite de usos' },
+          { status: 400 }
+        )
+      }
+      const minSpend = coupon.min_spend_ars ?? coupon.min_order_ars
+      if (minSpend !== null && backendSubtotal < Number(minSpend)) {
+        return NextResponse.json(
+          {
+            error: `El cupón requiere un mínimo de $${Number(minSpend).toLocaleString('es-AR')}`,
+          },
+          { status: 400 },
+        )
+      }
+
+      couponDiscount = coupon.discount_type === 'percentage'
+        ? Math.round((backendSubtotal * Number(coupon.discount_value)) / 100)
+        : Number(coupon.discount_value)
+      couponId = coupon.id
+      validatedCouponCode = coupon.code
+    }
+
+    const manualDiscount = coupon_code ? 0 : discount_ars ?? 0
+    const finalDiscount = Math.max(0, couponDiscount || manualDiscount)
     const finalTotal = Math.max(0, backendSubtotal - finalDiscount)
     const totalTripBalance = validatedExperienceItems.reduce(
       (sum, item) => sum + Math.max(0, item.full_price - item.unit_price) * item.item.quantity,
@@ -218,8 +279,10 @@ export async function POST(request: NextRequest) {
         subtotal_ars: backendSubtotal,
         discount_ars: finalDiscount,
         total_ars: finalTotal,
-        amount_paid_ars: finalTotal,
+        amount_paid_ars: 0,
         balance_due_ars: totalTripBalance,
+        coupon_code: validatedCouponCode,
+        coupon_id: couponId,
         buyer_name,
         buyer_email,
         buyer_phone: buyer_phone || null,
@@ -229,12 +292,14 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (orderError || !order) {
-      console.error('[ORDER ERROR]', orderError)
+      console.error('[ORDER API] Error al crear orden:', orderError)
       return NextResponse.json(
-        { error: 'Error al crear la orden' },
+        { error: 'Error al crear la orden', details: orderError?.message },
         { status: 500 }
       )
     }
+
+    console.log('[ORDER API] Orden creada:', order.id)
 
     // 📦 ORDER ITEMS (PRODUCTOS)
     const orderItemsData = validatedProductItems.map((item) => ({
@@ -256,12 +321,14 @@ export async function POST(request: NextRequest) {
         .insert(orderItemsData)
 
       if (itemsError) {
-        console.error('[ITEMS ERROR]', itemsError)
+        console.error('[ORDER API] Error al guardar order_items:', itemsError)
         return NextResponse.json(
-          { error: 'Error al guardar items' },
+          { error: 'Error al guardar items de la orden', details: itemsError?.message },
           { status: 500 }
         )
       }
+
+      console.log('[ORDER API] order_items guardados:', orderItemsData.length)
     }
 
     // 🎫 TRAVEL BOOKINGS (EXPERIENCIAS)
@@ -272,6 +339,7 @@ export async function POST(request: NextRequest) {
       const reservationPrice = item.reservation_price
       const passengerCount = item.item.quantity || 1
       return {
+        user_id: user.id,
         order_id: order.id,
         travel_id: item.experience.id,
         booking_reference: bookingRef,
@@ -301,12 +369,14 @@ export async function POST(request: NextRequest) {
         .insert(travelBookingsData)
 
       if (bookingsError) {
-        console.error('[BOOKINGS ERROR]', bookingsError)
+        console.error('[ORDER API] Error al guardar travel_bookings:', bookingsError)
         return NextResponse.json(
-          { error: 'Error al guardar reservas de experiencias' },
+          { error: 'Error al guardar reservas de experiencias', details: bookingsError?.message },
           { status: 500 }
         )
       }
+
+      console.log('[ORDER API] travel_bookings guardadas:', travelBookingsData.length)
     }
 
     // 📉 STOCK (SOLO PRODUCTOS)
@@ -321,14 +391,7 @@ export async function POST(request: NextRequest) {
     let responseData: any = { order_id: order.id }
 
     if (payment_method === 'mercadopago') {
-      const token = process.env.MP_ACCESS_TOKEN
-
-      if (!token) {
-        return NextResponse.json(
-          { error: 'MP no configurado' },
-          { status: 500 }
-        )
-      }
+      const token = mpAccessToken
 
       const ratio =
         backendSubtotal > 0

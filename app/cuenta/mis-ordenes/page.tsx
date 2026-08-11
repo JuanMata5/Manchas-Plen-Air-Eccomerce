@@ -33,6 +33,19 @@ export default async function MisOrdenesPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
+  // Obtener reservas de viajes asociadas a estas ordenes
+  const orderIds = (orders ?? []).map((o: any) => o.id)
+  let bookingsByOrder: any[] = []
+  if (orderIds.length > 0) {
+    const { data: bookings } = await supabase
+      .from('travel_bookings')
+      .select('*, travel_experiences(title)')
+      .in('order_id', orderIds)
+      .order('created_at', { ascending: false })
+
+    bookingsByOrder = bookings ?? []
+  }
+
   return (
     <>
       <Navbar />
@@ -95,6 +108,27 @@ export default async function MisOrdenesPage() {
                         </span>
                       </div>
                     ))}
+
+                    {/* Reservas de viaje asociadas a la orden */}
+                    {bookingsByOrder.filter(b => b.order_id === order.id).length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-sm font-semibold mb-2">Reservas relacionadas</p>
+                        <div className="space-y-2">
+                          {bookingsByOrder.filter(b => b.order_id === order.id).map((b: any) => (
+                            <div key={b.id} className="flex items-center justify-between bg-muted/10 p-3 rounded-md">
+                              <div>
+                                <p className="font-medium">{b.travel_experiences?.title ?? b.plan_name}</p>
+                                <p className="text-xs text-muted-foreground">Ref: {b.booking_reference}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs">{new Date(b.created_at).toLocaleDateString('es-AR')}</p>
+                                <a className="text-xs text-primary underline" href={`/viajes/reservar/${b.travel_id}?ref=${b.booking_reference}`}>Ver</a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   {order.status === 'payment_pending' && order.payment_method === 'transfer' && (
                     <div className="mt-4 pt-4 border-t border-border">
@@ -117,7 +151,7 @@ export default async function MisOrdenesPage() {
                     <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center gap-3">
                       <Button asChild size="sm" className="gap-1.5">
                         <Link href="/cuenta/mis-tickets">
-                          Ver mis tickets
+                          Ver mis reservas
                         </Link>
                       </Button>
                       <RequestRefundButton orderId={order.id} disabled={refundRequested} />

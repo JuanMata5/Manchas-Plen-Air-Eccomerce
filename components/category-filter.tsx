@@ -34,6 +34,14 @@ export function CategoryFilter({ categories }: CategoryFilterProps) {
       >
         Todos
       </Button>
+      <Button
+        variant={activeSlug === 'viajes' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => handleSelect('viajes')}
+        className={cn(activeSlug === 'viajes' && 'shadow-sm')}
+      >
+        Viajes
+      </Button>
       {categories.map((cat) => (
         <Button
           key={cat.id}

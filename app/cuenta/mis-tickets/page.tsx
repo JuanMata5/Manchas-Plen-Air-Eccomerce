@@ -41,6 +41,27 @@ export default async function MisTicketsPage() {
     return t.orders !== null
   })
 
+  // Obtener reservas de viajes asociadas al usuario (por user_id o email)
+  const { data: bookingsByUser } = await adminDb
+    .from('travel_bookings')
+    .select('*, travel_experiences(title)')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
+  const { data: bookingsByEmail } = await adminDb
+    .from('travel_bookings')
+    .select('*, travel_experiences(title)')
+    .eq('customer_email', userEmail)
+    .order('created_at', { ascending: false })
+
+  const allBookings = [...(bookingsByUser ?? []), ...(bookingsByEmail ?? [])]
+  // dedupe bookings by id
+  const bookingMap = new Map<string, any>()
+  for (const b of allBookings) {
+    if (!bookingMap.has(b.id)) bookingMap.set(b.id, b)
+  }
+  const userBookings = Array.from(bookingMap.values())
+
   // Inyectar el DNI del usuario si el ticket no lo tiene
   const userDni = user.user_metadata?.dni || null;
 
@@ -49,16 +70,16 @@ export default async function MisTicketsPage() {
       <Navbar />
       <main className="max-w-4xl mx-auto px-4 py-10">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="font-serif font-bold text-3xl text-foreground">Mis tickets</h1>
+          <h1 className="font-serif font-bold text-3xl text-foreground">Mis reservas</h1>
           <Button asChild variant="outline" size="sm">
             <Link href="/cuenta/mis-ordenes">Ver ordenes</Link>
           </Button>
         </div>
 
-        {userTickets.length === 0 ? (
+        {userBookings.length === 0 && userTickets.length === 0 ? (
           <Empty
-            title="Sin tickets"
-            description="Tus tickets apareceran aca una vez que tu pago sea confirmado."
+            title="Sin reservas"
+            description="Tus reservas apareceran aca una vez que tu pago sea confirmado."
             action={
               <Button asChild>
                 <Link href="/tienda">Ir a la tienda</Link>
@@ -66,16 +87,54 @@ export default async function MisTicketsPage() {
             }
           />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {userTickets.map((ticket: any) => (
-              <TicketCard
-                key={ticket.id}
-                ticket={{
-                  ...ticket,
-                  holder_dni: ticket.holder_dni || userDni,
-                }}
-              />
-            ))}
+          <div className="space-y-6">
+            {userBookings.length > 0 && (
+              <div>
+                <h2 className="font-semibold text-lg mb-4">Reservas de viajes</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {userBookings.map((booking: any) => (
+                    <div key={booking.id} className="bg-card border border-border rounded-xl p-5">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-mono text-xs text-muted-foreground">{booking.booking_reference}</p>
+                          <p className="font-medium text-foreground">{booking.travel_experiences?.title ?? booking.plan_name}</p>
+                          <p className="text-xs text-muted-foreground">{booking.customer_email}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">{booking.passenger_count ?? 1} pasajero{(booking.passenger_count ?? 1) > 1 ? 's' : ''}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(booking.created_at).toLocaleDateString('es-AR')}</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex gap-2">
+                        <Button asChild size="sm">
+                          <Link href={`/viajes/reservar/${booking.travel_id}?ref=${booking.booking_reference}`}>Ver reserva</Link>
+                        </Button>
+                        <Button asChild variant="outline" size="sm">
+                          <Link href={`/viajes/reservar/${booking.travel_id}/confirmacion?ref=${booking.booking_reference}`}>Comprobante</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {userTickets.length > 0 && (
+              <div>
+                <h2 className="font-semibold text-lg mb-4">Entradas y comprobantes</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  {userTickets.map((ticket: any) => (
+                    <TicketCard
+                      key={ticket.id}
+                      ticket={{
+                        ...ticket,
+                        holder_dni: ticket.holder_dni || userDni,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>

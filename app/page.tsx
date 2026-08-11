@@ -52,17 +52,10 @@ async function getAllProducts(): Promise<Product[]> {
 
 const categories = [
   {
-    icon: Ticket,
-    title: 'Eventos',
-    description: 'Entradas oficiales para convenciones, shows y actividades en vivo.',
-    href: '/tienda?categoria=entradas',
-    color: 'bg-blue-500/10 text-blue-600',
-  },
-  {
     icon: Plane,
     title: 'Viajes artisticos',
     description: 'Salidas, encuentros y experiencias creativas en distintas locaciones.',
-    href: '/tienda',
+    href: '/tienda?categoria=viajes',
     color: 'bg-emerald-500/10 text-emerald-600',
   },
   {
@@ -89,8 +82,8 @@ const benefits = [
   },
   {
     icon: Clock,
-    title: 'Entrega inmediata',
-    description: 'Recibis tus entradas y confirmaciones al instante en tu email.',
+    title: 'Reserva inmediata',
+    description: 'Recibis la confirmación de tu reserva al instante en tu email.',
   },
   {
     icon: CreditCard,
@@ -108,8 +101,8 @@ const testimonials = [
   {
     name: 'Lucia F.',
     location: 'Buenos Aires',
-    text: 'Super facil comprar las entradas. Llegaron al instante al email y la entrada al show fue sin problemas.',
-    event: 'Show en vivo',
+    text: 'Super facil reservar el viaje. Llegó la confirmación al instante al email y todo salió perfecto.',
+    event: 'Viaje relámpago',
   },
   {
     name: 'Martin R.',
@@ -126,15 +119,15 @@ const testimonials = [
   {
     name: 'Diego A.',
     location: 'Mendoza',
-    text: 'La atencion al cliente es de 10. Tuve un problema con mi entrada y lo resolvieron al toque.',
-    event: 'Festival de musica',
+    text: 'La atencion al cliente es de 10. Tuve un problema con mi reserva y lo resolvieron al toque.',
+    event: 'Experiencia de viaje',
   },
 ]
 
 const faqs = [
   {
-    q: 'Como recibo mis entradas?',
-    a: 'Una vez confirmado el pago, recibis tus entradas por email de forma inmediata. Tambien las podes ver desde tu cuenta en "Mis ordenes".',
+    q: 'Como recibo mi reserva?',
+    a: 'Una vez confirmado el pago, recibis los datos de tu reserva por email de forma inmediata. Tambien las podes ver desde tu cuenta en "Mis ordenes".',
   },
   {
     q: 'Que metodos de pago aceptan?',
@@ -146,11 +139,11 @@ const faqs = [
   },
   {
     q: 'Puedo cancelar o pedir reembolso?',
-    a: 'Si, podes solicitar un reembolso hasta 7 dias antes del evento. Contactanos y lo resolvemos.',
+    a: 'Si, podes solicitar un reembolso hasta 7 dias antes de la experiencia o viaje. Contactanos y lo resolvemos.',
   },
   {
-    q: 'Las entradas son transferibles?',
-    a: 'Si, podes transferir tu entrada a otra persona. Contactanos con los datos del nuevo titular.',
+    q: 'Las reservas son transferibles?',
+    a: 'Si, podes transferir tu reserva a otra persona. Contactanos con los datos del nuevo titular.',
   },
 ]
 
@@ -176,17 +169,17 @@ export default async function HomePage() {
           <div className="absolute inset-0 bg-black/55 z-10" />
           <div className="relative z-20 mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 py-20 sm:px-6 sm:py-24 md:gap-6">
             <h1 className="font-serif text-3xl font-bold leading-tight tracking-tight text-balance sm:text-5xl md:text-6xl">
-              Manchas Eventos
+              Manchas Plen Air
             </h1>
             <p className="max-w-2xl text-base leading-relaxed text-white/85 text-balance sm:text-lg md:text-xl">
-              EVENTOS Y EXPERIENCIAS PREMIUM PARA ARTISTAS
+              VIAJES CREATIVOS Y EXPERIENCIAS PREMIUM PARA ARTISTAS
             </p>
 
-            <p>Entradas digitales agotadas, compra tus entradas en el lugar del evento, Círculo Oficiales de Mar COM Sarmiento 1867 </p>
+            <p>Explora viajes, encuentros y experiencias artísticas diseñadas para vos. Reserva ahora y vive el próximo viaje.</p>
             <div className="mt-3 flex w-full max-w-md flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
               <Button asChild size="lg" className="bg-white text-black hover:bg-white/90 font-semibold text-base px-8 shadow-lg">
-                <Link href="/tienda?categoria=entradas">
-                  Explorar Eventos
+                <Link href="/tienda?categoria=viajes">
+                  Explorar Viajes
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -203,7 +196,7 @@ export default async function HomePage() {
         <section className="max-w-6xl mx-auto px-4 py-12 md:py-16">
           <div className="text-center mb-10">
             <h2 className="font-serif font-bold text-3xl md:text-4xl text-foreground">Destacados</h2>
-            <p className="text-muted-foreground mt-2">Entradas y productos recomendados para vos.</p>
+            <p className="text-muted-foreground mt-2">Experiencias y productos seleccionados para tu próxima aventura.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {productsToShow.map((product) => (

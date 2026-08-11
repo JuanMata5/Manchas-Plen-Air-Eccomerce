@@ -23,51 +23,102 @@ export async function POST(request: NextRequest) {
       payload: body,
     })
 
-    if (body.type !== 'payment') {
-      return NextResponse.json({ received: true })
-    }
+    // Determinar estado provisional a partir del status de MP
+    let provisionalStatus: string | null = null
+    if (payment.status === 'approved') provisionalStatus = 'approved'
+    else if (payment.status === 'rejected' || payment.status === 'cancelled') provisionalStatus = 'cancelled'
 
-    const paymentId = body.data?.id
-    if (!paymentId) {
-      return NextResponse.json({ received: true })
-    }
+    if (provisionalStatus) {
+      // Obtener orden existente para cálculo de montos y control idempotente
+      const { data: existingOrder } = await adminDb
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single()
 
-    // Fetch payment details from MP API
-    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: {
-        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-      },
-    })
+      if (!existingOrder) {
+        console.warn('[WEBHOOK] Orden no encontrada para external_reference:', orderId)
+        return NextResponse.json({ received: true })
+      }
 
-    if (!mpRes.ok) {
-      console.error('[WEBHOOK] MP payment fetch error:', await mpRes.text())
-      return NextResponse.json({ error: 'Cannot fetch payment' }, { status: 500 })
-    }
+      // Idempotencia: si este paymentId ya fue procesado para la orden, ignorar
+      if (String(existingOrder?.mp_payment_id) === String(paymentId)) {
+        console.log('[WEBHOOK] Duplicate webhook for paymentId, ignoring:', paymentId)
+        return NextResponse.json({ received: true })
+      }
 
-    const payment = await mpRes.json()
-    const orderId = payment.external_reference
+      const existingPaid = Number(existingOrder?.amount_paid_ars ?? 0)
+      const paidAmount = Number(payment.transaction_amount ?? payment.amount ?? 0)
+      const newAmountPaid = Math.round((existingPaid + paidAmount) * 100) / 100
+      const totalOrder = Number(existingOrder?.total_ars ?? 0)
+      const newBalance = Math.round((totalOrder - newAmountPaid) * 100) / 100
 
-    if (!orderId) {
-      return NextResponse.json({ received: true })
-    }
+      // Estado final: marcar 'paid' solo si se cubre el total; si MP marcó cancelado, mantener cancelado; si aprobado pero parcial, usar 'payment_pending'
+      const finalStatus = provisionalStatus === 'approved' && newAmountPaid >= totalOrder ? 'paid' : (provisionalStatus === 'cancelled' ? 'cancelled' : 'payment_pending')
 
-    let newStatus: string | null = null
-
-    if (payment.status === 'approved') {
-      newStatus = 'paid'
-    } else if (payment.status === 'rejected' || payment.status === 'cancelled') {
-      newStatus = 'cancelled'
-    }
-
-    if (newStatus) {
       await adminDb
         .from('orders')
         .update({
-          status: newStatus,
+          status: finalStatus,
           mp_payment_id: String(paymentId),
+          amount_paid_ars: newAmountPaid,
+          balance_due_ars: newBalance,
           updated_at: new Date().toISOString(),
         })
         .eq('id', orderId)
+
+      // Incrementar uso de cupón SOLO si la orden quedó totalmente pagada ahora
+      try {
+        if (existingOrder?.coupon_id && finalStatus === 'paid' && !existingOrder?.mp_payment_id) {
+          try {
+            await adminDb.rpc('increment_coupon_usage', { p_coupon_id: existingOrder.coupon_id })
+          } catch (rpcErr) {
+            console.warn('[WEBHOOK] RPC increment_coupon_usage failed, falling back to manual update:', rpcErr)
+            try {
+              const { data: coupon } = await adminDb.from('coupons').select('id, current_uses, uses_count, used_count').eq('id', existingOrder.coupon_id).single()
+              const current = Number(coupon?.uses_count ?? coupon?.current_uses ?? coupon?.used_count ?? 0)
+              await adminDb.from('coupons').update({ uses_count: current + 1 }).eq('id', existingOrder.coupon_id)
+            } catch (fallbackErr) {
+              console.error('[WEBHOOK] Fallback updating coupon failed:', fallbackErr)
+            }
+          }
+        }
+      } catch (rpcErr) {
+        console.error('[WEBHOOK] Error incrementando uso de cupón (outer):', rpcErr)
+      }
+
+      // Distribuir el monto del pago actual entre las travel_bookings de la orden
+      try {
+        const paymentAmount = Number(payment.transaction_amount ?? payment.amount ?? 0)
+        if (paymentAmount > 0) {
+          const { data: bookings } = await adminDb
+            .from('travel_bookings')
+            .select('*')
+            .eq('order_id', orderId)
+
+          if (bookings && bookings.length > 0) {
+            let remaining = paymentAmount
+            for (const b of bookings) {
+              if (remaining <= 0) break
+              const bookingBalance = Number(b.balance_due ?? 0)
+              if (bookingBalance <= 0) continue
+              const allocate = Math.min(bookingBalance, remaining)
+              remaining = Math.round((remaining - allocate) * 100) / 100
+
+              const newBalanceBooking = Math.round((bookingBalance - allocate) * 100) / 100
+              const newPaymentStatus = newBalanceBooking <= 0 ? 'paid' : 'deposit_paid'
+              const newReservationStatus = newBalanceBooking <= 0 ? 'confirmed' : b.reservation_status || 'pending'
+
+              await adminDb
+                .from('travel_bookings')
+                .update({ balance_due: newBalanceBooking, payment_status: newPaymentStatus, reservation_status: newReservationStatus })
+                .eq('id', b.id)
+            }
+          }
+        }
+      } catch (allocErr) {
+        console.error('[WEBHOOK] Error distribuyendo pagos a bookings:', allocErr)
+      }
 
       // Generate tickets on successful payment
       if (newStatus === 'paid') {

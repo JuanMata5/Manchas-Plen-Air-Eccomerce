@@ -15,16 +15,16 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://manchas-plen-air-e
 
 export const metadata: Metadata = {
   title: {
-    default: 'Manchas Plen Air — Entradas, Viajes y Experiencias',
+    default: 'Manchas Plen Air — Viajes y Experiencias',
     template: '%s | Manchas Plen Air',
   },
   description:
-    'Comprá entradas, viajes y experiencias únicas en toda Argentina. Pago seguro con Mercado Pago, entrega inmediata por email.',
-  keywords: ['manchas plen air', 'entradas', 'tickets', 'viajes', 'experiencias', 'eventos', 'Argentina', 'merchandising'],
+    'Comprá viajes y experiencias únicas para artistas en toda Argentina. Pago seguro con Mercado Pago y reserva rápida.',
+  keywords: ['manchas plen air', 'viajes', 'experiencias', 'artistas', 'Argentina', 'merchandising'],
   metadataBase: new URL(BASE_URL),
   openGraph: {
-    title: 'Manchas Plen Air — Entradas, Viajes y Experiencias',
-    description: 'Comprá entradas, viajes y experiencias únicas en toda Argentina.',
+    title: 'Manchas Plen Air — Viajes y Experiencias',
+    description: 'Comprá viajes y experiencias únicas para artistas en toda Argentina.',
     type: 'website',
     locale: 'es_AR',
     siteName: 'Manchas Plen Air',
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Manchas Plen Air',
-    description: 'Entradas, viajes y experiencias únicas en Argentina.',
+    description: 'Viajes y experiencias únicas para artistas en Argentina.',
   },
   robots: {
     index: true,

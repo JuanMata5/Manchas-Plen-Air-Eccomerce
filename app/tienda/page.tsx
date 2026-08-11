@@ -33,6 +33,11 @@ interface TravelExperience {
 }
 
 async function getProducts(categorySlug?: string, q?: string): Promise<Product[]> {
+  const blockedCategories = ['entradas', 'tickets', 'eventos']
+  if (categorySlug && blockedCategories.includes(categorySlug)) {
+    return []
+  }
+
   const supabase = await createClient()
   let query = supabase
     .from('products')
@@ -64,7 +69,7 @@ async function getProducts(categorySlug?: string, q?: string): Promise<Product[]
 async function getCategories(): Promise<Category[]> {
   const supabase = await createClient()
   const { data } = await supabase.from('categories').select('*').order('name')
-  return data ?? []
+  return (data ?? []).filter((category) => !['entradas', 'tickets', 'eventos'].includes(category.slug))
 }
 
 async function getTravelExperiences(locationFilter?: string): Promise<TravelExperience[]> {
@@ -109,6 +114,10 @@ async function ProductGrid({
   categorySlug?: string
   q?: string
 }) {
+  if (categorySlug === 'viajes') {
+    return null
+  }
+
   let products = await getProducts(categorySlug, q)
 
   if (products.length === 0) {
@@ -184,7 +193,7 @@ async function ExperiencesGrid({ locationFilter }: { locationFilter?: string }) 
                     className="object-cover group-hover:scale-110 transition-transform duration-300"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center">
+                  <div className="w-full h-full bg-linear-to-br from-slate-300 to-slate-400 flex items-center justify-center">
                     <span className="text-slate-500">Sin imagen</span>
                   </div>
                 )}
@@ -194,19 +203,19 @@ async function ExperiencesGrid({ locationFilter }: { locationFilter?: string }) 
               </div>
 
               {/* Content */}
-              <div className="p-6 flex flex-col flex-grow">
+              <div className="p-6 flex flex-col grow">
                 <h3 className="text-lg font-bold text-slate-900 mb-2 line-clamp-2">
                   {experience.title}
                 </h3>
 
                 {/* Location */}
                 <div className="flex items-center text-slate-600 mb-3">
-                  <MapPin size={16} className="mr-2 flex-shrink-0" />
+                  <MapPin size={16} className="mr-2 shrink-0" />
                   <span className="text-sm">{experience.location}</span>
                 </div>
 
                 {/* Description */}
-                <p className="text-slate-700 text-sm mb-4 line-clamp-2 flex-grow">
+                <p className="text-slate-700 text-sm mb-4 line-clamp-2 grow">
                   {experience.description}
                 </p>
 
@@ -263,7 +272,7 @@ export default async function TiendaPage({ searchParams }: PageProps) {
   const locationFilter = params.viaje ?? 'all'
 
   const activeCategory = categories.find((c) => c.slug === categorySlug)
-  const pageTitle = activeCategory ? activeCategory.name : 'Tienda'
+  const pageTitle = categorySlug === 'viajes' ? 'Viajes' : activeCategory ? activeCategory.name : 'Tienda'
 
   return (
     <>
@@ -279,20 +288,20 @@ export default async function TiendaPage({ searchParams }: PageProps) {
           )}
         </div>
 
-        {/* Show Experiences section only when no category filter */}
-        {!categorySlug && (
+        {/* Show travel experiences when the customer is browsing viajes or no category is selected */}
+        {(categorySlug === 'viajes' || !categorySlug) && (
           <>
             <div className="mb-6 flex flex-wrap items-center gap-3">
               <span className="text-sm font-semibold text-foreground">Filtrar viajes:</span>
               <Link
-                href={buildTiendaHref({ categoria: categorySlug ?? null, q: q ?? null, viaje: null })}
-                className={`rounded-full border px-4 py-2 text-sm transition ${locationFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'}`}
+                href={buildTiendaHref({ categoria: 'viajes', q: q ?? null, viaje: null })}
+                className={`rounded-full border px-4 py-2 text-sm transition ${categorySlug === 'viajes' && locationFilter === 'all' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'}`}
               >
                 Todos
               </Link>
               <Link
-                href={buildTiendaHref({ categoria: categorySlug ?? null, q: q ?? null, viaje: 'trevelin' })}
-                className={`rounded-full border px-4 py-2 text-sm transition ${locationFilter === 'trevelin' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'}`}
+                href={buildTiendaHref({ categoria: 'viajes', q: q ?? null, viaje: 'trevelin' })}
+                className={`rounded-full border px-4 py-2 text-sm transition ${categorySlug === 'viajes' && locationFilter === 'trevelin' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'}`}
               >
                 Trevelin
               </Link>

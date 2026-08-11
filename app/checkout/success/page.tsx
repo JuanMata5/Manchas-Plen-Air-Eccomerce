@@ -24,8 +24,8 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
           Pago exitoso
         </h1>
         <p className="text-muted-foreground leading-relaxed">
-          Tu pago fue procesado correctamente. En breve recibirás un email con tus entradas y
-          los detalles de tu compra.
+          Tu pago fue procesado correctamente. En breve recibirás un email con los detalles de tu reserva y
+          de tu compra.
         </p>
         {order_id && (
           <p className="text-sm text-muted-foreground bg-muted px-4 py-2 rounded-lg font-mono">

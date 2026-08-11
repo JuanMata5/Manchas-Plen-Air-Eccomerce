@@ -52,6 +52,43 @@ export async function POST(request: NextRequest) {
 
   // If marking as paid and no tickets yet, generate them
   if (status === 'paid') {
+    // Obtener orden actualizada para manejar montos y cupones
+    const { data: existingOrder } = await adminDb
+      .from('orders')
+      .select('*')
+      .eq('id', order_id)
+      .single()
+
+    // Actualizar montos: marcar como pagado completamente
+    try {
+      const total = Number(existingOrder?.total_ars ?? 0)
+      await adminDb
+        .from('orders')
+        .update({ amount_paid_ars: total, balance_due_ars: 0, updated_at: new Date().toISOString() })
+        .eq('id', order_id)
+    } catch (amtErr) {
+      console.error('[ADMIN] Error updating order amounts:', amtErr)
+    }
+
+    // Incrementar uso de cupón de forma idempotente si aplica
+    try {
+      if (existingOrder?.coupon_id && !existingOrder?.mp_payment_id) {
+        try {
+          await adminDb.rpc('increment_coupon_usage', { p_coupon_id: existingOrder.coupon_id })
+        } catch (rpcErr) {
+          console.warn('[ADMIN] RPC increment_coupon_usage failed, falling back to manual update:', rpcErr)
+          try {
+            const { data: coupon } = await adminDb.from('coupons').select('id, current_uses, uses_count, used_count').eq('id', existingOrder.coupon_id).single()
+            const current = Number(coupon?.uses_count ?? coupon?.current_uses ?? coupon?.used_count ?? 0)
+            await adminDb.from('coupons').update({ uses_count: current + 1 }).eq('id', existingOrder.coupon_id)
+          } catch (fallbackErr) {
+            console.error('[ADMIN] Fallback updating coupon failed:', fallbackErr)
+          }
+        }
+      }
+    } catch (rpcErr) {
+      console.error('[ADMIN] Error incrementing coupon usage:', rpcErr)
+    }
     const { data: existingTickets } = await adminDb
       .from('tickets')
       .select('id')
@@ -133,6 +170,26 @@ export async function POST(request: NextRequest) {
               })
             })
             .catch((e) => console.warn('[ADMIN] Ticket PDF email failed:', e))
+
+          // Confirmar reservas de viaje asociadas a la orden (si las hay)
+          try {
+            const { data: travelBookings } = await adminDb
+              .from('travel_bookings')
+              .select('*')
+              .eq('order_id', order_id)
+
+            if (travelBookings && travelBookings.length > 0) {
+              const isDeposit = existingOrder?.payment_option === 'deposit' || existingOrder?.payment_option === 'reservation'
+              const newPaymentStatus = isDeposit ? 'deposit_paid' : 'paid'
+
+              await adminDb
+                .from('travel_bookings')
+                .update({ payment_status: newPaymentStatus, reservation_status: 'confirmed', balance_due: 0 })
+                .eq('order_id', order_id)
+            }
+          } catch (tbErr) {
+            console.error('[ADMIN] Error confirming travel bookings:', tbErr)
+          }
 
           return NextResponse.json({ ok: true, tickets_created: tickets.length })
         }

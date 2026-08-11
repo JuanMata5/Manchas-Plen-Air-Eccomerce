@@ -15,11 +15,10 @@ import { Separator } from '@/components/ui/separator'
 const navLinks = [
   { href: '/', label: 'Inicio' },
   { href: '/tienda', label: 'Tienda' },
-  { href: '/tienda?categoria=entradas', label: 'Entradas' },
+  { href: '/tienda?categoria=viajes', label: 'Viajes' },
   { href: '/tienda?categoria=stands', label: 'Stands' },
   { href: '/#contacto', label: 'Contacto' },
 ]
-console.log();
 
 export function Navbar() {
   const totalItems = useCartStore((s) => s.totalItems())
@@ -66,7 +65,7 @@ export function Navbar() {
               <>
                 <Link href="/cuenta" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><UserPlus className="h-4 w-4" />Mi perfil</Link>
                 <Link href="/cuenta/mis-ordenes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><ShoppingCart className="h-4 w-4" />Mis Órdenes</Link>
-                <Link href="/cuenta/mis-tickets" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><Ticket className="h-4 w-4" />Mis Tickets</Link>
+                <Link href="/cuenta/mis-tickets" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><Ticket className="h-4 w-4" />Mis reservas</Link>
                 {isAdmin && (
                   <>
                     <Link href="/admin/viajes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"><Plane className="h-4 w-4" />Viajes</Link>
@@ -101,7 +100,7 @@ export function Navbar() {
                     <li className='font-semibold text-lg'>Mi Cuenta</li>
                     <li><Link href="/cuenta" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Mi perfil</Link></li>
                     <li><Link href="/cuenta/mis-ordenes" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Mis ordenes</Link></li>
-                    <li><Link href="/cuenta/mis-tickets" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Mis tickets</Link></li>
+                    <li><Link href="/cuenta/mis-tickets" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Mis reservas</Link></li>
                     {isAdmin && (
                       <>
                         <li><Link href="/admin/viajes" className="text-muted-foreground hover:text-foreground" onClick={() => setMobileOpen(false)}>Reservas de Viajes</Link></li>

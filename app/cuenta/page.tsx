@@ -111,7 +111,7 @@ export default function PerfilPage() {
         <Button type="submit" disabled={loading}>{loading ? "Guardando..." : "Guardar"}</Button>
       </form>
       <div className="mt-6 text-sm text-muted-foreground">
-        Si tu cuenta fue creada antes del 2026, por favor completá tu DNI y teléfono para poder comprar y recibir tus tickets correctamente.
+        Si tu cuenta fue creada antes del 2026, por favor completá tu DNI y teléfono para poder comprar y recibir tus reservas correctamente.
       </div>
     </div>
   );

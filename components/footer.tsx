@@ -20,7 +20,7 @@ export function Footer() {
             Manchas Plen Air
           </div>
           <p className="text-sm text-background/70 leading-relaxed mb-4">
-            Tu lugar para conseguir entradas, viajes y experiencias unicas en toda Argentina.
+            Tu lugar para descubrir viajes y experiencias únicas para artistas en toda Argentina.
           </p>
           {/* Social icons */}
           <div className="flex items-center gap-3">
@@ -61,7 +61,6 @@ export function Footer() {
           </h3>
           <ul className="space-y-2 text-sm text-background/70">
             <li><Link href="/tienda" className="hover:text-background transition-colors">Todos los productos</Link></li>
-            <li><Link href="/tienda?categoria=entradas" className="hover:text-background transition-colors">Entradas</Link></li>
             <li><Link href="/tienda?categoria=viajes" className="hover:text-background transition-colors">Viajes</Link></li>
             <li><Link href="/tienda?categoria=merchandising" className="hover:text-background transition-colors">Merchandising</Link></li>
             <li><Link href="/tienda?categoria=experiencias" className="hover:text-background transition-colors">Experiencias</Link></li>
