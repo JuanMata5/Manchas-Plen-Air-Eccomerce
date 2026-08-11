@@ -224,7 +224,6 @@ export async function POST(request: NextRequest) {
         buyer_email,
         buyer_phone: buyer_phone || null,
         buyer_dni: buyer_dni || null,
-        is_first_purchase: false,
       })
       .select()
       .single()
