@@ -110,7 +110,7 @@ export default async function MisTicketsPage() {
                           <Link href={`/viajes/reservar/${booking.travel_id}?ref=${booking.booking_reference}`}>Ver reserva</Link>
                         </Button>
                         <Button asChild variant="outline" size="sm">
-                          <Link href={`/viajes/reservar/${booking.travel_id}/confirmacion?ref=${booking.booking_reference}`}>Comprobante</Link>
+                          <Link href={`/experiencias/${booking.travel_id}/confirmacion?ref=${booking.booking_reference}`}>Comprobante</Link>
                         </Button>
                       </div>
                     </div>

@@ -27,13 +27,25 @@ export const UserProvider = (props: { children: React.ReactNode }) => {
       setIsLoading(false)
     })
 
-    // Chequeo activo en Supabase: si la cuenta fue borrada, cerrar sesión local
+    // Chequeo activo en Supabase: carga la sesión actual y evita bloquear el checkout.
     async function verifyUserStillExists() {
-      const { data, error } = await supabase.auth.getUser()
-      if (error || !data?.user) {
+      const { data, error } = await supabase.auth.getSession()
+      if (error) {
+        console.error('[UserProvider] Error al obtener la sesión', error)
         await supabase.auth.signOut()
         setSession(null)
         setUser(null)
+        setIsLoading(false)
+        return
+      }
+
+      const session = data?.session
+      setSession(session)
+      setUser(session?.user ?? null)
+      setIsLoading(false)
+
+      if (!session?.user) {
+        await supabase.auth.signOut()
       }
     }
     verifyUserStillExists()
