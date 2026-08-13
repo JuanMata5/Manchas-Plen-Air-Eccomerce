@@ -1,311 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { sendEmail, sendBulkEmail } from '@/lib/email/resend'
-import { paymentConfirmedTemplate } from '@/lib/email/templates'
-import { generateMultipleTicketsPDF } from '@/lib/pdf/ticket-generator'
-import { generateDepositConfirmationPDF, generateFullPaymentConfirmationPDF } from '@/lib/pdf/booking-generator'
+import { sendEmail } from '@/lib/email/resend'
+import { generateBookingPDF } from '@/lib/pdf/booking-generator'
+import { roundMoney } from '@/lib/travel-payment'
 
-function genTicketCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  return 'PA-' + Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+async function fetchPayment(id: string) {
+  const token = process.env.MP_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MP_ACCESS_TOKEN
+  const response = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!response.ok) throw new Error(`Mercado Pago respondió ${response.status}`)
+  return response.json()
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const adminDb = createAdminClient()
+    const body = await request.json(); const db = createAdminClient()
+    await db.from('webhook_logs').insert({ source: 'mercadopago', provider: 'mercadopago', event_type: body.type || 'unknown', payload: body })
+    if (body.type && body.type !== 'payment') return NextResponse.json({ received: true })
+    const payment = body.payment || await fetchPayment(String(body?.data?.id || body?.id || ''))
+    const orderId = payment.external_reference
+    if (!orderId || !payment.id) return NextResponse.json({ received: true })
+    const { data: order } = await db.from('orders').select('*').eq('id', orderId).single()
+    if (!order || String(order.mp_payment_id || '') === String(payment.id)) return NextResponse.json({ received: true })
+    const paidAmount = roundMoney(Number(payment.transaction_amount || 0))
+    const approved = payment.status === 'approved'
+    const nextPaid = approved ? roundMoney(Number(order.amount_paid_ars || 0) + paidAmount) : Number(order.amount_paid_ars || 0)
+    const nextDue = roundMoney(Number(order.total_ars || 0) - nextPaid)
+    const orderStatus = approved ? (nextDue === 0 ? 'paid' : 'payment_pending') : (['rejected', 'cancelled'].includes(payment.status) ? 'cancelled' : 'payment_pending')
+    await db.from('orders').update({ status: orderStatus, mp_payment_id: String(payment.id), amount_paid_ars: nextPaid, balance_due_ars: nextDue, updated_at: new Date().toISOString() }).eq('id', orderId)
+    if (!approved) return NextResponse.json({ received: true })
 
-    // Log raw webhook
-    await adminDb.from('webhook_logs').insert({
-      source: 'mercadopago',
-      provider: 'mercadopago',
-      event_type: body.type ?? 'unknown',
-      payload: body,
-    })
-
-    // Determinar estado provisional a partir del status de MP
-    let provisionalStatus: string | null = null
-    if (payment.status === 'approved') provisionalStatus = 'approved'
-    else if (payment.status === 'rejected' || payment.status === 'cancelled') provisionalStatus = 'cancelled'
-
-    if (provisionalStatus) {
-      // Obtener orden existente para cálculo de montos y control idempotente
-      const { data: existingOrder } = await adminDb
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single()
-
-      if (!existingOrder) {
-        console.warn('[WEBHOOK] Orden no encontrada para external_reference:', orderId)
-        return NextResponse.json({ received: true })
-      }
-
-      // Idempotencia: si este paymentId ya fue procesado para la orden, ignorar
-      if (String(existingOrder?.mp_payment_id) === String(paymentId)) {
-        console.log('[WEBHOOK] Duplicate webhook for paymentId, ignoring:', paymentId)
-        return NextResponse.json({ received: true })
-      }
-
-      const existingPaid = Number(existingOrder?.amount_paid_ars ?? 0)
-      const paidAmount = Number(payment.transaction_amount ?? payment.amount ?? 0)
-      const newAmountPaid = Math.round((existingPaid + paidAmount) * 100) / 100
-      const totalOrder = Number(existingOrder?.total_ars ?? 0)
-      const newBalance = Math.round((totalOrder - newAmountPaid) * 100) / 100
-
-      // Estado final: marcar 'paid' solo si se cubre el total; si MP marcó cancelado, mantener cancelado; si aprobado pero parcial, usar 'payment_pending'
-      const finalStatus = provisionalStatus === 'approved' && newAmountPaid >= totalOrder ? 'paid' : (provisionalStatus === 'cancelled' ? 'cancelled' : 'payment_pending')
-
-      await adminDb
-        .from('orders')
-        .update({
-          status: finalStatus,
-          mp_payment_id: String(paymentId),
-          amount_paid_ars: newAmountPaid,
-          balance_due_ars: newBalance,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', orderId)
-
-      // Incrementar uso de cupón SOLO si la orden quedó totalmente pagada ahora
-      try {
-        if (existingOrder?.coupon_id && finalStatus === 'paid' && !existingOrder?.mp_payment_id) {
-          try {
-            await adminDb.rpc('increment_coupon_usage', { p_coupon_id: existingOrder.coupon_id })
-          } catch (rpcErr) {
-            console.warn('[WEBHOOK] RPC increment_coupon_usage failed, falling back to manual update:', rpcErr)
-            try {
-              const { data: coupon } = await adminDb.from('coupons').select('id, current_uses, uses_count, used_count').eq('id', existingOrder.coupon_id).single()
-              const current = Number(coupon?.uses_count ?? coupon?.current_uses ?? coupon?.used_count ?? 0)
-              await adminDb.from('coupons').update({ uses_count: current + 1 }).eq('id', existingOrder.coupon_id)
-            } catch (fallbackErr) {
-              console.error('[WEBHOOK] Fallback updating coupon failed:', fallbackErr)
-            }
-          }
-        }
-      } catch (rpcErr) {
-        console.error('[WEBHOOK] Error incrementando uso de cupón (outer):', rpcErr)
-      }
-
-      // Distribuir el monto del pago actual entre las travel_bookings de la orden
-      try {
-        const paymentAmount = Number(payment.transaction_amount ?? payment.amount ?? 0)
-        if (paymentAmount > 0) {
-          const { data: bookings } = await adminDb
-            .from('travel_bookings')
-            .select('*')
-            .eq('order_id', orderId)
-
-          if (bookings && bookings.length > 0) {
-            let remaining = paymentAmount
-            for (const b of bookings) {
-              if (remaining <= 0) break
-              const bookingBalance = Number(b.balance_due ?? 0)
-              if (bookingBalance <= 0) continue
-              const allocate = Math.min(bookingBalance, remaining)
-              remaining = Math.round((remaining - allocate) * 100) / 100
-
-              const newBalanceBooking = Math.round((bookingBalance - allocate) * 100) / 100
-              const newPaymentStatus = newBalanceBooking <= 0 ? 'paid' : 'deposit_paid'
-              const newReservationStatus = newBalanceBooking <= 0 ? 'confirmed' : b.reservation_status || 'pending'
-
-              await adminDb
-                .from('travel_bookings')
-                .update({ balance_due: newBalanceBooking, payment_status: newPaymentStatus, reservation_status: newReservationStatus })
-                .eq('id', b.id)
-            }
-          }
-        }
-      } catch (allocErr) {
-        console.error('[WEBHOOK] Error distribuyendo pagos a bookings:', allocErr)
-      }
-
-      // Generate tickets on successful payment
-      if (newStatus === 'paid') {
-        const { data: existingTickets } = await adminDb
-          .from('tickets')
-          .select('id')
-          .eq('order_id', orderId)
-
-        // Only generate if no tickets exist yet (idempotency)
-        if (!existingTickets || existingTickets.length === 0) {
-          const { data: orderItems } = await adminDb
-            .from('order_items')
-            .select('*')
-            .eq('order_id', orderId)
-
-          const { data: order } = await adminDb
-            .from('orders')
-            .select('buyer_name, buyer_dni, buyer_email, buyer_phone, total_ars')
-            .eq('id', orderId)
-            .single()
-
-          if (orderItems && order) {
-            const tickets = orderItems.flatMap((item: any) =>
-              Array.from({ length: item.quantity }, () => ({
-                order_id: orderId,
-                product_id: item.product_id,
-                order_item_id: item.id,
-                qr_code: genTicketCode(),
-                holder_name: order.buyer_name,
-                holder_email: order.buyer_email,
-                holder_dni: order.buyer_dni,
-                holder_phone: order.buyer_phone,
-              })),
-            )
-
-            if (tickets.length > 0) {
-              const { error: ticketError } = await adminDb.from('tickets').insert(tickets)
-              if (ticketError) {
-                console.error('[WEBHOOK] Error inserting tickets:', ticketError)
-              }
-            }
-
-            // Send email with ticket PDF
-            try {
-              const { data: productsData } = await adminDb
-                .from('products')
-                .select('id, name, event_date, event_location')
-                .in('id', orderItems.map((oi: any) => oi.product_id))
-
-              const ticketData = tickets.map((t) => {
-                const product = productsData?.find((p: any) => p.id === t.product_id)
-                return {
-                  orderReference: orderId,
-                  ticketCode: t.qr_code,
-                  holderName: t.holder_name,
-                  dni: t.holder_dni || order.buyer_dni || '-',
-                  phone: t.holder_phone || order.buyer_phone || '-',
-                  productName: product?.name || 'Entrada',
-                  eventDate: product?.event_date,
-                  eventLocation: product?.event_location,
-                }
-              })
-
-              const pdfBuffer = await generateMultipleTicketsPDF(ticketData)
-
-              // Send email to buyer and admin
-              const recipients = [order.buyer_email]
-              if (process.env.ADMIN_EMAIL) {
-                recipients.push(process.env.ADMIN_EMAIL)
-              }
-              if (process.env.ADMIN_EMAILS) {
-                recipients.push(
-                  ...process.env.ADMIN_EMAILS
-                    .split(',')
-                    .map((email) => email.trim())
-                    .filter(Boolean),
-                )
-              }
-
-              const uniqueRecipients = Array.from(new Set(recipients))
-
-              await sendEmail({
-                to: uniqueRecipients,
-                subject: `¡Tus entradas para Plen Air! - Orden ${orderId.slice(0, 8).toUpperCase()}`,
-                html: paymentConfirmedTemplate({
-                  orderReference: orderId,
-                  buyerName: order.buyer_name,
-                  total: order.total_ars,
-                  paymentDate: new Date().toISOString(),
-                  ticketCount: tickets.length,
-                  eventName: 'Plen Air',
-                }),
-                attachments: [
-                  {
-                    content: pdfBuffer.toString('base64'),
-                    filename: `entradas-${orderId.slice(0, 8)}.pdf`,
-                    type: 'application/pdf',
-                  },
-                ],
-              })
-
-              console.log('[WEBHOOK] Email sent with tickets to:', recipients.join(', '))
-            } catch (emailErr) {
-              console.error('[WEBHOOK] Error sending email with tickets:', emailErr)
-            }
-          }
-        }
-
-        // Handle travel bookings
-        const { data: travelBookings } = await adminDb
-          .from('travel_bookings')
-          .select('*')
-          .eq('order_id', orderId)
-
-        if (travelBookings && travelBookings.length > 0) {
-          const { data: order } = await adminDb
-            .from('orders')
-            .select('payment_option, buyer_name, buyer_email')
-            .eq('id', orderId)
-            .single()
-
-          const isDeposit = order?.payment_option === 'deposit' || order?.payment_option === 'reservation'
-          const newPaymentStatus = isDeposit ? 'deposit_paid' : 'paid'
-
-          // Update payment_status
-          await adminDb
-            .from('travel_bookings')
-            .update({ payment_status: newPaymentStatus, reservation_status: 'confirmed' })
-            .eq('order_id', orderId)
-
-          // Generate PDF and send email
-          try {
-            const { data: experiences } = await adminDb
-              .from('travel_experiences')
-              .select('id, title')
-              .in('id', travelBookings.map(b => b.travel_id))
-
-            for (const booking of travelBookings) {
-              const experience = experiences?.find(e => e.id === booking.travel_id)
-              const bookingData = {
-                bookingReference: booking.booking_reference,
-                customerName: booking.customer_name,
-                customerEmail: booking.customer_email,
-                customerPhone: booking.customer_phone,
-                experienceTitle: experience?.title || 'Experiencia',
-                planName: booking.plan_name,
-                location: booking.location,
-                dates: booking.dates,
-                priceUsd: booking.price_usd,
-                priceArsBlue: booking.price_ars_blue,
-                paymentStatus: newPaymentStatus as 'deposit_paid' | 'paid',
-                orderReference: orderId,
-              }
-
-              const pdfBuffer = isDeposit
-                ? await generateDepositConfirmationPDF(bookingData)
-                : await generateFullPaymentConfirmationPDF(bookingData)
-
-              await sendEmail({
-                to: booking.customer_email,
-                subject: isDeposit
-                  ? `Confirmación de Depósito - Reserva ${booking.booking_reference}`
-                  : `Reserva Confirmada - ${booking.booking_reference}`,
-                html: `<p>Hola ${booking.customer_name},</p><p>${
-                  isDeposit
-                    ? 'Tu depósito ha sido confirmado. Te contactaremos cuando debas completar el pago.'
-                    : 'Tu reserva ha sido completamente confirmada.'
-                }</p><p>Adjunto el comprobante de tu reserva.</p>`,
-                attachments: [
-                  {
-                    content: pdfBuffer.toString('base64'),
-                    filename: `reserva-${booking.booking_reference}.pdf`,
-                    type: 'application/pdf',
-                  },
-                ],
-              })
-            }
-          } catch (error) {
-            console.error('[WEBHOOK] Error generating booking PDFs:', error)
-          }
-        }
-      }
+    const { data: originalBookings } = await db.from('travel_bookings').select('*').eq('order_id', orderId)
+    const { data: balanceBookings } = await db.from('travel_bookings').select('*').eq('balance_payment_order_id', orderId)
+    const bookings = [...(originalBookings || []), ...(balanceBookings || [])]
+    let remainingInitialAllocation = paidAmount
+    for (const booking of bookings) {
+      // A balance-payment order always belongs to exactly one booking. Initial orders can contain several.
+      const isInitialDeposit = booking.order_id === orderId && ['deposit', 'reservation'].includes(order.payment_option)
+      const allocation = isInitialDeposit ? 0 : booking.balance_payment_order_id === orderId
+        ? paidAmount
+        : Math.min(remainingInitialAllocation, Number(booking.balance_due || 0))
+      if (booking.balance_payment_order_id !== orderId) remainingInitialAllocation = roundMoney(remainingInitialAllocation - allocation)
+      const due = roundMoney(Number(booking.balance_due || 0) - allocation)
+      const paymentStatus = due === 0 ? 'paid' : 'deposit_paid'
+      await db.from('travel_bookings').update({ balance_due: due, payment_status: paymentStatus, reservation_status: 'confirmed' }).eq('id', booking.id)
+      const { data: experience } = await db.from('travel_experiences').select('title, departure_date').eq('id', booking.travel_id).single()
+      const total = Number(booking.price_total || booking.price_ars_blue || 0)
+      const pdf = await generateBookingPDF({ bookingReference: booking.booking_reference, customerName: booking.customer_name, customerEmail: booking.customer_email, customerPhone: booking.customer_phone, experienceTitle: experience?.title || 'Experiencia', planName: booking.plan_name, location: booking.location || '-', dates: experience?.departure_date || booking.dates || '-', priceTotal: total, amountPaid: Math.max(0, total - due), balanceDue: due, passengerCount: booking.passenger_count, paymentStatus, orderReference: orderId, qrToken: booking.qr_token })
+      await sendEmail({ to: booking.customer_email, subject: due === 0 ? `Pago completo — Reserva ${booking.booking_reference}` : `Reserva recibida — ${booking.booking_reference}`, html: due === 0 ? '<p><strong>PAGO COMPLETO — RESERVA CONFIRMADA</strong>. Adjuntamos tu voucher con QR de validación.</p>' : '<p>Tu reserva/seña fue acreditada. El saldo queda pendiente; comunicate por email para conocer las opciones de pago.</p>', attachments: [{ content: pdf.toString('base64'), filename: `reserva-${booking.booking_reference}.pdf`, type: 'application/pdf' }] })
     }
-
     return NextResponse.json({ received: true })
-  } catch (err) {
-    console.error('[WEBHOOK] Webhook error:', err)
+  } catch (error) {
+    console.error('[WEBHOOK] Mercado Pago:', error)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }

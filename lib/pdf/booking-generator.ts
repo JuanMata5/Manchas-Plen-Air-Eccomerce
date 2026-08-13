@@ -10,128 +10,62 @@ export interface BookingData {
   planName: string
   location: string
   dates: string
-  priceUsd: number
-  priceArsBlue: number
+  priceUsd?: number
+  priceArsBlue?: number
+  priceTotal?: number
+  amountPaid?: number
+  balanceDue?: number
+  passengerCount?: number
   paymentStatus: 'deposit_paid' | 'paid'
   orderReference: string
-  isDeposit?: boolean
+  qrToken?: string | null
 }
 
-const COLORS = {
-  orange: [234, 106, 35] as const,
-  orangeDark: [196, 79, 18] as const,
-  background: [250, 247, 243] as const,
-  card: [255, 255, 255] as const,
-  text: [38, 38, 38] as const,
-  muted: [112, 112, 112] as const,
-  border: [226, 220, 212] as const,
-}
+const money = (amount: number) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', minimumFractionDigits: 0 }).format(amount)
 
-function formatCurrency(amount: number, currency: 'USD' | 'ARS'): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 0,
-  }).format(amount)
-}
-
-function writeLabelValue(doc: jsPDF, label: string, value: string, x: number, y: number, width: number): number {
-  doc.setFont(undefined, 'bold')
-  doc.setFontSize(9)
-  doc.setTextColor(...COLORS.muted)
-  doc.text(label.toUpperCase(), x, y)
-
-  doc.setFont(undefined, 'normal')
-  doc.setFontSize(11)
-  doc.setTextColor(...COLORS.text)
-  const lines = doc.splitTextToSize(value || '-', width)
-  doc.text(lines, x, y + 5)
-  return y + 5 + lines.length * 5 + 4
+function row(doc: jsPDF, label: string, value: string, y: number) {
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(100)
+  doc.text(label.toUpperCase(), 25, y)
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(11); doc.setTextColor(35)
+  doc.text(doc.splitTextToSize(value || '-', 110), 25, y + 5)
+  return y + 14
 }
 
 export async function generateBookingPDF(data: BookingData): Promise<Buffer> {
-  const doc = new jsPDF()
-  const pageWidth = doc.internal.pageSize.getWidth()
-  const pageHeight = doc.internal.pageSize.getHeight()
-
-  // Background
-  doc.setFillColor(...COLORS.background)
-  doc.rect(0, 0, pageWidth, pageHeight, 'F')
-
-  // Header
-  doc.setFillColor(...COLORS.orange)
-  doc.rect(0, 0, pageWidth, 40, 'F')
-
-  doc.setFontSize(20)
-  doc.setFont(undefined, 'bold')
-  doc.setTextColor(255, 255, 255)
-  doc.text('CONFIRMACIÓN DE RESERVA', pageWidth / 2, 25, { align: 'center' })
-
-  // Subtitle
-  const subtitle = data.isDeposit ? 'DEPÓSITO CONFIRMADO' : 'PAGO COMPLETO'
-  doc.setFontSize(12)
-  doc.setFont(undefined, 'normal')
-  doc.text(subtitle, pageWidth / 2, 35, { align: 'center' })
-
-  // Main card
-  const cardY = 50
-  const cardHeight = 180
-  doc.setFillColor(...COLORS.card)
-  doc.setDrawColor(...COLORS.border)
-  doc.roundedRect(20, cardY, pageWidth - 40, cardHeight, 5, 5, 'FD')
-
-  let currentY = cardY + 20
-
-  // Booking Reference
-  currentY = writeLabelValue(doc, 'Referencia de Reserva', data.bookingReference, 30, currentY, 80)
-
-  // Customer Info
-  currentY = writeLabelValue(doc, 'Nombre', data.customerName, 30, currentY, 80)
-  currentY = writeLabelValue(doc, 'Email', data.customerEmail, 30, currentY, 80)
-  if (data.customerPhone) {
-    currentY = writeLabelValue(doc, 'Teléfono', data.customerPhone, 30, currentY, 80)
+  const priceTotal = Number(data.priceTotal ?? data.priceArsBlue ?? 0)
+  const balanceDue = Number(data.balanceDue ?? (data.paymentStatus === 'paid' ? 0 : priceTotal))
+  const amountPaid = Number(data.amountPaid ?? Math.max(0, priceTotal - balanceDue))
+  const fullPaid = data.paymentStatus === 'paid' && balanceDue <= 0
+  const doc = new jsPDF(); const w = doc.internal.pageSize.getWidth()
+  doc.setFillColor(234, 106, 35); doc.rect(0, 0, w, 42, 'F')
+  doc.setTextColor(255); doc.setFont('helvetica', 'bold'); doc.setFontSize(19)
+  doc.text(fullPaid ? 'RESERVA CONFIRMADA' : 'COMPROBANTE DE RESERVA', w / 2, 20, { align: 'center' })
+  doc.setFontSize(11); doc.text(fullPaid ? 'PAGO COMPLETO' : 'RESERVA CON PAGO PARCIAL', w / 2, 32, { align: 'center' })
+  doc.setDrawColor(226, 220, 212); doc.roundedRect(18, 52, w - 36, 177, 4, 4, 'S')
+  let y = 68
+  y = row(doc, 'Código de reserva', data.bookingReference, y)
+  y = row(doc, 'Pasajero', data.customerName, y)
+  y = row(doc, 'Email', data.customerEmail, y)
+  y = row(doc, 'Viaje', data.experienceTitle, y)
+  y = row(doc, 'Plan / destino', `${data.planName} — ${data.location}`, y)
+  y = row(doc, 'Fecha del viaje', data.dates, y)
+  y = row(doc, 'Pasajeros', String(data.passengerCount || 1), y)
+  y = row(doc, 'Precio total', money(priceTotal), y)
+  y = row(doc, 'Importe abonado', money(amountPaid), y)
+  y = row(doc, 'Saldo pendiente', money(balanceDue), y)
+  if (fullPaid && data.qrToken) {
+    const base = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+    const qr = await QRCode.toDataURL(`${base}/reservation/verify/${data.qrToken}`, { width: 120 })
+    doc.addImage(qr, 'PNG', w - 74, 65, 45, 45)
+    doc.setFontSize(8); doc.setTextColor(70); doc.text('QR de validación', w - 51, 115, { align: 'center' })
   }
-
-  // Experience Info
-  currentY = writeLabelValue(doc, 'Experiencia', data.experienceTitle, 30, currentY, 80)
-  currentY = writeLabelValue(doc, 'Plan', data.planName, 30, currentY, 80)
-  currentY = writeLabelValue(doc, 'Ubicación', data.location, 30, currentY, 80)
-  currentY = writeLabelValue(doc, 'Fechas', data.dates, 30, currentY, 80)
-
-  // Payment Info
-  const paymentLabel = data.isDeposit ? 'Monto del Depósito' : 'Monto Total'
-  const paymentAmount = data.isDeposit ? Math.min(500000, data.priceArsBlue) : data.priceArsBlue
-  currentY = writeLabelValue(doc, paymentLabel, formatCurrency(paymentAmount, 'ARS'), 30, currentY, 80)
-
-  if (data.priceUsd > 0) {
-    currentY = writeLabelValue(doc, 'Valor USD', formatCurrency(data.priceUsd, 'USD'), 30, currentY, 80)
-  }
-
-  // QR Code
-  try {
-    const qrData = `RESERVA-${data.bookingReference}`
-    const qrCodeDataURL = await QRCode.toDataURL(qrData, { width: 100 })
-    doc.addImage(qrCodeDataURL, 'PNG', pageWidth - 120, cardY + 20, 80, 80)
-  } catch (error) {
-    console.error('Error generating QR code:', error)
-  }
-
-  // Footer
-  const footerY = pageHeight - 30
-  doc.setFontSize(8)
-  doc.setTextColor(...COLORS.muted)
-  doc.text('Esta reserva está sujeta a confirmación final. Te contactaremos pronto con más detalles.', pageWidth / 2, footerY, { align: 'center' })
-  doc.text(`Orden: ${data.orderReference}`, pageWidth / 2, footerY + 10, { align: 'center' })
-
+  doc.setFontSize(9); doc.setTextColor(80)
+  const message = fullPaid
+    ? 'PAGO COMPLETO — RESERVA CONFIRMADA. Presentá este QR al momento del check-in.'
+    : 'Tu reserva fue recibida correctamente. El importe abonado corresponde a la reserva/seña. Para conocer las opciones y condiciones para completar el pago del viaje, comunicate con nosotros por email.'
+  doc.text(doc.splitTextToSize(message, w - 46), 23, 244)
   return Buffer.from(doc.output('arraybuffer'))
 }
 
-export async function generateDepositConfirmationPDF(data: BookingData): Promise<Buffer> {
-  data.isDeposit = true
-  return generateBookingPDF(data)
-}
-
-export async function generateFullPaymentConfirmationPDF(data: BookingData): Promise<Buffer> {
-  data.isDeposit = false
-  return generateBookingPDF(data)
-}
+export const generateDepositConfirmationPDF = generateBookingPDF
+export const generateFullPaymentConfirmationPDF = generateBookingPDF

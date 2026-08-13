@@ -213,6 +213,8 @@ export type TravelBooking = {
   price_ars_blue: number
   price_reservation?: number | null
   balance_due?: number | null
+  qr_token?: string | null
+  balance_payment_order_id?: string | null
   passenger_count?: number
   payment_method?: PaymentMethod | null
   payment_mode?: 'full' | 'reservation'

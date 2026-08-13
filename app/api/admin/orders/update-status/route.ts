@@ -220,8 +220,13 @@ export async function POST(request: NextRequest) {
             dates: booking.dates || '-',
             priceUsd: Number(booking.price_usd || booking.plan_price_usd || 0),
             priceArsBlue: Number(booking.price_total || booking.price_ars_blue || 0),
+            priceTotal: Number(booking.price_total || booking.price_ars_blue || 0),
+            amountPaid: Number(booking.price_total || booking.price_ars_blue || 0),
+            balanceDue: 0,
+            passengerCount: booking.passenger_count,
             paymentStatus: 'paid',
             orderReference: order_id,
+            qrToken: booking.qr_token,
           })
 
           await sendEmail({
