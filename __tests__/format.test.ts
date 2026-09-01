@@ -1,4 +1,5 @@
 import { formatARS, formatUSD, slugify } from '@/lib/format'
+import { buildTravelUpdatePayload } from '@/lib/travel-admin'
 
 describe('Format Utilities', () => {
   describe('formatARS', () => {
@@ -60,6 +61,26 @@ describe('Format Utilities', () => {
       const result = slugify('-test-')
       expect(result).not.toMatch(/^-/)
       expect(result).not.toMatch(/-$/)
+    })
+  })
+
+  describe('buildTravelUpdatePayload', () => {
+    it('should remove the id field and keep DB column names', () => {
+      const payload = buildTravelUpdatePayload({
+        title: 'Viaje test',
+        slug: 'viaje-test',
+        price_total: 1500,
+        price_reservation: 250,
+        optionGroups: [{ id: 'g1', name: 'Hotel', category: 'accommodation', type: 'radio', options: [] }],
+        paymentModes: [{ id: 'p1', name: 'Tarjeta', priceModifier: 0 }],
+        id: 'uuid-123',
+      } as any)
+
+      expect(payload).not.toHaveProperty('id')
+      expect(payload).toHaveProperty('option_groups')
+      expect(payload).toHaveProperty('payment_modes')
+      expect(payload).not.toHaveProperty('optionGroups')
+      expect(payload).not.toHaveProperty('paymentModes')
     })
   })
 })

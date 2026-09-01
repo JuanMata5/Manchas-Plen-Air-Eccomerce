@@ -158,10 +158,13 @@ export function TravelExperienceForm({ experience, mode = experience ? 'edit' : 
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState<FormState>(() => initialState(experience))
 
-  const balanceDue = Math.max(0, Number(form.price_total || 0) - Number(form.price_reservation || 0))
-  const readableTotal = form.currency === 'USD' ? formatUSD(form.price_total) : formatARS(form.price_total)
-  const readableReserve = form.currency === 'USD' ? formatUSD(form.price_reservation) : formatARS(form.price_reservation)
-  const readableBalance = form.currency === 'USD' ? formatUSD(balanceDue) : formatARS(balanceDue)
+  const blueDollarRate = 1100
+  const convertedTotal = form.currency === 'USD' ? Math.round(Number(form.price_total || 0) * blueDollarRate) : Number(form.price_total || 0)
+  const convertedReserve = form.currency === 'USD' ? Math.round(Number(form.price_reservation || 0) * blueDollarRate) : Number(form.price_reservation || 0)
+  const balanceDue = Math.max(0, convertedTotal - convertedReserve)
+  const readableTotal = form.currency === 'USD' ? formatARS(convertedTotal) : formatARS(form.price_total)
+  const readableReserve = form.currency === 'USD' ? formatARS(convertedReserve) : formatARS(form.price_reservation)
+  const readableBalance = form.currency === 'USD' ? formatARS(balanceDue) : formatARS(balanceDue)
 
   const computedDuration = useMemo(() => {
     if (!form.departure_date || !form.return_date) return 0
@@ -218,9 +221,13 @@ export function TravelExperienceForm({ experience, mode = experience ? 'edit' : 
             id: 'base',
             name: 'Reserva',
             description: form.short_description,
-            price_usd: form.currency === 'USD' ? form.price_total : 0,
-            price_ars_blue: form.currency === 'ARS' ? form.price_total : 0,
-            precio_reserva_ars: form.price_reservation,
+            price_usd: form.currency === 'USD' ? Number(form.price_total || 0) : 0,
+            price_ars_blue: form.currency === 'USD'
+              ? Math.round(Number(form.price_total || 0) * 1100)
+              : Number(form.price_total || 0),
+            precio_reserva_ars: form.currency === 'USD'
+              ? Math.round(Number(form.price_reservation || 0) * 1100)
+              : Number(form.price_reservation || 0),
             includes: form.includes,
             excludes: form.excludes,
             not_includes: form.excludes,
