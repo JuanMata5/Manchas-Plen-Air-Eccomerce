@@ -113,41 +113,101 @@ export async function generateUniqueTravelSlug(baseSlug: string, adminDb: any, c
   }
 }
 
+export function getOptionGroupModifier(
+  group: { category?: string; options: { id: string; priceModifier?: number; name?: string }[] },
+  selectedValue: string | string[] | undefined,
+  basePrice: number,
+) {
+  if (!selectedValue || !group?.options?.length) return 0
+
+  const selectedIds = Array.isArray(selectedValue) ? selectedValue : [selectedValue]
+  let modifier = 0
+
+  for (const optionId of selectedIds) {
+    const option = group.options.find((item) => item.id === optionId)
+    if (!option) continue
+
+    const percentValue = Number(option.priceModifier ?? 0)
+    if (group.category === 'discount' && percentValue !== 0) {
+      modifier -= basePrice * (percentValue / 100)
+      continue
+    }
+
+    modifier += Number(option.priceModifier ?? 0)
+  }
+
+  return modifier
+}
+
 export function buildTravelPayload(data: z.infer<typeof travelExperienceSchema>, slug: string) {
   const destination = data.destination || [data.city, data.country].filter(Boolean).join(', ') || data.title
   const dateLabel = [data.departure_date, data.return_date].filter(Boolean).join(' al ')
   const capacity = data.capacity ?? data.available_spots ?? data.max_spots ?? 0
-  const priceUsd = data.currency === 'USD' ? data.price_total : 0
-  const priceArs = data.currency === 'USD' ? Math.round(data.price_total * BLUE_DOLLAR_RATE) : data.price_total
-  const reservationArs = data.currency === 'USD' ? Math.round(data.price_reservation * BLUE_DOLLAR_RATE) : data.price_reservation
+
+  const toBlueDollarArs = (value: number | string | null | undefined) => {
+    const numericValue = Number(value ?? 0)
+    return Number.isFinite(numericValue) ? Math.round(numericValue * BLUE_DOLLAR_RATE) : 0
+  }
+
+  const priceTotalArs = data.currency === 'USD'
+    ? toBlueDollarArs(data.price_total)
+    : Number(data.price_total || 0)
+
+  const priceReservationArs = data.currency === 'USD'
+    ? toBlueDollarArs(data.price_reservation)
+    : Number(data.price_reservation || 0)
+
   const basePlan = {
     id: 'base',
     name: 'Reserva',
-    price_usd: priceUsd,
-    price_ars_blue: priceArs,
-    precio_reserva_ars: reservationArs,
+    price_usd: data.currency === 'USD' ? Number(data.price_total || 0) : 0,
+    price_ars_blue: priceTotalArs,
+    precio_reserva_ars: priceReservationArs,
     includes: data.includes,
     excludes: data.excludes,
     not_includes: data.excludes,
     description: data.short_description || '',
   }
+
   const plans = data.plans.length > 0 ? data.plans : [basePlan]
 
-return {
-  ...data,
-  slug,
-  title: data.title,
-  location: destination,
-  dates: dateLabel || (data.duration_days ? `${data.duration_days} dias` : 'Fechas a confirmar'),
-  description: data.short_description || data.full_description || data.description || data.title,
-  full_description: data.full_description || data.description || data.short_description || '',
-  short_description: data.short_description || data.description || '',
-  destination,
-  capacity,
-  available_spots: data.available_spots ?? capacity,
-  max_spots: data.max_spots ?? capacity,
-  image_url: data.image_url || null,
-  gallery: data.gallery,
-  plans,
-}
+  return {
+    ...data,
+    slug,
+    title: data.title,
+    location: destination,
+    dates: dateLabel || (data.duration_days ? `${data.duration_days} dias` : 'Fechas a confirmar'),
+    description: data.short_description || data.full_description || data.description || data.title,
+    full_description: data.full_description || data.description || data.short_description || '',
+    short_description: data.short_description || data.description || '',
+    destination,
+    price_total: priceTotalArs,
+    price_reservation: priceReservationArs,
+    capacity,
+    available_spots: data.available_spots ?? capacity,
+    max_spots: data.max_spots ?? capacity,
+    image_url: data.image_url || null,
+    gallery: data.gallery,
+    plans: plans.map((plan) => {
+      const usdValue = Number(plan.price_usd ?? 0)
+      const arsValue = data.currency === 'USD'
+        ? (typeof plan.price_ars_blue === 'number' && plan.price_ars_blue > 0
+          ? plan.price_ars_blue
+          : toBlueDollarArs(usdValue))
+        : Number(plan.price_ars_blue ?? 0)
+
+      const reservationArsValue = data.currency === 'USD'
+        ? (typeof plan.precio_reserva_ars === 'number' && plan.precio_reserva_ars > 0
+          ? plan.precio_reserva_ars
+          : toBlueDollarArs(Number(plan.price_usd ?? 0)))
+        : Number(plan.precio_reserva_ars ?? 0)
+
+      return {
+        ...plan,
+        price_usd: data.currency === 'USD' ? usdValue : 0,
+        price_ars_blue: arsValue,
+        precio_reserva_ars: reservationArsValue,
+      }
+    }),
+  }
 }

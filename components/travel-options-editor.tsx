@@ -266,7 +266,7 @@ export function OptionGroupEditor({ groups, onChange }: OptionGroupEditorProps) 
                       />
                       <Input
                         type="number"
-                        placeholder="Modificador de precio"
+                        placeholder={group.category === 'discount' ? 'Descuento %' : 'Modificador de precio'}
                         value={option.priceModifier}
                         onChange={(e) =>
                           updateOption(group.id, option.id, {
