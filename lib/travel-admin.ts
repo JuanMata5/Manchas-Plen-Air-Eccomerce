@@ -10,6 +10,33 @@ const itineraryDaySchema = z.object({
   images: z.array(z.string()).optional().default([]),
 })
 
+const travelOptionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  priceModifier: z.coerce.number().default(0),
+  description: z.string().optional(),
+})
+
+const travelOptionGroupSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: z.enum(['accommodation', 'transport', 'companion', 'discount', 'optional', 'payment']),
+  description: z.string().optional(),
+  type: z.enum(['radio', 'checkbox', 'select']),
+  maxOptions: z.coerce.number().int().min(1).optional(),
+  options: z.array(travelOptionSchema),
+  isRequired: z.boolean().default(false),
+})
+
+const travelPaymentModeSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  priceModifier: z.coerce.number().default(0),
+  description: z.string().optional(),
+  installments: z.coerce.number().int().optional(),
+  installmentRate: z.coerce.number().optional(),
+})
+
 const planSchema = z.object({
   id: z.string().optional(),
   name: z.string().optional().default('Plan base'),
@@ -61,6 +88,8 @@ export const travelExperienceSchema = z.object({
   seo_slug: z.string().optional().nullable(),
   share_image_url: z.string().optional().nullable(),
   plans: z.array(planSchema).default([]),
+  optionGroups: z.array(travelOptionGroupSchema).default([]),
+  paymentModes: z.array(travelPaymentModeSchema).default([]),
   is_active: z.boolean().default(true),
 })
 

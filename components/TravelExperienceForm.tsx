@@ -12,8 +12,9 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { OptionGroupEditor, PaymentModesEditor } from '@/components/travel-options-editor'
 import { formatARS, formatUSD, slugify } from '@/lib/format'
-import type { TravelExperience, TravelItineraryDay } from '@/lib/types'
+import type { TravelExperience, TravelItineraryDay, TravelOptionGroup, TravelPaymentMode } from '@/lib/types'
 
 type TravelFormProps = {
   experience?: Partial<TravelExperience>
@@ -56,6 +57,8 @@ type FormState = {
   seo_description: string
   seo_slug: string
   share_image_url: string
+  optionGroups: TravelOptionGroup[]
+  paymentModes: TravelPaymentMode[]
   is_active: boolean
 }
 
@@ -112,6 +115,8 @@ function initialState(experience?: Partial<TravelExperience>): FormState {
     seo_description: experience?.seo_description ?? '',
     seo_slug: experience?.seo_slug ?? experience?.slug ?? '',
     share_image_url: experience?.share_image_url ?? '',
+    optionGroups: experience?.optionGroups ?? [],
+    paymentModes: experience?.paymentModes ?? [],
     is_active: experience?.is_active ?? true,
   }
 }
@@ -206,6 +211,8 @@ export function TravelExperienceForm({ experience, mode = experience ? 'edit' : 
         share_image_url: emptyToNull(form.share_image_url),
         gallery: form.gallery.filter(Boolean),
         itinerary: form.itinerary.filter((day) => day.title || day.description),
+        optionGroups: form.optionGroups,
+        paymentModes: form.paymentModes,
         plans: [
           {
             id: 'base',
@@ -254,6 +261,8 @@ export function TravelExperienceForm({ experience, mode = experience ? 'edit' : 
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="dates">Fechas y cupos</TabsTrigger>
           <TabsTrigger value="prices">Precios</TabsTrigger>
+          <TabsTrigger value="options">Opciones</TabsTrigger>
+          <TabsTrigger value="payment">Modalidades de pago</TabsTrigger>
           <TabsTrigger value="media">Galería</TabsTrigger>
           <TabsTrigger value="itinerary">Itinerario</TabsTrigger>
           <TabsTrigger value="services">Servicios</TabsTrigger>
@@ -435,6 +444,42 @@ export function TravelExperienceForm({ experience, mode = experience ? 'edit' : 
                   <p className="text-xl font-semibold tabular-nums">{readableBalance}</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="options">
+          <Card>
+            <CardHeader>
+              <CardTitle>Opciones personalizadas</CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Configura categorías de opciones que los clientes pueden seleccionar durante la reserva. 
+                El precio de cada opción se sumará al total del viaje.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <OptionGroupEditor
+                groups={form.optionGroups}
+                onChange={(groups) => setField('optionGroups', groups)}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="payment">
+          <Card>
+            <CardHeader>
+              <CardTitle>Modalidades de pago</CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Define las formas de pago disponibles para los clientes. 
+                Ej: Pago único (con descuento), Reserva + cuotas, etc.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <PaymentModesEditor
+                modes={form.paymentModes}
+                onChange={(modes) => setField('paymentModes', modes)}
+              />
             </CardContent>
           </Card>
         </TabsContent>

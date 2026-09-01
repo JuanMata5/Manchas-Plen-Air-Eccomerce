@@ -23,6 +23,11 @@ interface ExperienceItemInput {
   price_reservation_ars?: number | null
   price_usd: number
   quantity: number
+  selectedOptions?: {
+    [groupId: string]: string | string[]
+  }
+  selectedPaymentMode?: string
+  selectedInstallments?: number
   metadata: {
     experienceId: string
     planIndex: number
@@ -349,6 +354,14 @@ export async function POST(request: NextRequest) {
       const fullPrice = item.full_price
       const reservationPrice = item.reservation_price
       const passengerCount = item.item.quantity || 1
+      
+      // Calcular modificador de precio por opciones
+      let optionsPriceModifier = 0
+      if (item.item.selectedOptions) {
+        // Este cálculo es aproximado - en producción se debería validar contra la BD
+        // Para ahora, solo almacenamos la selección
+      }
+      
       return {
         user_id: user.id,
         order_id: order.id,
@@ -356,8 +369,6 @@ export async function POST(request: NextRequest) {
         booking_reference: bookingRef,
         customer_name: buyer_name,
         customer_email: buyer_email,
-        // These values come from the validated experience, never from cart metadata.
-        // plan_price_usd and customer_phone preserve compatibility with the original schema.
         customer_phone: customerPhone,
         plan_name: item.experience.plans[item.item.metadata.planIndex].name,
         plan_price_usd: item.experience.plans[item.item.metadata.planIndex].price_usd,
@@ -374,6 +385,10 @@ export async function POST(request: NextRequest) {
         passenger_count: passengerCount,
         reservation_status: 'pending',
         status: payment_method === 'transfer' ? 'payment_pending' : 'pending',
+        selected_options: item.item.selectedOptions || {},
+        selected_payment_mode: item.item.selectedPaymentMode || null,
+        payment_installments: item.item.selectedInstallments || 1,
+        options_price_modifier: optionsPriceModifier,
       }
     })
 

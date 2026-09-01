@@ -151,6 +151,33 @@ export type TravelItineraryDay = {
   images?: string[]
 }
 
+export type TravelOption = {
+  id: string
+  name: string
+  priceModifier: number
+  description?: string
+}
+
+export type TravelOptionGroup = {
+  id: string
+  name: string
+  category: 'accommodation' | 'transport' | 'companion' | 'discount' | 'optional' | 'payment'
+  description?: string
+  type: 'radio' | 'checkbox' | 'select'
+  maxOptions?: number
+  options: TravelOption[]
+  isRequired?: boolean
+}
+
+export type TravelPaymentMode = {
+  id: string
+  name: string
+  priceModifier: number
+  description?: string
+  installments?: number
+  installmentRate?: number
+}
+
 export type TravelExperience = {
   id: string
   slug?: string | null
@@ -193,6 +220,8 @@ export type TravelExperience = {
   seo_slug?: string | null
   share_image_url?: string | null
   plans: Plan[]
+  optionGroups?: TravelOptionGroup[]
+  paymentModes?: TravelPaymentMode[]
   is_active: boolean
   created_at?: string
   updated_at?: string
@@ -242,6 +271,11 @@ export type ExperienceCartItem = BaseCartItem & {
   price_ars_blue: number
   price_reservation_ars?: number | null
   image_url: string
+  selectedOptions?: {
+    [groupId: string]: string | string[]
+  }
+  selectedPaymentMode?: string
+  selectedInstallments?: number
   metadata: {
     experienceId: string
     planIndex: number

@@ -185,6 +185,9 @@ export function CheckoutForm() {
               price_reservation_ars: item.price_reservation_ars ?? null,
               price_usd: item.price_usd,
               quantity: item.quantity,
+              selectedOptions: item.selectedOptions || {},
+              selectedPaymentMode: item.selectedPaymentMode || undefined,
+              selectedInstallments: item.selectedInstallments || undefined,
               metadata: item.metadata,
             }
           }
