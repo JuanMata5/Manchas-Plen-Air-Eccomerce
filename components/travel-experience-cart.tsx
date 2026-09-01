@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
-import { getOptionGroupModifier } from '@/lib/travel-admin'
 import type { TravelExperience, ExperienceCartItem, TravelOptionGroup, TravelPaymentMode } from '@/lib/types'
 
 interface TravelExperienceCartProps {
@@ -48,7 +47,14 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
       for (const group of experience.optionGroups) {
         const selectedValue = selectedOptions[group.id]
         if (!selectedValue) continue
-        modifier += getOptionGroupModifier(group, selectedValue, selectedPlanPriceARS)
+
+        const selectedIds = Array.isArray(selectedValue) ? selectedValue : [selectedValue]
+        for (const optionId of selectedIds) {
+          const option = group.options.find((o) => o.id === optionId)
+          if (option) {
+            modifier += option.priceModifier
+          }
+        }
       }
     }
     return modifier
@@ -235,9 +241,7 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
                             <span className="text-sm font-medium">{option.name}</span>
                             {option.priceModifier !== 0 && (
                               <span className="text-xs text-blue-600 ml-2">
-                                {group.category === 'discount'
-                                  ? `${option.priceModifier > 0 ? '+' : ''}${option.priceModifier}%`
-                                  : `${option.priceModifier > 0 ? '+' : ''}$${option.priceModifier.toLocaleString('es-AR')}`}
+                                {option.priceModifier > 0 ? '+' : ''}${option.priceModifier.toLocaleString('es-AR')}
                               </span>
                             )}
                           </div>
@@ -276,9 +280,7 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
                             <span className="text-sm font-medium">{option.name}</span>
                             {option.priceModifier !== 0 && (
                               <span className="text-xs text-blue-600">
-                                {group.category === 'discount'
-                                  ? `${option.priceModifier > 0 ? '+' : ''}${option.priceModifier}%`
-                                  : `${option.priceModifier > 0 ? '+' : ''}$${option.priceModifier.toLocaleString('es-AR')}`}
+                                {option.priceModifier > 0 ? '+' : ''}${option.priceModifier.toLocaleString('es-AR')}
                               </span>
                             )}
                           </label>
@@ -306,9 +308,7 @@ export default function TravelExperienceCart({ experience }: TravelExperienceCar
                             {option.name}
                             {option.priceModifier !== 0 && (
                               <span className="ml-2 text-xs text-muted-foreground">
-                                {group.category === 'discount'
-                                  ? `${option.priceModifier > 0 ? '+' : ''}${option.priceModifier}%`
-                                  : `${option.priceModifier > 0 ? '+' : ''}$${option.priceModifier}`}
+                                {option.priceModifier > 0 ? '+' : ''}${option.priceModifier}
                               </span>
                             )}
                           </SelectItem>

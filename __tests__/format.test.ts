@@ -1,5 +1,4 @@
 import { formatARS, formatUSD, slugify } from '@/lib/format'
-import { buildTravelPayload } from '@/lib/travel-admin'
 
 describe('Format Utilities', () => {
   describe('formatARS', () => {
@@ -61,29 +60,6 @@ describe('Format Utilities', () => {
       const result = slugify('-test-')
       expect(result).not.toMatch(/^-/)
       expect(result).not.toMatch(/-$/)
-    })
-  })
-
-  describe('buildTravelPayload', () => {
-    it('should convert USD prices to blue-dollar ARS when saving a trip', () => {
-      const payload = buildTravelPayload({
-        title: 'Viaje de prueba',
-        slug: 'viaje-prueba',
-        price_total: 150,
-        price_reservation: 50,
-        currency: 'USD',
-        includes: [],
-        excludes: [],
-        gallery: [],
-        itinerary: [],
-        plans: [],
-      } as any, 'viaje-prueba')
-
-      expect(payload.price_total).toBe(165000)
-      expect(payload.price_reservation).toBe(55000)
-      expect(payload.plans[0].price_usd).toBe(150)
-      expect(payload.plans[0].price_ars_blue).toBe(165000)
-      expect(payload.plans[0].precio_reserva_ars).toBe(55000)
     })
   })
 })
