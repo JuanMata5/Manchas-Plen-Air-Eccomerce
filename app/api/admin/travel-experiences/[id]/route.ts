@@ -86,7 +86,15 @@ export async function PATCH(
 
     if (error) {
       console.error('[ADMIN API] Update travel experience error:', error)
-      return NextResponse.json({ error: 'No se pudo actualizar el viaje' }, { status: 500 })
+        return NextResponse.json(
+          {
+            error: 'No se pudo actualizar el viaje',
+            details: error.message,
+            code: error.code,
+            hint: error.hint,
+          },
+          { status: 500 },
+        )
     }
 
     return NextResponse.json(updated)
