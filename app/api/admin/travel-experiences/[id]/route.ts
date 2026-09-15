@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   buildTravelPayload,
+  buildTravelUpdatePayload,
   generateUniqueTravelSlug,
   travelExperienceSchema,
 } from '@/lib/travel-admin'
@@ -74,7 +75,7 @@ export async function PATCH(
 
     const slug = await generateUniqueTravelSlug(data.slug || data.seo_slug || data.title, adminDb, id)
     const payload = buildTravelPayload(data, slug)
-    const updateData = slug === id ? payload : { ...payload, id }
+    const updateData = buildTravelUpdatePayload(payload)
 
     const { data: updated, error } = await adminDb
       .from('travel_experiences')
@@ -85,7 +86,15 @@ export async function PATCH(
 
     if (error) {
       console.error('[ADMIN API] Update travel experience error:', error)
-      return NextResponse.json({ error: 'No se pudo actualizar el viaje' }, { status: 500 })
+        return NextResponse.json(
+          {
+            error: 'No se pudo actualizar el viaje',
+            details: error.message,
+            code: error.code,
+            hint: error.hint,
+          },
+          { status: 500 },
+        )
     }
 
     return NextResponse.json(updated)
