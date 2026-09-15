@@ -51,6 +51,8 @@ ALTER TABLE public.travel_bookings
   ADD COLUMN IF NOT EXISTS payment_method TEXT,
   ADD COLUMN IF NOT EXISTS payment_mode TEXT DEFAULT 'full',
   ADD COLUMN IF NOT EXISTS reservation_status TEXT DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS qr_token UUID DEFAULT gen_random_uuid(),
+  ADD COLUMN IF NOT EXISTS balance_payment_order_id UUID,
   ADD COLUMN IF NOT EXISTS selected_options JSONB DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS selected_payment_mode TEXT,
   ADD COLUMN IF NOT EXISTS payment_installments INTEGER DEFAULT 1,
@@ -64,6 +66,13 @@ CREATE INDEX IF NOT EXISTS idx_travel_bookings_order
 
 CREATE INDEX IF NOT EXISTS idx_travel_bookings_payment_mode
   ON public.travel_bookings(selected_payment_mode);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_travel_bookings_qr_token
+  ON public.travel_bookings(qr_token)
+  WHERE qr_token IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_travel_bookings_balance_payment_order
+  ON public.travel_bookings(balance_payment_order_id);
 
 UPDATE public.travel_experiences
 SET
