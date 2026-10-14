@@ -15,7 +15,6 @@ import {
   Gift,
   Sparkles,
   Heart,
-  Palette,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { ProductCard } from '@/components/product-card'
@@ -35,8 +34,8 @@ async function getFeaturedProducts(): Promise<Product[]> {
     .eq('is_active', true)
     .eq('is_featured', true)
     .order('created_at', { ascending: false })
-    .limit(6)
-  return data ?? []
+    .limit(30)
+  return (data ?? []).filter((product) => !['stands', 'viajes'].includes(product.categories?.slug ?? '')).slice(0, 6)
 }
 
 async function getAllProducts(): Promise<Product[]> {
@@ -46,8 +45,8 @@ async function getAllProducts(): Promise<Product[]> {
     .select('*, categories(id, name, slug)')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
-    .limit(6)
-  return data ?? []
+    .limit(30)
+  return (data ?? []).filter((product) => !['stands', 'viajes'].includes(product.categories?.slug ?? '')).slice(0, 6)
 }
 
 const categories = [
@@ -64,13 +63,6 @@ const categories = [
     description: 'Materiales, kits y productos oficiales seleccionados para artistas.',
     href: '/tienda?categoria=merchandising',
     color: 'bg-purple-500/10 text-purple-600',
-  },
-  {
-    icon: Palette,
-    title: 'Stands',
-    description: 'Talleres y clinicas con docentes invitados para todos los niveles.',
-    href: '/tienda?categoria=stands',
-    color: 'bg-amber-500/10 text-amber-600',
   },
 ]
 
@@ -109,12 +101,6 @@ const testimonials = [
     location: 'Cordoba',
     text: 'Compre un paquete de viaje para Bariloche y la experiencia fue increible. Todo muy organizado.',
     event: 'Viaje a Bariloche',
-  },
-  {
-    name: 'Camila S.',
-    location: 'Rosario',
-    text: 'Los stands de arte fueron lo mejor que hice este ano. Excelente atencion y organizacion.',
-    event: 'Stand de arte',
   },
   {
     name: 'Diego A.',
@@ -183,11 +169,6 @@ export default async function HomePage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="border-white text-white bg-transparent hover:bg-white/10 font-semibold text-base px-8 shadow-lg">
-                <Link href="/tienda?categoria=stands">
-                  Ver stands
-                </Link>
-              </Button>
             </div>
           </div>
         </section>
@@ -211,7 +192,7 @@ export default async function HomePage() {
             <h2 className="font-serif font-bold text-3xl md:text-4xl text-foreground">Explora por Categoría</h2>
             <p className="text-muted-foreground mt-2">Encuentra exactamente lo que buscas.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {categories.map((cat, index) => (
               <Reveal key={cat.title} delay={index * 90}>
                 <Link

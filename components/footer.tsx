@@ -89,13 +89,13 @@ export function Footer() {
             <li className="flex items-center gap-2">
               <Phone className="h-4 w-4 shrink-0 text-background/50" />
               <span>
-                <a href="tel:1139430021" className="hover:text-background transition-colors">1139430021</a> (General) / <a href="tel:1167546892" className="hover:text-background transition-colors">1167546892</a> (Stands)
+                <a href="tel:1139430021" className="hover:text-background transition-colors">1139430021</a>
               </span>
             </li>
             <li className="flex items-center gap-2">
               <Mail className="h-4 w-4 shrink-0 text-background/50" />
               <span>
-                <a href="mailto:mpadsas@gmail.com" className="hover:text-background transition-colors">mpadsas@gmail.com</a> (General) / <a href="mailto:manchastribu70@gmail.com" className="hover:text-background transition-colors">manchastribu70@gmail.com</a> (Stands)
+                <a href="mailto:mpadsas@gmail.com" className="hover:text-background transition-colors">mpadsas@gmail.com</a>
               </span>
             </li>
             <li className="flex items-start gap-2">

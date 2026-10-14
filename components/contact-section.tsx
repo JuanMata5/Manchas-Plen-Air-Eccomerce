@@ -156,8 +156,7 @@ export function ContactSection() {
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Teléfonos</p>
-                  <p>General: <a href="tel:1139430021" className="underline">1139430021</a></p>
-                  <p>Stands: <a href="tel:1167546892" className="underline">1167546892</a></p>
+                  <p><a href="tel:1139430021" className="underline">1139430021</a></p>
                 </div>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -166,8 +165,7 @@ export function ContactSection() {
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Emails</p>
-                  <p>General: <a href="mailto:mpadsas@gmail.com" className="underline">mpadsas@gmail.com</a></p>
-                  <p>Stands: <a href="mailto:manchastribu70@gmail.com" className="underline">manchastribu70@gmail.com</a></p>
+                  <p><a href="mailto:mpadsas@gmail.com" className="underline">mpadsas@gmail.com</a></p>
                 </div>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">

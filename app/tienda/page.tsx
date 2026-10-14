@@ -33,7 +33,7 @@ interface TravelExperience {
 }
 
 async function getProducts(categorySlug?: string, q?: string): Promise<Product[]> {
-  const blockedCategories = ['entradas', 'tickets', 'eventos']
+  const blockedCategories = ['entradas', 'tickets', 'eventos', 'stands', 'viajes']
   if (categorySlug && blockedCategories.includes(categorySlug)) {
     return []
   }
@@ -63,13 +63,13 @@ async function getProducts(categorySlug?: string, q?: string): Promise<Product[]
   }
 
   const { data } = await query
-  return data ?? []
+  return (data ?? []).filter((product) => !['stands', 'viajes'].includes(product.categories?.slug ?? ''))
 }
 
 async function getCategories(): Promise<Category[]> {
   const supabase = await createClient()
   const { data } = await supabase.from('categories').select('*').order('name')
-  return (data ?? []).filter((category) => !['entradas', 'tickets', 'eventos'].includes(category.slug))
+  return (data ?? []).filter((category) => !['entradas', 'tickets', 'eventos', 'stands', 'viajes'].includes(category.slug))
 }
 
 async function getTravelExperiences(locationFilter?: string): Promise<TravelExperience[]> {
@@ -288,8 +288,8 @@ export default async function TiendaPage({ searchParams }: PageProps) {
           )}
         </div>
 
-        {/* Show travel experiences when the customer is browsing viajes or no category is selected */}
-        {(categorySlug === 'viajes' || !categorySlug) && (
+        {/* Travel experiences appear only in the Viajes section. */}
+        {categorySlug === 'viajes' && (
           <>
             <div className="mb-6 flex flex-wrap items-center gap-3">
               <span className="text-sm font-semibold text-foreground">Filtrar viajes:</span>
@@ -313,11 +313,11 @@ export default async function TiendaPage({ searchParams }: PageProps) {
         )}
 
         {/* Filters */}
-        <div className="mb-8">
+        {categorySlug !== 'viajes' && <div className="mb-8">
           <Suspense fallback={null}>
             <CategoryFilter categories={categories} />
           </Suspense>
-        </div>
+        </div>}
 
         {/* Products */}
         <Suspense
