@@ -154,6 +154,48 @@ export default async function ProductPage({ params }: PageProps) {
               <TravelExperienceCart experience={experience} />
             </div>
           </div>
+
+          {(experience.full_description || experience.itinerary?.length || experience.packing_list?.length) && (
+            <section className="mt-14 space-y-10">
+              {experience.itinerary && experience.itinerary.length > 0 && (
+                <div>
+                  <h2 className="font-serif text-2xl font-bold text-foreground">Itinerario</h2>
+                  <ol className="mt-5 space-y-4">
+                    {experience.itinerary.map((day, index) => (
+                      <li key={`${day.title}-${index}`} className="rounded-xl border bg-card p-5">
+                        <h3 className="font-semibold text-foreground">{day.title}</h3>
+                        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                          {day.description}
+                        </p>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              {experience.packing_list && experience.packing_list.length > 0 && (
+                <div>
+                  <h2 className="font-serif text-2xl font-bold text-foreground">Qué llevar</h2>
+                  <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {experience.packing_list.map((item, index) => (
+                      <li key={`${item}-${index}`} className="rounded-lg bg-muted/50 px-4 py-3 text-sm text-foreground">
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {experience.full_description && (
+                <details className="rounded-xl border bg-card p-5">
+                  <summary className="cursor-pointer font-semibold text-foreground">Información completa, pagos y condiciones</summary>
+                  <div className="mt-4 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                    {experience.full_description}
+                  </div>
+                </details>
+              )}
+            </section>
+          )}
         </main>
         <Footer />
       </>

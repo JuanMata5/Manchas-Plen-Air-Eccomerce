@@ -23,14 +23,23 @@ export async function POST(request: NextRequest) {
     if (!order || String(order.mp_payment_id || '') === String(payment.id)) return NextResponse.json({ received: true })
     const paidAmount = roundMoney(Number(payment.transaction_amount || 0))
     const approved = payment.status === 'approved'
+    const { data: originalBookings } = await db.from('travel_bookings').select('*').eq('order_id', orderId)
+    const { data: balanceBookings } = await db.from('travel_bookings').select('*').eq('balance_payment_order_id', orderId)
+    const isInitialReservation =
+      ['deposit', 'reservation'].includes(order.payment_option) && (originalBookings?.length ?? 0) > 0
+    const remainingTripBalance = isInitialReservation
+      ? roundMoney(originalBookings!.reduce((sum, booking) => sum + Number(booking.balance_due || 0), 0))
+      : 0
     const nextPaid = approved ? roundMoney(Number(order.amount_paid_ars || 0) + paidAmount) : Number(order.amount_paid_ars || 0)
-    const nextDue = roundMoney(Number(order.total_ars || 0) - nextPaid)
-    const orderStatus = approved ? (nextDue === 0 ? 'paid' : 'payment_pending') : (['rejected', 'cancelled'].includes(payment.status) ? 'cancelled' : 'payment_pending')
+    const nextDue = isInitialReservation
+      ? remainingTripBalance
+      : roundMoney(Number(order.total_ars || 0) - nextPaid)
+    const orderStatus = approved
+      ? (isInitialReservation && remainingTripBalance > 0 ? 'payment_pending' : nextDue === 0 ? 'paid' : 'payment_pending')
+      : (['rejected', 'cancelled'].includes(payment.status) ? 'cancelled' : 'payment_pending')
     await db.from('orders').update({ status: orderStatus, mp_payment_id: String(payment.id), amount_paid_ars: nextPaid, balance_due_ars: nextDue, updated_at: new Date().toISOString() }).eq('id', orderId)
     if (!approved) return NextResponse.json({ received: true })
 
-    const { data: originalBookings } = await db.from('travel_bookings').select('*').eq('order_id', orderId)
-    const { data: balanceBookings } = await db.from('travel_bookings').select('*').eq('balance_payment_order_id', orderId)
     const bookings = [...(originalBookings || []), ...(balanceBookings || [])]
     let remainingInitialAllocation = paidAmount
     for (const booking of bookings) {
@@ -47,6 +56,17 @@ export async function POST(request: NextRequest) {
       const total = Number(booking.price_total || booking.price_ars_blue || 0)
       const pdf = await generateBookingPDF({ bookingReference: booking.booking_reference, customerName: booking.customer_name, customerEmail: booking.customer_email, customerPhone: booking.customer_phone, experienceTitle: experience?.title || 'Experiencia', planName: booking.plan_name, location: booking.location || '-', dates: experience?.departure_date || booking.dates || '-', priceTotal: total, amountPaid: Math.max(0, total - due), balanceDue: due, passengerCount: booking.passenger_count, paymentStatus, orderReference: orderId, qrToken: booking.qr_token })
       await sendEmail({ to: booking.customer_email, subject: due === 0 ? `Pago completo — Reserva ${booking.booking_reference}` : `Reserva recibida — ${booking.booking_reference}`, html: due === 0 ? '<p><strong>PAGO COMPLETO — RESERVA CONFIRMADA</strong>. Adjuntamos tu voucher con QR de validación.</p>' : '<p>Tu reserva/seña fue acreditada. El saldo queda pendiente; comunicate por email para conocer las opciones de pago.</p>', attachments: [{ content: pdf.toString('base64'), filename: `reserva-${booking.booking_reference}.pdf`, type: 'application/pdf' }] })
+    }
+    const originalOrderIds = [...new Set((balanceBookings || []).map((booking) => booking.order_id).filter(Boolean))]
+    for (const originalOrderId of originalOrderIds) {
+      const { data: relatedBookings } = await db
+        .from('travel_bookings')
+        .select('balance_due')
+        .eq('order_id', originalOrderId)
+      const stillDue = (relatedBookings || []).reduce((sum, booking) => sum + Number(booking.balance_due || 0), 0)
+      if (roundMoney(stillDue) === 0) {
+        await db.from('orders').update({ status: 'paid', balance_due_ars: 0, updated_at: new Date().toISOString() }).eq('id', originalOrderId)
+      }
     }
     return NextResponse.json({ received: true })
   } catch (error) {

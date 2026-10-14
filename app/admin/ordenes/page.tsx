@@ -9,6 +9,7 @@ import { DeleteOrderButton } from '@/components/delete-order-button'
 const statusLabels: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pendiente', className: 'bg-yellow-100 text-yellow-800' },
   payment_pending: { label: 'Esp. pago', className: 'bg-blue-100 text-blue-800' },
+  reservation_received: { label: 'Seña recibida · saldo pendiente', className: 'bg-orange-100 text-orange-800' },
   paid: { label: 'Pagado', className: 'bg-green-100 text-green-800' },
   cancelled: { label: 'Cancelado', className: 'bg-red-100 text-red-800' },
   refunded: { label: 'Reembolsado', className: 'bg-gray-100 text-gray-800' },
@@ -37,6 +38,10 @@ export default async function AdminOrdersPage() {
     .order('created_at', { ascending: false })
 
   const allOrders = orders ?? []
+  const orderIds = allOrders.map((order) => order.id)
+  const { data: travelBookings } = orderIds.length
+    ? await adminDb.from('travel_bookings').select('order_id, payment_status, balance_due').in('order_id', orderIds)
+    : { data: [] }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -62,7 +67,10 @@ export default async function AdminOrdersPage() {
             </thead>
             <tbody>
               {allOrders.map((order) => {
-                const st = statusLabels[order.status] ?? { label: order.status, className: 'bg-gray-100 text-gray-800' }
+                const reservationReceived = ['deposit', 'reservation'].includes(order.payment_option) && (travelBookings ?? []).some(
+                  (booking) => booking.order_id === order.id && booking.payment_status === 'deposit_paid' && Number(booking.balance_due || 0) > 0,
+                )
+                const st = statusLabels[reservationReceived ? 'reservation_received' : order.status] ?? { label: order.status, className: 'bg-gray-100 text-gray-800' }
                 const refundRequested = hasRefundRequest(order.notes)
                 return (
                   <tr key={order.id} className="border-b border-border/50 hover:bg-muted/30 transition-colors">

@@ -216,7 +216,7 @@ export function TravelExperienceForm({ experience, mode = experience ? 'edit' : 
         itinerary: form.itinerary.filter((day) => day.title || day.description),
         optionGroups: form.optionGroups,
         paymentModes: form.paymentModes,
-        plans: [
+        plans: experience?.plans?.length ? experience.plans : [
           {
             id: 'base',
             name: 'Reserva',

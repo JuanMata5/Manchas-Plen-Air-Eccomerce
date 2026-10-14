@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { formatARS } from '@/lib/format'
 import { sendEmail } from '@/lib/email/resend'
 import { paymentConfirmedTemplate } from '@/lib/email/templates'
 import { generateMultipleTicketsPDF, type TicketData } from '@/lib/pdf/ticket-generator'
-import { generateFullPaymentConfirmationPDF } from '@/lib/pdf/booking-generator'
+import { generateBookingPDF } from '@/lib/pdf/booking-generator'
 
 const VALID_STATUSES = ['pending', 'payment_pending', 'paid', 'cancelled', 'refunded']
 
@@ -60,12 +61,32 @@ export async function POST(request: NextRequest) {
       .eq('id', order_id)
       .single()
 
-    // Actualizar montos: marcar como pagado completamente
+    const { data: relatedTravelBookings, error: relatedBookingsError } = await adminDb
+      .from('travel_bookings')
+      .select('*')
+      .eq('order_id', order_id)
+    if (relatedBookingsError) throw relatedBookingsError
+
+    const isReservationOrder =
+      ['deposit', 'reservation'].includes(existingOrder?.payment_option) && (relatedTravelBookings?.length ?? 0) > 0
+    const recordingReservation = isReservationOrder && relatedTravelBookings!.some(
+      (booking) => Number(booking.balance_due || 0) > 0 && !['deposit_paid', 'paid'].includes(booking.payment_status),
+    )
+    const reservationBalance = isReservationOrder
+      ? relatedTravelBookings!.reduce((sum, booking) => sum + Number(booking.balance_due || 0), 0)
+      : 0
+
+    // A reservation order covers only the deposit. Keep the trip balance open.
     try {
       const total = Number(existingOrder?.total_ars ?? 0)
       await adminDb
         .from('orders')
-        .update({ amount_paid_ars: total, balance_due_ars: 0, updated_at: new Date().toISOString() })
+        .update({
+          status: recordingReservation && reservationBalance > 0 ? 'payment_pending' : 'paid',
+          amount_paid_ars: total,
+          balance_due_ars: recordingReservation ? reservationBalance : 0,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', order_id)
     } catch (amtErr) {
       console.error('[ADMIN] Error updating order amounts:', amtErr)
@@ -184,20 +205,14 @@ export async function POST(request: NextRequest) {
     // Travel-only orders do not generate product tickets, so confirm them here
     // independently from the ticket-generation flow.
     try {
-      const { data: travelBookings, error: bookingsError } = await adminDb
-        .from('travel_bookings')
-        .select('*')
-        .eq('order_id', order_id)
-
-      if (bookingsError) throw bookingsError
+      const travelBookings = relatedTravelBookings
       if (travelBookings && travelBookings.length > 0) {
+        const bookingUpdate = recordingReservation
+          ? { payment_status: 'deposit_paid', reservation_status: 'confirmed' }
+          : { payment_status: 'paid', reservation_status: 'confirmed', balance_due: 0 }
         const { error: bookingUpdateError } = await adminDb
           .from('travel_bookings')
-          .update({
-            payment_status: 'paid',
-            reservation_status: 'confirmed',
-            balance_due: 0,
-          })
+          .update(bookingUpdate)
           .in('id', travelBookings.map((booking) => booking.id))
 
         if (bookingUpdateError) throw bookingUpdateError
@@ -209,7 +224,9 @@ export async function POST(request: NextRequest) {
 
         for (const booking of travelBookings) {
           const experience = experiences?.find((item) => item.id === booking.travel_id)
-          const pdfBuffer = await generateFullPaymentConfirmationPDF({
+          const total = Number(booking.price_total || booking.price_ars_blue || 0)
+          const balanceDue = recordingReservation ? Number(booking.balance_due || 0) : 0
+          const pdfBuffer = await generateBookingPDF({
             bookingReference: booking.booking_reference,
             customerName: booking.customer_name,
             customerEmail: booking.customer_email,
@@ -220,19 +237,23 @@ export async function POST(request: NextRequest) {
             dates: booking.dates || '-',
             priceUsd: Number(booking.price_usd || booking.plan_price_usd || 0),
             priceArsBlue: Number(booking.price_total || booking.price_ars_blue || 0),
-            priceTotal: Number(booking.price_total || booking.price_ars_blue || 0),
-            amountPaid: Number(booking.price_total || booking.price_ars_blue || 0),
-            balanceDue: 0,
+            priceTotal: total,
+            amountPaid: Math.max(0, total - balanceDue),
+            balanceDue,
             passengerCount: booking.passenger_count,
-            paymentStatus: 'paid',
+            paymentStatus: recordingReservation ? 'deposit_paid' : 'paid',
             orderReference: order_id,
             qrToken: booking.qr_token,
           })
 
           await sendEmail({
             to: booking.customer_email,
-            subject: `Reserva confirmada - ${booking.booking_reference}`,
-            html: `<p>Hola ${booking.customer_name},</p><p>Tu reserva fue confirmada y el pago figura como acreditado.</p><p>Adjuntamos tu voucher.</p>`,
+            subject: recordingReservation
+              ? `Seña recibida - Reserva ${booking.booking_reference}`
+              : `Reserva confirmada - ${booking.booking_reference}`,
+            html: recordingReservation
+              ? `<p>Hola ${booking.customer_name},</p><p>Recibimos la seña de tu reserva. El saldo pendiente es ${formatARS(balanceDue)}.</p><p>Adjuntamos el comprobante.</p>`
+              : `<p>Hola ${booking.customer_name},</p><p>Tu reserva fue confirmada y el pago figura como acreditado.</p><p>Adjuntamos tu voucher.</p>`,
             attachments: [{
               content: pdfBuffer.toString('base64'),
               filename: `reserva-${booking.booking_reference}.pdf`,

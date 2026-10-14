@@ -13,6 +13,7 @@ import { RequestRefundButton } from '@/components/request-refund-button'
 const statusLabels: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pendiente', className: 'bg-yellow-100 text-yellow-800' },
   payment_pending: { label: 'Esperando pago', className: 'bg-blue-100 text-blue-800' },
+  reservation_received: { label: 'Seña pagada · saldo pendiente', className: 'bg-orange-100 text-orange-800' },
   paid: { label: 'Pagado', className: 'bg-green-100 text-green-800' },
   cancelled: { label: 'Cancelado', className: 'bg-red-100 text-red-800' },
   refunded: { label: 'Reembolsado', className: 'bg-gray-100 text-gray-800' },
@@ -65,7 +66,11 @@ export default async function MisOrdenesPage() {
         ) : (
           <div className="flex flex-col gap-4">
             {orders.map((order) => {
-              const st = statusLabels[order.status] ?? { label: order.status, className: 'bg-gray-100 text-gray-800' }
+              const orderBookings = bookingsByOrder.filter((booking) => booking.order_id === order.id)
+              const tripBalance = orderBookings.reduce((sum, booking) => sum + Number(booking.balance_due || 0), 0)
+              const reservationReceived = ['deposit', 'reservation'].includes(order.payment_option) &&
+                orderBookings.some((booking) => booking.payment_status === 'deposit_paid') && tripBalance > 0
+              const st = statusLabels[reservationReceived ? 'reservation_received' : order.status] ?? { label: order.status, className: 'bg-gray-100 text-gray-800' }
               const refundRequested = hasRefundRequest(order.notes)
               return (
                 <div key={order.id} className="bg-card border border-border rounded-xl p-5">
@@ -110,11 +115,11 @@ export default async function MisOrdenesPage() {
                     ))}
 
                     {/* Reservas de viaje asociadas a la orden */}
-                    {bookingsByOrder.filter(b => b.order_id === order.id).length > 0 && (
+                    {orderBookings.length > 0 && (
                       <div className="mt-3">
                         <p className="text-sm font-semibold mb-2">Reservas relacionadas</p>
                         <div className="space-y-2">
-                          {bookingsByOrder.filter(b => b.order_id === order.id).map((b: any) => (
+                          {orderBookings.map((b: any) => (
                             <div key={b.id} className="flex items-center justify-between bg-muted/10 p-3 rounded-md">
                               <div>
                                 <p className="font-medium">{b.travel_experiences?.title ?? b.plan_name}</p>
@@ -123,6 +128,16 @@ export default async function MisOrdenesPage() {
                               <div className="text-right">
                                 <p className="text-xs">{new Date(b.created_at).toLocaleDateString('es-AR')}</p>
                                 <a className="text-xs text-primary underline" href={`/viajes/reservar/${b.travel_id}?ref=${b.booking_reference}`}>Ver</a>
+                                {Number(b.balance_due || 0) > 0 && (
+                                  <>
+                                    <p className="mt-1 text-xs text-orange-700">Saldo: {formatARS(Number(b.balance_due))}</p>
+                                    {b.payment_method === 'mercadopago' && (
+                                      <a className="mt-1 block text-xs text-primary underline" href={`/experiencias/${b.travel_id}/confirmacion?ref=${b.booking_reference}`}>
+                                        Pagar saldo
+                                      </a>
+                                    )}
+                                  </>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -139,7 +154,7 @@ export default async function MisOrdenesPage() {
                       </Button>
                     </div>
                   )}
-                  {(order.status === 'pending' || order.status === 'payment_pending') && order.payment_method === 'mercadopago' && (
+                  {(order.status === 'pending' || order.status === 'payment_pending') && order.payment_method === 'mercadopago' && !reservationReceived && (
                     <div className="mt-4 pt-4 border-t border-border flex items-center gap-3">
                       <RetryPaymentButton orderId={order.id} />
                       <span className="text-xs text-muted-foreground">
