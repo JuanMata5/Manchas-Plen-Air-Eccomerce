@@ -287,7 +287,13 @@ export function CheckoutForm() {
             return (
               <div key={product.id} className="flex items-center gap-3">
                 <div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden bg-muted">
-                  <Image src={product.image_url!} alt={product.name} fill className="object-cover" sizes="48px" />
+                  {product.image_url ? (
+                    <Image src={product.image_url} alt={product.name} fill className="object-cover" sizes="48px" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-xs font-serif text-muted-foreground">
+                      PA
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{product.name}</p>
