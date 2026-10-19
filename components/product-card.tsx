@@ -1,28 +1,40 @@
 'use client'
+
 import Image from 'next/image'
+import Link from 'next/link'
+import { useState } from 'react'
 import type { Product } from '@/lib/types'
 import { formatARS } from '@/lib/format'
 import { getProductAvailabilityBadge } from '@/lib/product-badges'
 import { Badge } from '@/components/ui/badge'
-import Link from 'next/link'
+import { ProductModal } from '@/components/product-modal'
 import { useCartStore } from '@/lib/cart-store'
-import { useState } from 'react'
 import { useUser } from '@/components/user-provider'
 import { useRouter } from 'next/navigation'
 
 interface ProductCardProps {
   product: Product
+  initiallyOpen?: boolean
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+const salonProductSlugs = new Set([
+  'concurso-salon-categoria-1',
+  'concurso-salon-categoria-2',
+  'muestra-colectiva-invitada-salon-2026',
+  'jornada-plein-air-san-martin-2026',
+])
+
+export function ProductCard({ product, initiallyOpen = false }: ProductCardProps) {
   const isSoldOut = product.stock <= 0
   const isLowStock = product.stock > 0 && product.stock <= 10
   const stockBadge = getProductAvailabilityBadge(product)
-  const usesDynamicStockBadge = !!stockBadge && /^Última/i.test(stockBadge)
+  const usesDynamicStockBadge = !!stockBadge && /^Ãšltima/i.test(stockBadge)
   const addItem = useCartStore((s) => s.addItem)
   const [added, setAdded] = useState(false)
+  const [modalOpen, setModalOpen] = useState(initiallyOpen)
   const { user } = useUser()
   const router = useRouter()
+  const opensSalonModal = salonProductSlugs.has(product.slug)
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -37,8 +49,8 @@ export function ProductCard({ product }: ProductCardProps) {
     setTimeout(() => setAdded(false), 1500)
   }
 
-  return (
-    <Link href={`/products/${product.slug}`} className="group bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1.5 flex flex-col h-full">
+  const cardContent = (
+    <>
       <div className="relative aspect-4/3 bg-muted overflow-hidden">
         {product.image_url ? (
           <Image
@@ -60,7 +72,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </Badge>
           ) : isLowStock && !isSoldOut ? (
             <Badge className="bg-amber-500 text-white text-xs font-semibold border-0 animate-pulse">
-              ¡Poco Stock!
+              ¡Poco stock!
             </Badge>
           ) : null}
           {isSoldOut && (
@@ -109,18 +121,48 @@ export function ProductCard({ product }: ProductCardProps) {
         <div className="mt-auto">
           <div className="flex items-center justify-between mb-3">
             <span className="font-serif font-bold text-xl text-foreground tabular-nums">
-              {formatARS(product.price_ars)}
+              {product.cta_link ? 'Gratis' : formatARS(product.price_ars)}
             </span>
           </div>
-          <button
-            onClick={handleAddToCart}
-            disabled={isSoldOut}
-            className="w-full py-2.5 px-4 rounded-lg font-semibold text-sm transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            {isSoldOut ? 'Agotado' : added ? '¡Agregado!' : 'Agregar al carrito'}
-          </button>
+          {opensSalonModal ? (
+            <span className="block w-full rounded-lg bg-primary px-4 py-2.5 text-center text-sm font-semibold text-primary-foreground">
+              Ver información
+            </span>
+          ) : product.cta_link ? null : (
+            <button
+              onClick={handleAddToCart}
+              disabled={isSoldOut}
+              className="w-full py-2.5 px-4 rounded-lg font-semibold text-sm transition-all duration-200 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {isSoldOut ? 'Agotado' : added ? '¡Agregado!' : 'Agregar al carrito'}
+            </button>
+          )}
         </div>
       </div>
-    </Link>
+    </>
+  )
+
+  const cardClassName = 'group bg-card rounded-2xl overflow-hidden border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1.5 flex flex-col h-full'
+
+  return (
+    <>
+      {opensSalonModal ? (
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className={`${cardClassName} w-full text-left`}
+          aria-label={`Ver información de ${product.name}`}
+        >
+          {cardContent}
+        </button>
+      ) : (
+        <Link href={`/products/${product.slug}`} className={cardClassName}>
+          {cardContent}
+        </Link>
+      )}
+      {opensSalonModal && (
+        <ProductModal product={product} open={modalOpen} onOpenChange={setModalOpen} />
+      )}
+    </>
   )
 }

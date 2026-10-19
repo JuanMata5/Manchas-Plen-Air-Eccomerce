@@ -8,6 +8,8 @@ import type { Product } from '@/lib/types'
 import { formatARS } from '@/lib/format'
 import { getProductAvailabilityBadge } from '@/lib/product-badges'
 import { useCartStore } from '@/lib/cart-store'
+import { useUser } from '@/components/user-provider'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -49,6 +51,8 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
   const addItem = useCartStore((s) => s.addItem)
+  const { user } = useUser()
+  const router = useRouter()
 
   const isSoldOut = product.stock <= 0
   const isLowStock = product.stock > 0 && product.stock <= 5
@@ -59,6 +63,13 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
   const includes = includesMap[productType] || includesMap.merchandise
 
   const handleAdd = () => {
+    if (!user) {
+      toast.error('Debes iniciar sesión para agregar productos al carrito')
+      onOpenChange(false)
+      router.push('/auth/login')
+      return
+    }
+
     addItem(product, quantity)
     setAdded(true)
     toast.success(`${quantity}x ${product.name} agregado al carrito`)
@@ -129,7 +140,9 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
 
             {/* Price */}
             <div>
-              <p className="font-bold text-2xl text-foreground">{formatARS(product.price_ars)}</p>
+              <p className="font-bold text-2xl text-foreground">
+                {product.cta_link ? 'Gratis' : formatARS(product.price_ars)}
+              </p>
               {product.price_usd && (
                 <p className="text-xs text-muted-foreground">USD {product.price_usd} aprox.</p>
               )}
@@ -146,8 +159,13 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
 
             {/* CTA Link */}
             {product.cta_link && (
-              <a href={product.cta_link} target="_blank" rel="noopener" className="mt-2 inline-block">
-                <Badge className="bg-brand-earth text-white border-0">Comprar en etickets</Badge>
+              <a
+                href={product.cta_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-5 py-3 text-center font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                Ir a la web para inscribirme y cargar obras
               </a>
             )}
 
@@ -167,7 +185,7 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
             )}
 
             {/* Info badges */}
-            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+            {!product.cta_link && <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Truck className="h-3.5 w-3.5" /> Envio digital inmediato
               </span>
@@ -177,10 +195,10 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
               <span className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" /> Soporte 24/7
               </span>
-            </div>
+            </div>}
 
             {/* Add to cart */}
-            <div className="border-t border-border pt-3 mt-auto">
+            {!product.cta_link && <div className="border-t border-border pt-3 mt-auto">
               {isSoldOut ? (
                 <Button disabled size="lg" className="w-full">Agotado</Button>
               ) : (
@@ -225,7 +243,7 @@ export function ProductModal({ product, open, onOpenChange }: ProductModalProps)
                   </Button>
                 </div>
               )}
-            </div>
+            </div>}
           </div>
         </div>
       </DialogContent>

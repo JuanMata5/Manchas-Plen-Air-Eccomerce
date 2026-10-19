@@ -32,7 +32,8 @@
 ```bash
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+# Legacy projects can use NEXT_PUBLIC_SUPABASE_ANON_KEY instead.
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # SendGrid

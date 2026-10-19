@@ -100,17 +100,21 @@ export async function ProductPageView({ slug }: { slug: string }) {
             )}
 
             {product.cta_link && (
-              <a href={product.cta_link} target="_blank" rel="noopener" className="mt-2 inline-block">
-                <Badge className="bg-brand-earth text-white border-0">Comprar en etickets</Badge>
+              <a href={product.cta_link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block">
+                <Badge className="bg-brand-earth text-white border-0">Ir a la web para inscribirme y cargar obras</Badge>
               </a>
             )}
 
-            <div className="mt-4">
-              <AddToCartSection product={product} />
-            </div>
+            {!product.cta_link && (
+              <div className="mt-4">
+                <AddToCartSection product={product} />
+              </div>
+            )}
 
             <div className="mt-8 border-t border-border pt-4 flex flex-col gap-2">
-              <p className="font-bold text-2xl text-foreground">${product.price_ars} ARS</p>
+              <p className="font-bold text-2xl text-foreground">
+                {product.cta_link ? 'Gratis' : `$${product.price_ars} ARS`}
+              </p>
               {product.price_usd && (
                 <p className="text-xs text-muted-foreground">USD {product.price_usd} aprox.</p>
               )}

@@ -37,6 +37,7 @@ export type Product = {
   is_active: boolean
   is_featured: boolean
   product_type?: 'ticket' | 'workshop' | 'merchandise'
+  cta_link?: string | null
   event_date?: string | null
   event_location?: string | null
   metadata: Record<string, unknown> | null

@@ -52,13 +52,13 @@ async function getTravelExperience(slug: string): Promise<TravelExperience | nul
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const SUPABASE_PUBLIC_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 async function getAllProductsForStatic(): Promise<{ slug: string }[]> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/products?is_active=eq.true&select=slug`, {
     headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      apikey: SUPABASE_PUBLIC_KEY,
+      Authorization: `Bearer ${SUPABASE_PUBLIC_KEY}`,
     },
     next: { revalidate: 60 }, // ISR opcional
   })
@@ -281,11 +281,24 @@ export default async function ProductPage({ params }: PageProps) {
 
             {/* Price */}
             <div>
-              <span className="text-2xl font-bold text-foreground">{formatARS(product!.price_ars)}</span>
+              <span className="text-2xl font-bold text-foreground">
+                {product!.cta_link ? 'Gratis' : formatARS(product!.price_ars)}
+              </span>
             </div>
 
             {/* Add to cart */}
-            <AddToCartSection product={product!} />
+            {product!.cta_link ? (
+              <a
+                href={product!.cta_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                Ir a la web para inscribirme y cargar obras
+              </a>
+            ) : (
+              <AddToCartSection product={product!} />
+            )}
           </div>
         </div>
       </main>
