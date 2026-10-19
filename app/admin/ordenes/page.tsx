@@ -115,7 +115,11 @@ export default async function AdminOrdersPage() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex flex-col gap-2 min-w-35">
-                        <OrderStatusActions orderId={order.id} currentStatus={order.status} />
+                        <OrderStatusActions
+                          orderId={order.id}
+                          currentStatus={order.status}
+                          hasProducts={(order.order_items ?? []).length > 0}
+                        />
                         <div className="flex flex-wrap items-center gap-2">
                           {order.status === 'paid' && (
                             <a

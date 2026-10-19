@@ -155,7 +155,10 @@ export async function POST(request: NextRequest) {
           const { error: ticketError } = await adminDb.from('tickets').insert(tickets)
           if (ticketError) {
             console.error('[ADMIN] Error inserting tickets:', ticketError)
-            return NextResponse.json({ ok: true, warning: 'Orden actualizada pero error al generar tickets' })
+            return NextResponse.json({
+              ok: true,
+              warning: `La orden quedó pagada, pero no se pudieron guardar los tickets: ${ticketError.message}`,
+            })
           }
           console.log('[ADMIN] Tickets created:', tickets.length)
 

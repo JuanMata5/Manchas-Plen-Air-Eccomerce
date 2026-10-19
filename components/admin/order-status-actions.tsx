@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react'
 interface OrderStatusActionsProps {
   orderId: string
   currentStatus: string
+  hasProducts?: boolean
 }
 
 const transitions: Record<string, { value: string; label: string }[]> = {
@@ -27,10 +28,15 @@ const transitions: Record<string, { value: string; label: string }[]> = {
   refunded: [],
 }
 
-export function OrderStatusActions({ orderId, currentStatus }: OrderStatusActionsProps) {
+export function OrderStatusActions({ orderId, currentStatus, hasProducts = false }: OrderStatusActionsProps) {
   const [loading, setLoading] = useState(false)
 
-  const options = transitions[currentStatus] ?? []
+  const options = [
+    ...(transitions[currentStatus] ?? []),
+    ...(currentStatus === 'paid' && hasProducts
+      ? [{ value: 'paid', label: 'Reintentar generación de tickets' }]
+      : []),
+  ]
   if (options.length === 0) return null
 
   const handleUpdate = async (newStatus: string) => {
