@@ -51,6 +51,7 @@ export function OrderStatusActions({ orderId, currentStatus, hasProducts = false
         const data = await res.json()
         if (data.warning) {
           toast.warning(data.warning)
+          return
         } else if (data.tickets_created) {
           toast.success(`Estado actualizado — ${data.tickets_created} ticket(s) creados`)
         } else {
