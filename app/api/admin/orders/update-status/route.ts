@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
           }))
 
           generateMultipleTicketsPDF(ticketDataForPDF)
-            .then((pdfBuffer) => {
+            .then(async (pdfBuffer) => {
               return sendEmail({
                 to: order.buyer_email,
                 subject: `Tus tickets — Orden #${order_id.slice(0, 8).toUpperCase()}`,
@@ -189,6 +189,13 @@ export async function POST(request: NextRequest) {
                     type: 'application/pdf',
                   },
                 ],
+              }).then(async (result) => {
+                const { error: markerError } = await adminDb
+                  .from('orders')
+                  .update({ ticket_email_sent_at: new Date().toISOString() })
+                  .eq('id', order_id)
+                if (markerError) throw markerError
+                return result
               })
             })
             .catch((e) => console.warn('[ADMIN] Ticket PDF email failed:', e))

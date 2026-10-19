@@ -2,13 +2,102 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendEmail } from '@/lib/email/resend'
 import { generateBookingPDF } from '@/lib/pdf/booking-generator'
+import { generateMultipleTicketsPDF, type TicketData } from '@/lib/pdf/ticket-generator'
 import { roundMoney } from '@/lib/travel-payment'
+import { paymentConfirmedTemplate } from '@/lib/email/templates'
 
 async function fetchPayment(id: string) {
   const token = process.env.MP_ACCESS_TOKEN || process.env.NEXT_PUBLIC_MP_ACCESS_TOKEN
   const response = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
   if (!response.ok) throw new Error(`Mercado Pago respondió ${response.status}`)
   return response.json()
+}
+
+function genTicketCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  return 'PA-' + Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+}
+
+async function createAndEmailOrderTickets(db: ReturnType<typeof createAdminClient>, order: any) {
+  if (order.ticket_email_sent_at) return
+
+  const { data: existingTicketRows, error: ticketsLookupError } = await db
+    .from('tickets')
+    .select('id, order_id, product_id, order_item_id, qr_code, holder_name, holder_email, holder_dni, holder_phone')
+    .eq('order_id', order.id)
+  if (ticketsLookupError) throw ticketsLookupError
+  let ticketRows: any[] = existingTicketRows ?? []
+
+  if (!ticketRows?.length) {
+    const { data: orderItems, error: itemsError } = await db
+      .from('order_items')
+      .select('id, product_id, quantity')
+      .eq('order_id', order.id)
+    if (itemsError) throw itemsError
+    if (!orderItems?.length) return
+
+    const newTickets = orderItems.flatMap((item: any) =>
+      Array.from({ length: item.quantity }, () => ({
+        order_id: order.id,
+        product_id: item.product_id,
+        order_item_id: item.id,
+        qr_code: genTicketCode(),
+        holder_name: order.buyer_name,
+        holder_email: order.buyer_email,
+        holder_dni: order.buyer_dni,
+        holder_phone: order.buyer_phone,
+      })),
+    )
+    const { error: insertError } = await db.from('tickets').insert(newTickets)
+    if (insertError) throw insertError
+    ticketRows = newTickets
+  }
+
+  const productIds = [...new Set(ticketRows.map((ticket: any) => ticket.product_id))]
+  const { data: products, error: productsError } = await db
+    .from('products')
+    .select('id, name, event_date, event_location')
+    .in('id', productIds)
+  if (productsError) throw productsError
+  const productMap = new Map((products ?? []).map((product: any) => [product.id, product]))
+
+  const ticketData: TicketData[] = ticketRows.map((ticket: any) => {
+    const product: any = productMap.get(ticket.product_id)
+    return {
+      orderReference: order.id.slice(0, 8).toUpperCase(),
+      ticketCode: ticket.qr_code,
+      holderName: ticket.holder_name,
+      dni: ticket.holder_dni || '-',
+      phone: ticket.holder_phone || '-',
+      productName: product?.name || 'Entrada',
+      eventName: product?.name || 'Manchas Plein Air',
+      eventDate: product?.event_date || undefined,
+      eventLocation: product?.event_location || undefined,
+    }
+  })
+  const pdf = await generateMultipleTicketsPDF(ticketData)
+  await sendEmail({
+    to: order.buyer_email,
+    subject: `Tus tickets — Orden #${order.id.slice(0, 8).toUpperCase()}`,
+    html: paymentConfirmedTemplate({
+      orderReference: order.id,
+      buyerName: order.buyer_name,
+      total: Number(order.total_ars || 0),
+      paymentDate: new Date().toISOString(),
+      ticketCount: ticketRows.length,
+      eventName: 'Manchas Plein Air',
+    }),
+    attachments: [{
+      content: pdf.toString('base64'),
+      filename: `tickets-${order.id.slice(0, 8).toUpperCase()}.pdf`,
+      type: 'application/pdf',
+    }],
+  })
+  const { error: emailMarkerError } = await db
+    .from('orders')
+    .update({ ticket_email_sent_at: new Date().toISOString() })
+    .eq('id', order.id)
+  if (emailMarkerError) throw emailMarkerError
 }
 
 export async function POST(request: NextRequest) {
@@ -20,7 +109,13 @@ export async function POST(request: NextRequest) {
     const orderId = payment.external_reference
     if (!orderId || !payment.id) return NextResponse.json({ received: true })
     const { data: order } = await db.from('orders').select('*').eq('id', orderId).single()
-    if (!order || String(order.mp_payment_id || '') === String(payment.id)) return NextResponse.json({ received: true })
+    if (!order) return NextResponse.json({ received: true })
+    if (String(order.mp_payment_id || '') === String(payment.id)) {
+      if (order.status === 'paid' && !order.ticket_email_sent_at) {
+        await createAndEmailOrderTickets(db, order)
+      }
+      return NextResponse.json({ received: true })
+    }
     const paidAmount = roundMoney(Number(payment.transaction_amount || 0))
     const approved = payment.status === 'approved'
     const { data: originalBookings } = await db.from('travel_bookings').select('*').eq('order_id', orderId)
@@ -37,8 +132,23 @@ export async function POST(request: NextRequest) {
     const orderStatus = approved
       ? (isInitialReservation && remainingTripBalance > 0 ? 'payment_pending' : nextDue === 0 ? 'paid' : 'payment_pending')
       : (['rejected', 'cancelled'].includes(payment.status) ? 'cancelled' : 'payment_pending')
-    await db.from('orders').update({ status: orderStatus, mp_payment_id: String(payment.id), amount_paid_ars: nextPaid, balance_due_ars: nextDue, updated_at: new Date().toISOString() }).eq('id', orderId)
+    const { error: orderUpdateError } = await db
+      .from('orders')
+      .update({ status: orderStatus, mp_payment_id: String(payment.id), amount_paid_ars: nextPaid, balance_due_ars: nextDue, updated_at: new Date().toISOString() })
+      .eq('id', orderId)
+    if (orderUpdateError) throw orderUpdateError
     if (!approved) return NextResponse.json({ received: true })
+
+    // Product ticket orders need QR records and a confirmation email after payment.
+    // Transfer orders are fulfilled by the admin status update flow.
+    if (orderStatus === 'paid') {
+      const { data: orderItems, error: orderItemsError } = await db
+        .from('order_items')
+        .select('id')
+        .eq('order_id', orderId)
+      if (orderItemsError) throw orderItemsError
+      if (orderItems?.length) await createAndEmailOrderTickets(db, order)
+    }
 
     const bookings = [...(originalBookings || []), ...(balanceBookings || [])]
     let remainingInitialAllocation = paidAmount
